@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Self-Fighter{% endblock %}</title>
+    {% block meta %}{% endblock %}
+    {% block assets %}
+        {{ vite_entry_link_tags('site') }}
+        {{ vite_entry_script_tags('site') }}
+    {% endblock %}
+</head>
+<body>
+    {% block body %}{% endblock %}
+</body>
+</html>

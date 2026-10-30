@@ -1,0 +1,13 @@
+# Local environment
+/.env
+
+# IDE and OS
+/.idea/
+.DS_Store
+
+# Frontend
+/frontend/coverage/
+/frontend/node_modules/
+
+# Frontend build output served by Symfony
+/backend/public/build/

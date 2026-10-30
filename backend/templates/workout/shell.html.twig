@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block meta %}
+    <meta name="robots" content="noindex, follow">
+{% endblock %}
+
+{% block assets %}
+    {{ vite_entry_link_tags('app') }}
+    {{ vite_entry_script_tags('app', { dependency: 'react' }) }}
+{% endblock %}
+
+{% block body %}
+    <div id="root"></div>
+{% endblock %}

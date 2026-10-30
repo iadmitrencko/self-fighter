@@ -1,0 +1,52 @@
+# Development environment. Docker Compose loads this file automatically.
+services:
+  app:
+    build:
+      context: .
+      target: app_dev
+    environment:
+      APP_ENV: dev
+      XDEBUG_MODE: ${XDEBUG_MODE:-off}
+    ports:
+      - ${HTTP_PORT:-8080}:80
+    volumes:
+      - ./backend:/app
+      - ./docker/frankenphp/Caddyfile:/etc/frankenphp/Caddyfile:ro
+      - ./docker/frankenphp/conf.d/20-app.dev.ini:/usr/local/etc/php/app.conf.d/20-app.dev.ini:ro
+      # Keep var/ off the bind mount for faster I/O on macOS
+      - app_var:/app/var
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  mysql:
+    ports:
+      - 127.0.0.1:${MYSQL_PORT:-3307}:3306
+    volumes:
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+
+  node:
+    image: node:26-alpine
+    working_dir: /srv/frontend
+    entrypoint: ["sh", "/usr/local/bin/app-entrypoint"]
+    command: ["npm", "run", "dev"]
+    environment:
+      VITE_PUBLIC_PORT: ${VITE_PORT:-5173}
+    ports:
+      - ${VITE_PORT:-5173}:5173
+    volumes:
+      - ./frontend:/srv/frontend
+      # Vite writes the dev server entrypoints for Symfony into public/build
+      - ./backend/public:/srv/backend/public
+      # Twig changes trigger a full page reload
+      - ./backend/templates:/srv/backend/templates:ro
+      - ./docker/node/docker-entrypoint.sh:/usr/local/bin/app-entrypoint:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5173/build/@vite/client"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5m
+      start_interval: 2s
+
+volumes:
+  app_var:

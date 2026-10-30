@@ -1,0 +1,37 @@
+# Git, IDE and OS
+**/.git
+**/.gitattributes
+**/.gitignore
+**/.DS_Store
+.github/
+.idea/
+
+# Project documents
+*.md
+design/
+e2e/
+
+# Local tooling
+.dockerignore
+.editorconfig
+.env
+.env.example
+Dockerfile
+Makefile
+compose*.yaml
+
+# Generated files
+**/node_modules/
+backend/public/build/
+backend/public/bundles/
+backend/var/
+backend/vendor/
+frontend/coverage/
+
+# Backend files that must not reach the production image
+backend/.env.*
+backend/.php-cs-fixer*
+backend/.phpunit.cache/
+backend/phpstan*
+backend/phpunit*
+backend/tests/

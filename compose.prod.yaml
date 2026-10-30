@@ -1,0 +1,44 @@
+# Production environment:
+# docker compose -f compose.yaml -f compose.prod.yaml up -d --wait
+services:
+  app:
+    image: ${APP_IMAGE:-self-fighter-app:prod}
+    build:
+      context: .
+      target: app_prod
+    restart: unless-stopped
+    environment:
+      APP_ENV: prod
+      APP_SECRET: ${APP_SECRET:?}
+      SERVER_NAME: ${SERVER_NAME:?}, app:80
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  mysql:
+    restart: unless-stopped
+    environment:
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    logging: *logging
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,37 @@
+name: self-fighter
+
+services:
+  app:
+    environment:
+      SERVER_NAME: ${SERVER_NAME:-:80}
+      DATABASE_URL: mysql://${MYSQL_USER:-app}:${MYSQL_PASSWORD:-app}@mysql:3306/${MYSQL_DATABASE:-app}?serverVersion=${MYSQL_VERSION:-9.7}&charset=utf8mb4
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(false === @file_get_contents('http://app/healthz', context: stream_context_create(['http' => ['timeout' => 5]])) ? 1 : 0);"]
+      interval: 10s
+      timeout: 6s
+      retries: 3
+      start_period: 5m
+      start_interval: 2s
+
+  mysql:
+    image: mysql:${MYSQL_VERSION:-9.7}
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-app}
+      MYSQL_USER: ${MYSQL_USER:-app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-app}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=$$MYSQL_USER --password=$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 2m
+      start_interval: 2s
+
+volumes:
+  mysql_data:
