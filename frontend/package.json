@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:bundle": "vite build --outDir node_modules/.cache/bundle-check --emptyOutDir && node scripts/check-bundle-size.js node_modules/.cache/bundle-check"
   },
   "dependencies": {
     "react": "^19.3.1",
@@ -22,6 +23,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/coverage-v8": "^5.0.5",
     "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",

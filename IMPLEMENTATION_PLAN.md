@@ -300,13 +300,12 @@ passesLadderStage(actual, target, max, rule)    // верхній етап: >= m
 
 ### Етап 2. CI і наскрізний деплой
 
+**Статус:** `ci.yml` написаний і перевірений локально на чистій копії. VPS ще немає, тому деплой перенесено на етап 10. Лишилося запустити CI на GitHub і ввімкнути захист гілки `main`.
+
 - Налаштувати `ci.yml`: лінтери, типи, тести, збірка prod-образу.
-- Налаштувати `deploy.yml`, публікацію образу в GHCR і staging під basic auth та `noindex`.
-- Увімкнути захист гілки `main`: merge лише із зеленим CI.
+- Увімкнути захист гілки `main`: merge лише із зеленим CI (розділ 11).
 
-Якщо VPS ще немає, етап обмежується CI, а деплой переходить на етап 10.
-
-**Готово, коли** merge у `main` автоматично з'являється на staging.
+**Готово, коли** CI проходить на GitHub, а `main` приймає зміни лише із зеленим CI.
 
 ### Етап 3. Ігровий домен
 
@@ -351,6 +350,7 @@ passesLadderStage(actual, target, max, rule)    // верхній етап: >= m
 - Службові стани: підтвердження переривання, відновлення спроби, порожня історія, помилка сховища.
 - Десктопний вигляд.
 - Відкриття готового виклику: `/workout/challenge/{slug}` заповнює налаштування, і користувач може змінити їх перед стартом.
+- Додати в CI завдання `e2e` із Playwright і axe (розділ 7).
 
 **Готово, коли** усі пункти «Режими» й «Продукт» із §18, крім деплою, проходять у Playwright на мобільному й десктопному профілях, зокрема у WebKit.
 
@@ -409,6 +409,7 @@ passesLadderStage(actual, target, max, rule)    // верхній етап: >= m
 
 ### Етап 10. Production і запуск
 
+- Налаштувати `deploy.yml`, публікацію образу в GHCR і staging під basic auth та `noindex` (розділ 7).
 - Налаштувати prod-середовище, TLS, заголовки безпеки (CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy`).
 - Налаштувати щоденний зашифрований `mysqldump` у зовнішнє сховище на 14 днів, перевірити відновлення й додати зовнішній моніторинг доступності.
 - Написати політику приватності, умови користування й остаточний текст банера згоди. Політика має описувати, як застосунок використовує дані Google.
@@ -529,9 +530,11 @@ Google вважає порушенням сторінки, створені пі
 | -------- | --------- |
 | backend | PHP CS Fixer, PHPStan, `composer audit`, `lint:twig`, `lint:container`, `doctrine:schema:validate`, PHPUnit на реальному MySQL |
 | frontend | ESLint, `tsc --noEmit`, Vitest із порогами покриття, `npm audit --audit-level=high`, бюджет бандла, актуальність `generated.json` |
-| image | Збірка prod-образу, hadolint, Trivy |
-| e2e | Prod-образ із MySQL, Playwright на Mobile Chrome, Mobile Safari і Desktop, axe |
-| seo | SEO-тести за sitemap, Lighthouse CI |
+| image | hadolint, actionlint, збірка prod-образу, Trivy, запуск `compose.prod.yaml`, smoke-тест |
+| e2e | Етап 6. Prod-образ із MySQL, Playwright на Mobile Chrome, Mobile Safari і Desktop, axe |
+| seo | Етап 7. SEO-тести за sitemap, Lighthouse CI |
+
+Завдання `frontend` запускає лише контейнер Node, тому не чекає на збірку PHP-образу.
 
 **`deploy.yml`** просуває один і той самий образ середовищами:
 
@@ -553,6 +556,8 @@ Google вважає порушенням сторінки, створені пі
 - Міграції сумісні з попередньою версією коду, інакше відкат небезпечний.
 - Секрети, зокрема `GOOGLE_CLIENT_ID` і `GOOGLE_CLIENT_SECRET`, лежать у GitHub Environments і в `.env` на сервері, але не в Git.
 - MySQL не публікується назовні.
+- Дії GitHub закріплені за повним SHA, а інструменти запускаються з образів, закріплених за digest. Dependabot щомісяця пропонує оновлення дій.
+- `aquasecurity/trivy-action` не використовуємо: у березні 2026 його теги були скомпрометовані (CVE-2026-33634). Trivy отримує лише архів образу, без Docker-сокета й токена.
 - Образ збирається під архітектуру VPS. Локальна машина має arm64, тому dev-образ завжди будується локально.
 - Перезапуск контейнера дає кілька секунд простою. Для MVP це прийнятно.
 
@@ -645,6 +650,18 @@ Google вважає порушенням сторінки, створені пі
 4. Визначити автора або рецензента текстів.
 5. Надати контакт для політики приватності, умов користування й сторінки про проєкт.
 6. Налаштувати Google Cloud за кроками нижче.
+7. Увімкнути захист гілки `main` за кроками нижче.
+
+### Захист гілки `main`
+
+Налаштування доступне після першого запуску CI, бо назви перевірок з'являються лише тоді.
+
+1. На GitHub відкрити Settings → Rules → Rulesets → New ruleset → New branch ruleset.
+2. Задати назву `main`, Enforcement status: Active, а в Target branches обрати Include default branch.
+3. Увімкнути Require a pull request before merging.
+4. Увімкнути Require status checks to pass і додати `backend`, `frontend`, `image`.
+
+Після цього прямі push у `main` не працюватимуть: зміни потрапляють туди лише через pull request.
 
 ### Налаштування Google Cloud
 
@@ -671,6 +688,8 @@ Google вважає порушенням сторінки, створені пі
 - [Google: нав'язливі діалоги](https://developers.google.com/search/docs/appearance/avoid-intrusive-interstitials)
 - [EDPB: Guidelines 2/2023](https://www.edpb.europa.eu/documents/guideline/guidelines-22023-on-technical-scope-of-art-53-of-eprivacy-directive_en)
 - [Matheson: звіт EDPB про банери згоди](https://www.matheson.com/insights/edpb-cookie-banner-taskforce-publishes-report)
+- [Aqua Security: компрометація Trivy](https://www.aquasec.com/blog/trivy-supply-chain-attack-what-you-need-to-know)
+- [GitHub: безпечне використання Actions](https://docs.github.com/en/actions/reference/security/secure-use)
 - [Google: SEO Starter Guide](https://developers.google.com/search/docs/fundamentals/seo-starter-guide)
 - [Google: брендинг застосунку](https://support.google.com/cloud/answer/15549049)
 - [Google: аудиторія застосунку](https://support.google.com/cloud/answer/15549945)

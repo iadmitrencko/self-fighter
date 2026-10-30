@@ -23,11 +23,15 @@ Self-Fighter — вебзастосунок, який перетворює тр�
 | `make up` | Підняти проєкт. На чистому клоні нічого більше робити не треба |
 | `make down` | Стопнути проєкт, контейнери й дані лишаються |
 | `make kill` | Стопнути проєкт, видалити контейнери й образи. Volume MySQL лишається |
-| `make test` | Запустити PHPUnit і Vitest |
-| `make lint` | Запустити PHP CS Fixer, PHPStan, перевірки Symfony, ESLint і TypeScript |
+| `make test` | Запустити PHPUnit і Vitest із покриттям |
+| `make lint` | Запустити PHP CS Fixer, PHPStan, перевірки Symfony, ESLint, TypeScript, hadolint і actionlint |
+| `make audit` | Перевірити залежності на вразливості |
+| `make bundle` | Перевірити бюджет розміру JS |
 | `make fix` | Виправити стиль коду |
 | `make migrate` | Застосувати міграції |
 | `make logs`, `make ps`, `make sh` | Логи, стан контейнерів, shell у застосунку |
+
+Цілі `test`, `lint` і `audit` мають варіанти `-backend` і `-frontend`, а `lint` ще й `-infra`. CI викликає ті самі цілі, тому локальна перевірка відповідає CI.
 
 Залежності ставляться всередині контейнерів:
 
@@ -45,5 +49,6 @@ docker compose exec node npm install package
 - Екрани гри звертаються до даних лише через контракт сховища (розділ 3.7 плану).
 - Публічні сторінки рендерить Twig. Вони не запускають сесію й не завантажують React.
 - TypeScript зафіксовано на `~6.0`, бо `typescript-eslint` не підтримує 7.x. Тег MySQL задаємо явно, бо `latest` вказує на іншу гілку.
+- Дії GitHub закріплюємо за повним SHA, а образи інструментів за digest. `aquasecurity/trivy-action` не використовуємо.
 - На машині розробника працюють інші Docker-проєкти. Команди мають стосуватися лише проєкту `self-fighter`, тому `docker system prune` не використовуємо.
 - Перед завершенням роботи запускаємо `make lint` і `make test`.
