@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>Історія та статистика</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&amp;family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#111214}
+a{color:#FF6B2C}a:hover{color:#FF8A55}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1000px; box-sizing: border-box; background: #111214; color: #F3F1EA; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; gap: 22px; padding: 56px 20px 34px">
+
+  <div style="display: flex; align-items: center; gap: 12px">
+    <a href="Modes.dc.html" aria-label="Назад" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid #2C2F35; color: #F3F1EA">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>
+    </a>
+    <h1 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 24px">Історія</h1>
+  </div>
+
+  <section aria-label="Загальна статистика" style="border: 1px solid #2C2F35; border-radius: 16px; background: #1B1D21; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; align-items: baseline; justify-content: space-between">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #A3A6AD">ЗАВЕРШЕНО ТРЕНУВАНЬ</span>
+      <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 32px">12</span>
+    </div>
+    <div aria-hidden="true" style="display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px">
+      <span style="flex: 7; background: #FF6B2C"></span><span style="flex: 2; background: #8A8D94"></span><span style="flex: 3; background: #5B9BFF"></span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 22px; color: #FF6B2C">7</span><span style="font-size: 13px; font-weight: 700">▲ Перемоги</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 22px; color: #C9CBD1">2</span><span style="font-size: 13px; font-weight: 700">= Нічиї</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 22px; color: #5B9BFF">3</span><span style="font-size: 13px; font-weight: 700">▼ Поразки</span></div>
+    </div>
+  </section>
+
+  <div role="group" aria-label="Фільтр за режимом" style="display: flex; gap: 8px; overflow-x: auto; margin: 0 -20px; padding: 0 20px">
+    <sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+      <button type="button" aria-pressed="{{f.on}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</button>
+    </sc-for>
+  </div>
+
+  <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+    <sc-for list="{{items}}" as="it" hint-placeholder-count="6">
+      <li style="border: 1px solid #2C2F35; border-radius: 14px; padding: 14px 16px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center">
+        <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 15px">{{it.mode}}</span>
+        <span style="{{it.badgeStyle}}">{{it.badge}}</span>
+        <span style="font-size: 14px; color: #A3A6AD">{{it.detail}}</span>
+        <span style="font-size: 14px; color: #A3A6AD; text-align: right">{{it.date}}</span>
+      </li>
+    </sc-for>
+  </ul>
+
+  <p style="margin: 0; display: flex; gap: 10px; font-size: 13px; line-height: 1.5; color: #A3A6AD">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg>
+    Історія зберігається лише в цьому браузері. Перервані тренування не враховуються.
+  </p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { f: 'all' }; }
+  renderVals() {
+    const all = [
+      { m: 'random', mode: 'Випадковий суперник', detail: '5 раундів · 2 вправи · 2 : 1', date: '29 жовт., 19:42', r: 'win' },
+      { m: 'ladder', mode: 'Драбина', detail: 'Підтягування · до 5 і вниз · 6 з 9', date: '28 жовт., 08:10', r: 'loss' },
+      { m: 'target', mode: 'Ціль', detail: '4 раунди · 3 вправи · 2 : 2', date: '27 жовт., 20:05', r: 'draw' },
+      { m: 'levels', mode: 'Рівні суперників', detail: 'Складний · 3 раунди · 1 : 2', date: '26 жовт., 18:30', r: 'loss' },
+      { m: 'ladder', mode: 'Драбина', detail: 'Віджимання · до 10 · 10 з 10', date: '25 жовт., 07:55', r: 'win' },
+      { m: 'target', mode: 'Ціль', detail: '5 раундів · 2 вправи · 4 : 1', date: '24 жовт., 19:12', r: 'win' }
+    ];
+    const base = 'font-size: 12px; font-weight: 700; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 12px; white-space: nowrap; ';
+    const items = all.filter((x) => this.state.f === 'all' || x.m === this.state.f).map((x) => ({ ...x,
+      badge: x.r === 'win' ? '▲ Перемога' : x.r === 'loss' ? '▼ Поразка' : '= Нічия',
+      badgeStyle: base + (x.r === 'win' ? 'background: #FF6B2C; color: #111214;' : x.r === 'loss' ? 'color: #8FB8FF; border: 1px solid #5B9BFF;' : 'background: #2C2F35; color: #F3F1EA;') }));
+    const defs = [['all', 'Усі'], ['target', 'Ціль'], ['random', 'Випадковий'], ['levels', 'Рівні'], ['ladder', 'Драбина']];
+    const filters = defs.map(([id, label]) => {
+      const on = this.state.f === id;
+      return { label, on: on ? 'true' : 'false', pick: () => this.setState({ f: id }),
+        style: 'flex: none; min-height: 44px; padding: 0 16px; border-radius: 22px; font-family: inherit; font-weight: 700; font-size: 14px; cursor: pointer; ' +
+          (on ? 'background: #F3F1EA; color: #111214; border: 1px solid #F3F1EA;' : 'background: transparent; color: #F3F1EA; border: 1px solid #3A3E45;') };
+    });
+    return { items, filters };
+  }
+}
+</script>
+</body>
+</html>

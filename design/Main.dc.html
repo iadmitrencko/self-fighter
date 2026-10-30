@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>Self-Fighter — головна</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&amp;family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#111214}
+a{color:#FF6B2C}a:hover{color:#FF8A55}
+.sf-stripes{background-image:repeating-linear-gradient(135deg, rgba(255,255,255,0.035) 0 2px, transparent 2px 14px)}
+</style>
+</helmet>
+<div style="background: #111214; color: #F3F1EA; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; min-height: 2900px">
+
+  <header style="max-width: 1240px; margin: 0 auto; padding: 24px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+    <a href="#top" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #F3F1EA">
+      <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><path d="M3 6 L16 18 L3 30 Z" fill="#FF6B2C"></path><path d="M33 6 L20 18 L33 30 Z" fill="#5B9BFF"></path></svg>
+      <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: 0.02em">SELF‑FIGHTER</span>
+    </a>
+    <nav style="display: flex; flex-wrap: wrap; align-items: center; gap: 28px; font-size: 15px; font-weight: 500">
+      <a href="#modes" style="color: #C9CBD1; text-decoration: none">Режими</a>
+      <a href="#how" style="color: #C9CBD1; text-decoration: none">Як це працює</a>
+      <a href="Modes.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 8px; background: #FF6B2C; color: #111214; font-weight: 700; text-decoration: none">Почати тренування</a>
+    </nav>
+  </header>
+
+  <section id="top" class="sf-stripes" style="border-top: 1px solid #2C2F35; border-bottom: 1px solid #2C2F35">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 88px 32px 96px; display: flex; flex-wrap: wrap; align-items: center; gap: 64px">
+      <div style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 28px">
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.14em; color: #FF6B2C">
+          <span style="width: 28px; height: 2px; background: #FF6B2C"></span>ТРЕНУВАННЯ У ФОРМАТІ ГРИ
+        </div>
+        <h1 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: clamp(44px, 6.4vw, 92px); line-height: 0.98; letter-spacing: -0.02em; text-wrap: balance">Перетвори тренування на&#160;гру.</h1>
+        <p style="margin: 0; max-width: 520px; font-size: 20px; line-height: 1.5; color: #C9CBD1; text-wrap: pretty">Обирай вправи, приймай виклик, перемагай суперника або проходь власні цілі.</p>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px">
+          <a href="Modes.dc.html" style="display: inline-flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 32px; border-radius: 10px; background: #FF6B2C; color: #111214; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 17px; text-decoration: none">Почати тренування
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </a>
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 15px; color: #A3A6AD">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+            Реєстрація не потрібна
+          </span>
+        </div>
+      </div>
+
+      <div style="flex: 1 1 420px; min-width: 0; max-width: 500px; background: #1B1D21; border: 1px solid #2C2F35; border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 30px 80px rgba(0,0,0,0.45)">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #A3A6AD">
+          <span>ВИПАДКОВИЙ СУПЕРНИК</span><span>РАУНД 3 / 5</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 12px">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 13px; font-weight: 700; color: #FF6B2C; letter-spacing: 0.1em">ТИ</span>
+            <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 88px; line-height: 0.9; color: #FF6B2C">2</span>
+          </div>
+          <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 500; font-size: 40px; color: #5E626A; padding-bottom: 6px">:</span>
+          <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end">
+            <span style="font-size: 13px; font-weight: 700; color: #5B9BFF; letter-spacing: 0.1em">СУПЕРНИК</span>
+            <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 88px; line-height: 0.9; color: #5B9BFF">0</span>
+          </div>
+        </div>
+        <div style="font-size: 13px; color: #A3A6AD; text-align: center">рахунок раундів</div>
+        <div style="display: flex; flex-direction: column; border-top: 1px solid #2C2F35">
+          <div style="display: grid; grid-template-columns: 1fr 56px 56px 120px; align-items: center; gap: 8px; padding: 14px 0; border-bottom: 1px solid #2C2F35; font-size: 16px">
+            <span>Віджимання</span><span style="font-weight: 700; color: #FF6B2C; text-align: right">24</span><span style="color: #5B9BFF; text-align: right">21</span><span style="font-weight: 700; text-align: right">▲ Перемога</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 56px 56px 120px; align-items: center; gap: 8px; padding: 14px 0; border-bottom: 1px solid #2C2F35; font-size: 16px">
+            <span>Присідання</span><span style="font-weight: 700; color: #FF6B2C; text-align: right">30</span><span style="color: #5B9BFF; text-align: right">34</span><span style="font-weight: 700; color: #A3A6AD; text-align: right">▼ Поразка</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 56px 56px 120px; align-items: center; gap: 8px; padding: 14px 0; font-size: 16px">
+            <span>Підтягування</span><span style="font-weight: 700; color: #FF6B2C; text-align: right">9</span><span style="color: #5B9BFF; text-align: right">7</span><span style="font-weight: 700; text-align: right">▲ Перемога</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="modes" style="max-width: 1240px; margin: 0 auto; padding: 112px 32px 40px; display: flex; flex-direction: column; gap: 48px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px">
+      <h2 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: clamp(32px, 4vw, 52px); line-height: 1.05; letter-spacing: -0.01em">Чотири способи<br>кинути собі виклик</h2>
+      <p style="margin: 0; max-width: 380px; font-size: 17px; line-height: 1.55; color: #A3A6AD">Усі режими працюють зі спільним каталогом вправ: віджимання, присідання, підтягування — або власні.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 16px">
+      <article style="background: #1B1D21; border: 1px solid #2C2F35; border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 16px; min-height: 280px">
+        <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 15px; color: #5E626A">01</span>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FF6B2C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.2"></circle></svg>
+        <h3 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 22px">Ціль</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #C9CBD1">Задай кількість повторень для кожної вправи в кожному раунді — і виконай або перевиконай її.</p>
+      </article>
+      <article style="background: #1B1D21; border: 1px solid #2C2F35; border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 16px; min-height: 280px">
+        <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 15px; color: #5E626A">02</span>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FF6B2C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="8.5" cy="8.5" r="1.3"></circle><circle cx="15.5" cy="15.5" r="1.3"></circle><circle cx="12" cy="12" r="1.3"></circle></svg>
+        <h3 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 22px">Випадковий суперник</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #C9CBD1">Суперник отримує випадковий результат у заданому тобою діапазоні. Побий його.</p>
+      </article>
+      <article style="background: #1B1D21; border: 1px solid #2C2F35; border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 16px; min-height: 280px">
+        <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 15px; color: #5E626A">03</span>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FF6B2C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V14M10 20V9M16 20V4"></path><path d="M2 20h20"></path></svg>
+        <h3 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 22px">Рівні суперників</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #C9CBD1">Обери складність — простий, середній чи складний. Складний іноді перевершує сам себе.</p>
+      </article>
+      <article style="background: #1B1D21; border: 1px solid #2C2F35; border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 16px; min-height: 280px">
+        <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 15px; color: #5E626A">04</span>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FF6B2C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h4v-4h4v-4h4V8h4V4"></path></svg>
+        <h3 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 22px">Драбина</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #C9CBD1">1 → 2 → 3 … до максимуму. За бажанням — і назад униз. Один промах — і спробу завершено.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="how" style="max-width: 1240px; margin: 0 auto; padding: 96px 32px 40px; display: flex; flex-direction: column; gap: 48px">
+    <h2 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: clamp(32px, 4vw, 52px); line-height: 1.05; letter-spacing: -0.01em">Як це працює</h2>
+    <ol style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 40px">
+      <li style="display: flex; flex-direction: column; gap: 14px; border-top: 3px solid #FF6B2C; padding-top: 24px">
+        <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 56px; line-height: 1; color: #F3F1EA">1</span>
+        <h3 style="margin: 0; font-size: 20px; font-weight: 700">Налаштуй бій</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #A3A6AD">Обери режим, вправи, кількість раундів і правило перемоги: виконати чи перевиконати.</p>
+      </li>
+      <li style="display: flex; flex-direction: column; gap: 14px; border-top: 3px solid #FF6B2C; padding-top: 24px">
+        <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 56px; line-height: 1; color: #F3F1EA">2</span>
+        <h3 style="margin: 0; font-size: 20px; font-weight: 700">Зроби вправу — введи число</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #A3A6AD">Ти тренуєшся сам і вписуєш, скільки повторень зробив. Ніякої камери.</p>
+      </li>
+      <li style="display: flex; flex-direction: column; gap: 14px; border-top: 3px solid #FF6B2C; padding-top: 24px">
+        <span style="font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 56px; line-height: 1; color: #F3F1EA">3</span>
+        <h3 style="margin: 0; font-size: 20px; font-weight: 700">Дізнайся результат</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #A3A6AD">Перемога, нічия чи поразка — по кожній вправі, раунду й бою. Усе потрапляє в історію.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section style="max-width: 1240px; margin: 0 auto; padding: 96px 32px 40px; display: flex; flex-direction: column; gap: 40px">
+    <h2 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: clamp(32px, 4vw, 52px); line-height: 1.05; letter-spacing: -0.01em">Чому це працює</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 1px; background: #2C2F35; border: 1px solid #2C2F35; border-radius: 14px; overflow: hidden">
+      <div style="background: #111214; padding: 32px; display: flex; flex-direction: column; gap: 10px">
+        <h3 style="margin: 0; font-size: 19px; font-weight: 700">Чітка ціль щоразу</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #A3A6AD">Кожен підхід — це конкретне число, яке треба побити.</p>
+      </div>
+      <div style="background: #111214; padding: 32px; display: flex; flex-direction: column; gap: 10px">
+        <h3 style="margin: 0; font-size: 19px; font-weight: 700">Видно прогрес</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #A3A6AD">Історія спроб і рахунок перемог, нічиїх і поразок.</p>
+      </div>
+      <div style="background: #111214; padding: 32px; display: flex; flex-direction: column; gap: 10px">
+        <h3 style="margin: 0; font-size: 19px; font-weight: 700">Без реєстрації</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #A3A6AD">Відкрив сайт — і вже в бою.</p>
+      </div>
+      <div style="background: #111214; padding: 32px; display: flex; flex-direction: column; gap: 10px">
+        <h3 style="margin: 0; font-size: 19px; font-weight: 700">Твої вправи</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #A3A6AD">Додай власну вправу один раз — використовуй у будь-якому режимі.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width: 1240px; margin: 0 auto; padding: 96px 32px 72px">
+    <div class="sf-stripes" style="border: 1px solid #2C2F35; border-radius: 20px; padding: 72px 40px; display: flex; flex-direction: column; align-items: center; gap: 28px; text-align: center">
+      <h2 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: clamp(32px, 4.6vw, 64px); line-height: 1.02; letter-spacing: -0.02em; text-wrap: balance">Перший раунд — зараз.</h2>
+      <a href="Modes.dc.html" style="display: inline-flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 32px; border-radius: 10px; background: #FF6B2C; color: #111214; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 17px; text-decoration: none">Почати тренування</a>
+      <p style="margin: 0; font-size: 15px; color: #A3A6AD">Реєстрація не потрібна.</p>
+    </div>
+  </section>
+
+  <footer style="max-width: 1240px; margin: 0 auto; padding: 32px; border-top: 1px solid #2C2F35; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; font-size: 14px; color: #A3A6AD">
+    <span>© Self-Fighter</span>
+    <span style="max-width: 640px">Дані гостя зберігаються лише в цьому браузері: вони не синхронізуються між пристроями й зникнуть після очищення даних браузера.</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

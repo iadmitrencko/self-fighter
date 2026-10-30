@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>Налаштування режиму «Ціль»</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&amp;family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#111214}
+a{color:#FF6B2C}a:hover{color:#FF8A55}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1180px; box-sizing: border-box; background: #111214; color: #F3F1EA; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; gap: 28px; padding: 56px 20px 34px">
+
+  <div style="display: flex; align-items: center; gap: 12px">
+    <a href="Modes.dc.html" aria-label="Назад до вибору режиму" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid #2C2F35; color: #F3F1EA">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>
+    </a>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: #A3A6AD">КРОК 2 З 2 · РЕЖИМ «ЦІЛЬ»</span>
+      <h1 style="margin: 0; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 22px">Налаштуй бій</h1>
+    </div>
+  </div>
+
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #A3A6AD">ВПРАВИ · 2 З 20</h2>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px">
+      <span style="display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 6px 0 14px; border-radius: 22px; background: #F3F1EA; color: #111214; font-weight: 700; font-size: 15px">Віджимання
+        <button type="button" aria-label="Прибрати вправу Віджимання" style="width: 34px; height: 34px; border: 0; border-radius: 17px; background: transparent; color: #111214; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 6px 0 14px; border-radius: 22px; background: #F3F1EA; color: #111214; font-weight: 700; font-size: 15px">Присідання
+        <button type="button" aria-label="Прибрати вправу Присідання" style="width: 34px; height: 34px; border: 0; border-radius: 17px; background: transparent; color: #111214; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+      </span>
+      <button type="button" style="display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border-radius: 22px; background: transparent; border: 1px dashed #5E626A; color: #F3F1EA; font-family: inherit; font-weight: 500; font-size: 15px; cursor: pointer">Підтягування
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+      </button>
+      <button type="button" style="display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border-radius: 22px; background: transparent; border: 1px dashed #5E626A; color: #FF6B2C; font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Власна вправа
+      </button>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #A3A6AD">УМОВА ПЕРЕМОГИ</h2>
+    <div role="radiogroup" aria-label="Умова перемоги" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 4px; border-radius: 12px; background: #1B1D21; border: 1px solid #2C2F35">
+      <button type="button" role="radio" aria-checked="{{overOn}}" onClick="{{setOver}}" style="{{overStyle}}">Перевиконати<span style="display: block; font-size: 12px; font-weight: 500; opacity: 0.8">більше за ціль</span></button>
+      <button type="button" role="radio" aria-checked="{{meetOn}}" onClick="{{setMeet}}" style="{{meetStyle}}">Виконати<span style="display: block; font-size: 12px; font-weight: 500; opacity: 0.8">ціль або більше</span></button>
+    </div>
+  </section>
+
+  <section style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #A3A6AD">РАУНДИ</h2>
+      <span style="font-size: 13px; color: #A3A6AD">від 1 до 20</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 4px; border: 1px solid #2C2F35; border-radius: 12px; padding: 4px; background: #1B1D21">
+      <button type="button" aria-label="Менше раундів" onClick="{{dec}}" style="width: 44px; height: 44px; border: 0; border-radius: 8px; background: #2C2F35; color: #F3F1EA; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+      <output aria-live="polite" style="width: 56px; text-align: center; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 900; font-size: 24px">{{rounds}}</output>
+      <button type="button" aria-label="Більше раундів" onClick="{{inc}}" style="width: 44px; height: 44px; border: 0; border-radius: 8px; background: #2C2F35; color: #F3F1EA; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <h2 style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #A3A6AD">ЦІЛІ ЗА РАУНДАМИ</h2>
+      <span style="font-size: 12px; color: #A3A6AD">● змінено вручну</span>
+    </div>
+    <div style="border: 1px solid #2C2F35; border-radius: 14px; overflow: hidden">
+      <div style="display: grid; grid-template-columns: 64px repeat(2, minmax(0, 1fr)); background: #1B1D21; border-bottom: 1px solid #2C2F35">
+        <span style="padding: 12px; font-size: 12px; font-weight: 700; color: #A3A6AD">РАУНД</span>
+        <span style="padding: 12px; font-size: 14px; font-weight: 700">Віджимання</span>
+        <span style="padding: 12px; font-size: 14px; font-weight: 700">Присідання</span>
+      </div>
+      <sc-for list="{{rows}}" as="row" hint-placeholder-count="5">
+        <div style="display: grid; grid-template-columns: 64px repeat(2, minmax(0, 1fr)); align-items: center; border-bottom: 1px solid #2C2F35">
+          <span style="padding: 0 12px; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 16px; color: #A3A6AD">{{row.n}}</span>
+          <sc-for list="{{row.cells}}" as="c" hint-placeholder-count="2">
+            <div style="padding: 6px 8px; display: flex; align-items: center; gap: 6px">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" aria-label="{{c.label}}" value="{{c.v}}" onChange="{{c.set}}" style="width: 100%; min-width: 0; height: 44px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid #3A3E45; background: #111214; color: #F3F1EA; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 17px">
+              <span aria-label="{{c.manualLabel}}" style="width: 10px; font-size: 10px; color: #FF6B2C">{{c.dot}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+      <div style="display: grid; grid-template-columns: 64px repeat(2, minmax(0, 1fr)); background: #1B1D21">
+        <span></span>
+        <button type="button" onClick="{{fill0}}" style="min-height: 44px; margin: 6px; border: 0; border-radius: 8px; background: #2C2F35; color: #F3F1EA; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer">Заповнити всі</button>
+        <button type="button" onClick="{{fill1}}" style="min-height: 44px; margin: 6px; border: 0; border-radius: 8px; background: #2C2F35; color: #F3F1EA; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer">Заповнити всі</button>
+      </div>
+    </div>
+    <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #A3A6AD">Значення першого раунду автоматично копіюється в раунди, які ти ще не змінював. «Заповнити всі» перезаписує всі раунди значенням першого.</p>
+  </section>
+
+  <a href="Fight.dc.html" style="margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 58px; border-radius: 12px; background: #FF6B2C; color: #111214; font-family: Unbounded, 'Arial Black', sans-serif; font-weight: 700; font-size: 17px; text-decoration: none">Почати бій</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { rounds: 5, rule: 'over',
+      cols: [ { vals: ['10','12','15','15','15'], manual: [false,true,true,false,false] },
+              { vals: ['20','20','25','20','20'], manual: [false,false,true,false,false] } ] };
+  }
+  setCell(ci, ri, v) {
+    v = String(v).replace(/[^0-9]/g, '');
+    const cols = this.state.cols.map((c) => ({ vals: c.vals.slice(), manual: c.manual.slice() }));
+    const col = cols[ci];
+    col.vals[ri] = v;
+    if (ri === 0) { for (let i = 1; i < col.vals.length; i++) if (!col.manual[i]) col.vals[i] = v; }
+    else col.manual[ri] = true;
+    this.setState({ cols });
+  }
+  fill(ci) {
+    const cols = this.state.cols.map((c) => ({ vals: c.vals.slice(), manual: c.manual.slice() }));
+    const col = cols[ci];
+    for (let i = 0; i < col.vals.length; i++) { col.vals[i] = col.vals[0]; col.manual[i] = false; }
+    this.setState({ cols });
+  }
+  setRounds(n) {
+    n = Math.max(1, Math.min(20, n));
+    const cols = this.state.cols.map((c) => {
+      const vals = c.vals.slice(0, n), manual = c.manual.slice(0, n);
+      while (vals.length < n) { vals.push(vals[0] || ''); manual.push(false); }
+      return { vals, manual };
+    });
+    this.setState({ rounds: n, cols });
+  }
+  renderVals() {
+    const names = ['Віджимання', 'Присідання'];
+    const s = this.state;
+    const rows = [];
+    for (let r = 0; r < s.rounds; r++) {
+      rows.push({ n: r + 1, cells: s.cols.map((c, ci) => ({
+        v: c.vals[r], label: names[ci] + ', раунд ' + (r + 1),
+        dot: c.manual[r] ? '●' : '', manualLabel: c.manual[r] ? 'змінено вручну' : '',
+        set: (e) => this.setCell(ci, r, e.target.value) })) });
+    }
+    const base = 'min-height: 52px; border-radius: 9px; font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer; ';
+    const on = base + 'background: #FF6B2C; color: #111214; border: 0;';
+    const off = base + 'background: transparent; color: #F3F1EA; border: 0;';
+    return {
+      rounds: s.rounds, rows,
+      dec: () => this.setRounds(s.rounds - 1), inc: () => this.setRounds(s.rounds + 1),
+      fill0: () => this.fill(0), fill1: () => this.fill(1),
+      overOn: s.rule === 'over' ? 'true' : 'false', meetOn: s.rule === 'meet' ? 'true' : 'false',
+      overStyle: s.rule === 'over' ? on : off, meetStyle: s.rule === 'meet' ? on : off,
+      setOver: () => this.setState({ rule: 'over' }), setMeet: () => this.setState({ rule: 'meet' })
+    };
+  }
+}
+</script>
+</body>
+</html>
