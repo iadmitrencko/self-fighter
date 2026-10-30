@@ -34,10 +34,37 @@ export default defineConfig([
         {
           patterns: [
             {
-              group: ['react', 'react-dom', 'react-dom/*', 'dexie', '**/app/**', '**/storage/**'],
-              message: 'The domain layer must not depend on the UI or on storage.',
+              group: [
+                'react',
+                'react-dom',
+                'react-dom/*',
+                'dexie',
+                '**/app/**',
+                '**/storage/**',
+                '**/i18n/**',
+              ],
+              message: 'The domain layer must not depend on the UI, on storage or on texts.',
             },
           ],
+        },
+      ],
+    },
+  },
+  {
+    // Randomness and time are injected, so every rule is deterministic under test.
+    files: ['src/domain/**/*.ts'],
+    ignores: ['**/*.test.ts', 'src/domain/testing/**'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        { object: 'Math', property: 'random', message: 'Use the injected rng.' },
+        { object: 'Date', property: 'now', message: 'Use the injected now().' },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+          message: 'Use the injected now().',
         },
       ],
     },

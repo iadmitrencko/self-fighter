@@ -8,6 +8,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**'],
+      exclude: ['src/domain/testing/**'],
       reporter: ['text'],
       thresholds: {
         // The rules that decide who wins must be fully covered (§17.3 of the specification).
