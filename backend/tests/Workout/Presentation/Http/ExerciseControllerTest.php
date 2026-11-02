@@ -63,8 +63,12 @@ final class ExerciseControllerTest extends ApiTestCase
         $this->switchBrowser();
         $this->signUp();
 
-        $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'Бурпі', 'description' => '']);
+        $theirs = ExerciseId::generate()->value;
+        $this->send('PUT', '/api/v1/exercises/'.$theirs, ['name' => 'Бурпі', 'description' => '']);
         self::assertResponseStatusCodeSame(201);
+
+        $this->send('GET', '/api/v1/exercises');
+        self::assertSame([['id' => $theirs, 'name' => 'Бурпі', 'description' => '']], $this->responseData());
 
         $this->send('PUT', '/api/v1/exercises/'.$id, ['name' => 'Чуже', 'description' => '']);
         $this->assertError(409, 'conflict');

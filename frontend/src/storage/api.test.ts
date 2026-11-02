@@ -56,6 +56,26 @@ describe('storage over the API', () => {
       expect(server.requests.slice(requests)).toEqual(['GET /api/v1/exercises', 'GET /api/v1/settings']);
     });
 
+    // A screen that has read the data shows its own changes without asking the server again.
+    it('keeps the loaded data up to date after changes', async () => {
+      const burpees = await storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
+      await storage.exercises.list();
+      await storage.settings.get('target');
+      const requests = server.requests.length;
+
+      const pullUps = await storage.exercises.save({ id: newId(), name: 'Підтягування', description: '' });
+      const renamed = await storage.exercises.save({ ...burpees, name: 'Бурпі зі стрибком' });
+      await storage.settings.save(ladderConfig());
+
+      expect(await storage.exercises.list()).toEqual([renamed, pullUps]);
+      expect(await storage.settings.get('ladder')).toEqual(ladderConfig());
+      expect(server.requests.slice(requests)).toEqual([
+        `PUT /api/v1/exercises/${pullUps.id}`,
+        `PUT /api/v1/exercises/${burpees.id}`,
+        'PUT /api/v1/settings/ladder',
+      ]);
+    });
+
     it('creates one guest when two writes start together', async () => {
       await Promise.all([
         storage.settings.save(targetConfig()),

@@ -33,7 +33,7 @@ export interface FakeServer {
   savedAttempts(): Attempt[];
 }
 
-// The API of backend/src/Api as the browser sees it, kept in memory. The PHPUnit tests check
+// The API of the backend modules as the browser sees it, kept in memory. The PHPUnit tests check
 // the real server against the same rules.
 export function createFakeServer(): FakeServer {
   const accounts = new Map<string, Account>();

@@ -24,7 +24,7 @@ Self-Fighter — вебзастосунок, який перетворює тр�
 | `make down` | Стопнути проєкт, контейнери й дані лишаються |
 | `make kill` | Стопнути проєкт, видалити контейнери й образи. Volume MySQL лишається |
 | `make test` | Запустити PHPUnit і Vitest із покриттям |
-| `make lint` | Запустити PHP CS Fixer, PHPStan, перевірки Symfony, ESLint, TypeScript, hadolint і actionlint |
+| `make lint` | Запустити PHP CS Fixer, PHPStan, Deptrac, перевірки Symfony, ESLint, TypeScript, hadolint і actionlint |
 | `make audit` | Перевірити залежності на вразливості |
 | `make bundle` | Перевірити бюджет розміру JS |
 | `make fix` | Виправити стиль коду |

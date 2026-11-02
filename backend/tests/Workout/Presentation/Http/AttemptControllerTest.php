@@ -70,6 +70,9 @@ final class AttemptControllerTest extends ApiTestCase
 
         $this->send('GET', '/api/v1/attempts');
         self::assertSame(['items' => [], 'nextCursor' => null], $this->responseData());
+
+        $this->send('GET', '/api/v1/stats');
+        self::assertSame(['total' => 0, 'wins' => 0, 'draws' => 0, 'losses' => 0], $this->responseData());
     }
 
     /**

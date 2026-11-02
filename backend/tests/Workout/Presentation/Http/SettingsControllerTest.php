@@ -26,6 +26,23 @@ final class SettingsControllerTest extends ApiTestCase
         );
     }
 
+    public function testUsersHaveSeparateSettings(): void
+    {
+        $this->signUp();
+        $this->send('PUT', '/api/v1/settings/target', Documents::targetConfig());
+        $mine = $this->deviceCookie();
+
+        $this->switchBrowser();
+        $this->signUp();
+        $this->send('GET', '/api/v1/settings');
+        self::assertSame('{}', $this->browser->getResponse()->getContent());
+        $this->send('PUT', '/api/v1/settings/ladder', Documents::ladderConfig());
+
+        $this->switchBrowser($mine);
+        $this->send('GET', '/api/v1/settings');
+        self::assertEquals(['target' => Documents::targetConfig()], $this->responseData());
+    }
+
     // The browser reads the settings as an object, even before the first one is saved.
     public function testNoSettingsYetIsAnEmptyObject(): void
     {

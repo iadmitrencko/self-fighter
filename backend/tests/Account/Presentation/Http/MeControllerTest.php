@@ -159,9 +159,16 @@ final class MeControllerTest extends ApiTestCase
         $this->assertError(401, 'unauthorized');
     }
 
-    public function testExportContainsTheDataOfEveryModule(): void
+    public function testExportContainsEverythingOfThisUserOnly(): void
     {
         self::mockTime('2026-11-02 12:00:00');
+        $this->signUp();
+        $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'Віджимання', 'description' => '']);
+        $this->send('PUT', '/api/v1/settings/target', Documents::targetConfig());
+        $foreign = Documents::fight();
+        $this->send('PUT', '/api/v1/attempts/'.$foreign['id'], $foreign);
+
+        $this->switchBrowser();
         $userId = $this->signUp();
         $exerciseId = ExerciseId::generate()->value;
         $this->send('PUT', '/api/v1/exercises/'.$exerciseId, ['name' => 'Бурпі', 'description' => 'Зі стрибком']);
