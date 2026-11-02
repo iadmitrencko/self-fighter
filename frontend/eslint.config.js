@@ -38,7 +38,6 @@ export default defineConfig([
                 'react',
                 'react-dom',
                 'react-dom/*',
-                'dexie',
                 '**/app/**',
                 '**/storage/**',
                 '**/i18n/**',

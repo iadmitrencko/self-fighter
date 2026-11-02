@@ -88,7 +88,7 @@ describe('finalize', () => {
     expect(finalize(session, FINISHED_AT)).toEqual(finalize(session, FINISHED_AT));
   });
 
-  // Section 3.7 of the plan: the same JSON lives in IndexedDB and in MySQL.
+  // Section 3.7 of the plan: the same JSON waits in the browser outbox and lives in MySQL.
   it('produces a self-contained JSON document without touching the session', () => {
     fc.assert(
       fc.property(workoutConfigArbitrary, offsetsArbitrary, (config, offsets) => {
