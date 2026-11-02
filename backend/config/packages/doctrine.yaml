@@ -2,16 +2,28 @@ doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
         profiling_collect_backtrace: '%kernel.debug%'
+        # Identifiers of the domain, kept in 16 bytes each.
+        types:
+            user_id: App\Shared\Infrastructure\Doctrine\UserIdType
+            device_id: App\Account\Infrastructure\Doctrine\DeviceIdType
+            attempt_id: App\Workout\Infrastructure\Doctrine\AttemptIdType
+            exercise_id: App\Workout\Infrastructure\Doctrine\ExerciseIdType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
         auto_mapping: true
+        # The domain knows nothing of Doctrine: each module maps its entities next to its repositories.
         mappings:
-            App:
-                type: attribute
+            Account:
+                type: xml
                 is_bundle: false
-                dir: '%kernel.project_dir%/src/Entity'
-                prefix: 'App\Entity'
+                dir: '%kernel.project_dir%/src/Account/Infrastructure/Doctrine/Mapping'
+                prefix: 'App\Account\Domain'
+            Workout:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Workout/Infrastructure/Doctrine/Mapping'
+                prefix: 'App\Workout\Domain'
 
 when@test:
     doctrine:

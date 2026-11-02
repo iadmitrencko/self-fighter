@@ -4,25 +4,22 @@ import { isRecord } from './buffer';
 import type { AttemptPage, CurrentUser, CustomExercise, Settings, UserData } from './contract';
 import { StorageError } from './errors';
 
-// The shapes the server sends (backend/src/Api/Payload.php). Any other shape is a server failure.
+// The shapes the server sends (backend/src/*/Application/*View.php). Any other shape is a server failure.
 
-export interface Me {
-  readonly user: CurrentUser | null;
-  exercises: readonly CustomExercise[];
-  settings: Settings;
-}
-
-export function parseMe(body: unknown): Me {
-  if (!isRecord(body) || !Array.isArray(body.exercises) || !isRecord(body.settings)) {
+export function parseMe(body: unknown): CurrentUser | null {
+  if (!isRecord(body)) {
     throw unexpected();
   }
 
-  return {
-    user: body.user === null ? null : parseUser(body.user),
-    exercises: body.exercises.map(parseExercise),
-    // The server checked every configuration against the schema when it was saved.
-    settings: body.settings,
-  };
+  return body.user === null ? null : parseUser(body.user);
+}
+
+export function parseExercises(body: unknown): CustomExercise[] {
+  if (!Array.isArray(body)) {
+    throw unexpected();
+  }
+
+  return body.map(parseExercise);
 }
 
 export function parseExercise(value: unknown): CustomExercise {
@@ -36,6 +33,15 @@ export function parseExercise(value: unknown): CustomExercise {
   }
 
   return { id: value.id, name: value.name, description: value.description };
+}
+
+// The server checked every configuration against the schema when it was saved.
+export function parseSettings(body: unknown): Settings {
+  if (!isRecord(body)) {
+    throw unexpected();
+  }
+
+  return body;
 }
 
 // The server checked every attempt against the schema before it saved it.
@@ -76,18 +82,17 @@ export function parseStatistics(body: unknown): Statistics {
   return { total: body.total, wins: body.wins, draws: body.draws, losses: body.losses };
 }
 
+// The export joins what every module of the server keeps about the user.
 export function parseUserData(body: unknown): UserData {
-  const { user, exercises, settings } = parseMe(body);
-
-  if (!isRecord(body) || user === null || typeof body.exportedAt !== 'string' || !Array.isArray(body.attempts)) {
+  if (!isRecord(body) || typeof body.exportedAt !== 'string' || !Array.isArray(body.attempts)) {
     throw unexpected();
   }
 
   return {
     exportedAt: body.exportedAt,
-    user,
-    exercises,
-    settings,
+    user: parseUser(body.user),
+    exercises: parseExercises(body.exercises),
+    settings: parseSettings(body.settings),
     attempts: body.attempts.map(parseAttempt),
   };
 }

@@ -49,6 +49,7 @@ docker compose exec node npm install package
 - `domain/` виконується і в браузері, і в Node, тому не використовує браузерних API (`tsconfig.domain.json`). Випадковість, час і генератор id передаються ззовні, а помилки повертаються кодами, тексти до них лежать у `src/i18n`.
 - Екрани гри звертаються до даних лише через контракт сховища `frontend/src/storage/contract.ts` (розділ 3.7 плану). ESLint не пускає в `src/app` інші модулі сховища, `fetch` і `localStorage`.
 - Дані користувачів, зокрема гостей, живуть лише в MySQL. Браузер тримає тільки буфер поточної спроби й черги надсилання і не мігрує його.
+- Бекенд складається з модулів `Account`, `Workout`, `Site` і спільного ядра `Shared`. У кожного модуля є шари `Domain`, `Application`, `Infrastructure` і `Presentation`. `Domain` не залежить від Symfony й Doctrine, мапінг лежить у XML в `Infrastructure`. Модулі звертаються один до одного лише через порти `Shared` і посилаються на чужі дані тільки за id. Межі перевіряє Deptrac (`backend/deptrac.yaml`) у `make lint`.
 - Формат спроби описує `backend/schema/attempt.schema.json`, його перевіряють і сервер, і тести домену. Зміна формату означає нову `schemaVersion`, оновлену схему й міграцію Doctrine для наявних записів.
 - Публічні сторінки рендерить Twig. Вони не запускають сесію, не читають cookie пристрою й не завантажують React.
 - TypeScript зафіксовано на `~6.0`, бо `typescript-eslint` не підтримує 7.x. Тег MySQL задаємо явно, бо `latest` вказує на іншу гілку.

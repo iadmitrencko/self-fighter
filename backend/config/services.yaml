@@ -15,11 +15,27 @@ services:
     _defaults:
         autowire: true      # Automatically injects dependencies in your services.
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+        bind:
+            # Every module that keeps data of users takes part in the export and the deletion.
+            iterable $userData: !tagged_iterator app.user_data
+
+    _instanceof:
+        App\Shared\Application\UserDataHolder:
+            tags: [app.user_data]
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        # Entities and value objects are created by the code, never by the container.
+        exclude: '../src/*/Domain/'
+
+    # The repositories the domain declares and the adapters that implement them.
+    App\Account\Domain\UserRepository: '@App\Account\Infrastructure\Doctrine\DoctrineUserRepository'
+    App\Account\Domain\DeviceRepository: '@App\Account\Infrastructure\Doctrine\DoctrineDeviceRepository'
+    App\Workout\Domain\AttemptRepository: '@App\Workout\Infrastructure\Doctrine\DoctrineAttemptRepository'
+    App\Workout\Domain\CustomExerciseRepository: '@App\Workout\Infrastructure\Doctrine\DoctrineCustomExerciseRepository'
+    App\Workout\Domain\SettingsRepository: '@App\Workout\Infrastructure\Doctrine\DoctrineSettingsRepository'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

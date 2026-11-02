@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Workout\Domain\Attempt" table="attempt">
+        <!-- The history filters by mode, outcome and period (§14.3) -->
+        <indexes>
+            <index name="idx_attempt_user_finished_at" columns="user_id,finished_at"/>
+            <index name="idx_attempt_user_mode_finished_at" columns="user_id,mode,finished_at"/>
+            <index name="idx_attempt_user_outcome_finished_at" columns="user_id,outcome,finished_at"/>
+        </indexes>
+
+        <id name="id" type="attempt_id"/>
+        <field name="owner" column="user_id" type="user_id"/>
+        <field name="mode" length="20" enum-type="App\Workout\Domain\Mode"/>
+        <field name="outcome" length="4" enum-type="App\Workout\Domain\Outcome"/>
+        <field name="schemaVersion" type="smallint"/>
+        <field name="finishedAt" type="datetime_immutable"/>
+        <field name="document" type="json"/>
+    </entity>
+
+</doctrine-mapping>

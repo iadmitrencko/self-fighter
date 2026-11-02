@@ -43,8 +43,6 @@ export function createFakeServer(): FakeServer {
 
   const describe = (account: Account | undefined) => ({
     user: account === undefined ? null : { id: account.id, kind: 'guest', createdAt: account.createdAt },
-    exercises: account?.exercises ?? [],
-    settings: account?.settings ?? {},
   });
 
   function route(method: string, url: URL, body: unknown): Response {
@@ -84,14 +82,20 @@ export function createFakeServer(): FakeServer {
         return reply(200, {
           exportedAt: new Date().toISOString(),
           ...describe(account),
+          exercises: account.exercises,
+          settings: account.settings,
           attempts: [...account.attempts].reverse(),
         });
+      case 'GET exercises':
+        return reply(200, account.exercises);
       case 'PUT exercises/:id':
         return saveExercise(account, id ?? '', body);
       case 'DELETE exercises/:id':
         account.exercises = account.exercises.filter((exercise) => exercise.id !== id);
 
         return reply(204);
+      case 'GET settings':
+        return reply(200, account.settings);
       case 'PUT settings/:id':
         if (id === undefined || !MODES.includes(id) || !isRecord(body) || body.mode !== id) {
           return reply(422, { error: 'invalid-settings' });

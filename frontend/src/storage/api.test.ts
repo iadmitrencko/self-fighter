@@ -44,6 +44,18 @@ describe('storage over the API', () => {
       expect(server.requests).toEqual(['GET /api/v1/me']);
     });
 
+    // Each module of the server answers for its own data, and the browser asks it once.
+    it('loads each kind of data once', async () => {
+      await storage.settings.save(targetConfig());
+      const requests = server.requests.length;
+
+      await Promise.all([storage.exercises.list(), storage.exercises.list()]);
+      await storage.settings.get('target');
+      await storage.settings.get('ladder');
+
+      expect(server.requests.slice(requests)).toEqual(['GET /api/v1/exercises', 'GET /api/v1/settings']);
+    });
+
     it('creates one guest when two writes start together', async () => {
       await Promise.all([
         storage.settings.save(targetConfig()),
@@ -192,20 +204,21 @@ describe('storage over the API', () => {
     });
 
     it.each([
-      ['a page instead of JSON', '<h1>Bad gateway</h1>', (s: GameStorage) => s.account.current()],
-      ['a user without an id', { user: { kind: 'guest' }, exercises: [], settings: {} }, (s: GameStorage) => s.account.current()],
-      ['an exercise without a name', { user: null, exercises: [{ id: 'a' }], settings: {} }, (s: GameStorage) => s.exercises.list()],
-      ['a page without items', { nextCursor: null }, (s: GameStorage) => s.attempts.list()],
-      ['an attempt without an id', { items: [{}], nextCursor: null }, (s: GameStorage) => s.attempts.list()],
-      ['statistics without numbers', { total: '1' }, (s: GameStorage) => s.attempts.stats()],
-      ['an export without attempts', { exportedAt: '' }, (s: GameStorage) => s.account.exportData()],
-    ])('reports %s as a server failure', async (_, body, read) => {
-      const guest = { user: { id: newId(), kind: 'guest', createdAt: '' }, exercises: [], settings: {} };
+      ['a page instead of JSON', '/api/v1/me', '<h1>Bad gateway</h1>', (s: GameStorage) => s.account.current()],
+      ['a user without an id', '/api/v1/me', { user: { kind: 'guest' } }, (s: GameStorage) => s.account.current()],
+      ['an exercise without a name', '/api/v1/exercises', [{ id: 'a' }], (s: GameStorage) => s.exercises.list()],
+      ['settings as a list', '/api/v1/settings', [], (s: GameStorage) => s.settings.get('target')],
+      ['a page without items', '/api/v1/attempts', { nextCursor: null }, (s: GameStorage) => s.attempts.list()],
+      ['an attempt without an id', '/api/v1/attempts', { items: [{}], nextCursor: null }, (s: GameStorage) => s.attempts.list()],
+      ['statistics without numbers', '/api/v1/stats', { total: '1' }, (s: GameStorage) => s.attempts.stats()],
+      ['an export without attempts', '/api/v1/me/export', { exportedAt: '' }, (s: GameStorage) => s.account.exportData()],
+    ])('reports %s as a server failure', async (_, brokenPath, body, read) => {
+      const guest = { user: { id: newId(), kind: 'guest', createdAt: '' } };
       const broken = createApiStorage({
-        // The first answer introduces a user where the read needs one; every other answer is broken.
+        // Every other answer introduces a user, so the read reaches the broken one.
         fetch: (path) =>
           Promise.resolve(
-            new Response(typeof body === 'string' ? body : JSON.stringify(path === '/api/v1/me' && !('user' in body) ? guest : body)),
+            new Response(path === brokenPath ? (typeof body === 'string' ? body : JSON.stringify(body)) : JSON.stringify(guest)),
           ),
         buffer: createBrowserBuffer(null),
       });

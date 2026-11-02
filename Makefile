@@ -43,8 +43,9 @@ lint: lint-backend lint-frontend lint-infra ## Запустити всі лін�
 lint-backend: ## Перевірити код бекенду
 	$(APP) vendor/bin/php-cs-fixer check
 	$(APP) vendor/bin/phpstan analyse --no-progress
+	$(APP) vendor/bin/deptrac analyse --no-progress
 	$(APP) php bin/console lint:twig templates
-	$(APP) php bin/console lint:yaml config
+	$(APP) php bin/console lint:yaml config --parse-tags
 	$(APP) php bin/console lint:container
 	$(APP) php bin/console doctrine:schema:validate --skip-sync
 

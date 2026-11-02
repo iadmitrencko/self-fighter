@@ -32,6 +32,7 @@ frontend/coverage/
 backend/.env.*
 backend/.php-cs-fixer*
 backend/.phpunit.cache/
+backend/deptrac*
 backend/phpstan*
 backend/phpunit*
 backend/tests/

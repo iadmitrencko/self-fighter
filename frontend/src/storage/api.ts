@@ -15,8 +15,10 @@ import type {
   AttemptQuery,
   AttemptStore,
   CurrentUser,
+  CustomExercise,
   ExerciseStore,
   GameStorage,
+  Settings,
   SettingsStore,
   StoredAttempt,
 } from './contract';
@@ -26,11 +28,12 @@ import { expectStatus, failure, send, type Fetch, type Reply } from './http';
 import {
   parseAttempt,
   parseExercise,
+  parseExercises,
   parseMe,
   parsePage,
+  parseSettings,
   parseStatistics,
   parseUserData,
-  type Me,
 } from './payload';
 
 // Attempts that could not be sent are retried from a few seconds up to every five minutes.
@@ -60,7 +63,6 @@ export function createBrowserStorage(): GameStorage {
 export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStorage {
   const outbox = createOutbox(buffer);
   const activeSession = createActiveSessionStore(buffer);
-  let me: Promise<Me> | null = null;
   // The user of the last answer, so an attempt finished without a connection still has an owner.
   let knownUser: CurrentUser | null = null;
   let newGuest: Promise<CurrentUser> | null = null;
@@ -71,44 +73,58 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   const request = (method: string, path: string, body?: unknown): Promise<Reply> =>
     send(fetch, method, path, body);
 
-  function remember(state: Me): Me {
-    knownUser = state.user;
-    me = Promise.resolve(state);
+  const me = cached(async () => parseMe(expectStatus(await request('GET', '/api/v1/me'), 200)));
+  // Every module of the server answers for its own data, and the screens ask for it once.
+  const exerciseList = cached(() =>
+    ofUser([] as readonly CustomExercise[], '/api/v1/exercises', parseExercises),
+  );
+  const settingsMap = cached(() => ofUser<Settings>({}, '/api/v1/settings', parseSettings));
 
-    return state;
+  function remember(user: CurrentUser | null): CurrentUser | null {
+    if (user?.id !== knownUser?.id) {
+      exerciseList.clear();
+      settingsMap.clear();
+    }
+    knownUser = user;
+    me.set(user);
+
+    return user;
   }
 
-  function loadMe(): Promise<Me> {
-    if (me === null) {
-      const loading = request('GET', '/api/v1/me').then((reply) =>
-        remember(parseMe(expectStatus(reply, 200))),
-      );
-      me = loading;
-      // A failure is not remembered: the next call asks again.
-      loading.catch(() => {
-        if (me === loading) {
-          me = null;
-        }
-      });
+  // A browser without a user has no data yet, so it asks for none.
+  async function ofUser<T>(empty: T, path: string, parse: (body: unknown) => T): Promise<T> {
+    if ((await me.get()) === null) {
+      return empty;
     }
+    const reply = await request('GET', path);
 
-    return me;
+    return reply.status === 401 ? forgotten(empty) : parse(expectStatus(reply, 200));
+  }
+
+  // The cookie is gone, for example after the data was deleted in another tab.
+  function forgotten<T>(empty: T): T {
+    remember(null);
+
+    return empty;
   }
 
   // A guest appears with the first write of the browser (§15.1). The lock keeps two tabs
   // from creating two guests at the same moment.
   async function ensureUser(): Promise<CurrentUser> {
-    const current = (await loadMe()).user;
+    const current = await me.get();
 
     if (current !== null) {
       return current;
     }
     newGuest ??= withLock('self-fighter:new-guest', async () => {
       // Another tab may have created the guest while this one waited for the lock.
-      me = null;
-      const created = (await loadMe()).user;
+      me.clear();
+      const created = await me.get();
 
-      return created ?? userOf(remember(parseMe(expectStatus(await request('POST', '/api/v1/me'), 200, 201))));
+      return (
+        created ??
+        userOf(remember(parseMe(expectStatus(await request('POST', '/api/v1/me'), 200, 201))))
+      );
     }).finally(() => {
       newGuest = null;
     });
@@ -124,7 +140,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     if (reply.status !== 401) {
       return reply;
     }
-    me = null;
+    me.clear();
     await ensureUser();
 
     return request(method, path, body);
@@ -176,19 +192,10 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     return reply.status === 401 ? forgotten(EMPTY_PAGE) : parsePage(expectStatus(reply, 200));
   }
 
-  // The cookie is gone, for example after the data was deleted in another tab.
-  function forgotten<T>(empty: T): T {
-    remember({ user: null, exercises: [], settings: {} });
-
-    return empty;
-  }
-
   const account: AccountStore = {
-    async current() {
-      return (await loadMe()).user;
-    },
+    current: () => me.get(),
     async exportData() {
-      if ((await loadMe()).user === null) {
+      if ((await me.get()) === null) {
         return null;
       }
       const reply = await request('GET', '/api/v1/me/export');
@@ -196,7 +203,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       return reply.status === 401 ? forgotten(null) : parseUserData(expectStatus(reply, 200));
     },
     async deleteData() {
-      const user = (await loadMe()).user;
+      const user = await me.get();
 
       if (user !== null) {
         const reply = await request('DELETE', '/api/v1/me');
@@ -215,37 +222,35 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   };
 
   const exercises: ExerciseStore = {
-    async list() {
-      return (await loadMe()).exercises;
-    },
+    list: () => exerciseList.get(),
     async save({ id, name, description }) {
       const reply = await write('PUT', `/api/v1/exercises/${id}`, { name, description });
       const saved = parseExercise(expectStatus(reply, 200, 201));
-      const state = await loadMe();
-      const index = state.exercises.findIndex((exercise) => exercise.id === saved.id);
-      state.exercises = index === -1 ? [...state.exercises, saved] : state.exercises.with(index, saved);
+      exerciseList.update((list) => {
+        const index = list.findIndex((exercise) => exercise.id === saved.id);
+
+        return index === -1 ? [...list, saved] : list.with(index, saved);
+      });
 
       return saved;
     },
     async remove(id) {
       // A browser without a user has nothing to delete, and deleting must not create a guest.
-      if ((await loadMe()).user === null) {
+      if ((await me.get()) === null) {
         return;
       }
       expectStatus(await write('DELETE', `/api/v1/exercises/${id}`), 204);
-      const state = await loadMe();
-      state.exercises = state.exercises.filter((exercise) => exercise.id !== id);
+      exerciseList.update((list) => list.filter((exercise) => exercise.id !== id));
     },
   };
 
   const settings: SettingsStore = {
     async get(mode) {
-      return (await loadMe()).settings[mode] ?? null;
+      return (await settingsMap.get())[mode] ?? null;
     },
     async save(config) {
       expectStatus(await write('PUT', `/api/v1/settings/${config.mode}`, config), 204);
-      const state = await loadMe();
-      state.settings = { ...state.settings, [config.mode]: config };
+      settingsMap.update((map) => ({ ...map, [config.mode]: config }));
     },
   };
 
@@ -260,7 +265,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       // An attempt that waits for the network is found without it.
       const queued = waiting(knownUser, {}).find(({ attempt }) => attempt.id === id);
 
-      if (queued !== undefined || (await loadMe()).user === null) {
+      if (queued !== undefined || (await me.get()) === null) {
         return queued ?? null;
       }
       const reply = await request('GET', `/api/v1/attempts/${encodeURIComponent(id)}`);
@@ -270,7 +275,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
         : { attempt: parseAttempt(expectStatus(reply, 200)), status: 'saved' };
     },
     async list(query = {}) {
-      const user = (await loadMe()).user;
+      const user = await me.get();
       const page = user === null ? EMPTY_PAGE : await savedPage(query);
 
       // Waiting attempts are newer than anything saved, so they belong to the first page only.
@@ -283,7 +288,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       return { items: [...queued, ...page.items].sort(newestFirst), nextCursor: page.nextCursor };
     },
     async stats(filter = {}) {
-      const user = (await loadMe()).user;
+      const user = await me.get();
       let saved = NO_STATISTICS;
 
       if (user !== null) {
@@ -321,6 +326,45 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   };
 }
 
+interface Cached<T> {
+  get(): Promise<T>;
+  set(value: T): void;
+  // Changes the value once it is loaded. An unloaded value comes fresh from the server anyway.
+  update(change: (value: T) => T): void;
+  clear(): void;
+}
+
+// One request for a resource at a time. A failure is not remembered, so the next call asks again.
+function cached<T>(load: () => Promise<T>): Cached<T> {
+  let value: Promise<T> | null = null;
+
+  function hold(next: Promise<T>): Promise<T> {
+    value = next;
+    next.catch(() => {
+      if (value === next) {
+        value = null;
+      }
+    });
+
+    return next;
+  }
+
+  return {
+    get: () => value ?? hold(load()),
+    set(next) {
+      value = Promise.resolve(next);
+    },
+    update(change) {
+      if (value !== null) {
+        void hold(value.then(change));
+      }
+    },
+    clear() {
+      value = null;
+    },
+  };
+}
+
 // A browser has one guest at a time, so the attempts of a guest it lost belong to the next one.
 function belongsTo(owner: Owner, user: CurrentUser | null): boolean {
   return (
@@ -334,12 +378,12 @@ function ownerOf(user: CurrentUser | null): Owner {
   return user === null ? null : { id: user.id, kind: user.kind };
 }
 
-function userOf(state: Me): CurrentUser {
-  if (state.user === null) {
+function userOf(user: CurrentUser | null): CurrentUser {
+  if (user === null) {
     throw new StorageError('server');
   }
 
-  return state.user;
+  return user;
 }
 
 function search(query: AttemptQuery): string {

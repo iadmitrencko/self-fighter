@@ -1,0 +1,66 @@
+# Checks the dependencies between modules and their layers (section 3.3 of the plan).
+# Domain depends on nothing but the shared kernel, Application adds its ports, and only
+# Infrastructure and Presentation reach Symfony, Doctrine and other libraries.
+# Modules never see each other: they meet through the ports of Shared.
+deptrac:
+  paths:
+    - ./src
+  exclude_files:
+    - '#/src/Kernel\.php$#'
+    - '#/src/Migrations/#'
+  cache_file: var/deptrac.cache
+
+  layers:
+    - name: SharedDomain
+      collectors: [{ type: directory, value: src/Shared/Domain/.* }]
+    - name: SharedApplication
+      collectors: [{ type: directory, value: src/Shared/Application/.* }]
+    - name: SharedInfrastructure
+      collectors: [{ type: directory, value: src/Shared/Infrastructure/.* }]
+    - name: SharedPresentation
+      collectors: [{ type: directory, value: src/Shared/Presentation/.* }]
+
+    - name: AccountDomain
+      collectors: [{ type: directory, value: src/Account/Domain/.* }]
+    - name: AccountApplication
+      collectors: [{ type: directory, value: src/Account/Application/.* }]
+    - name: AccountInfrastructure
+      collectors: [{ type: directory, value: src/Account/Infrastructure/.* }]
+    - name: AccountPresentation
+      collectors: [{ type: directory, value: src/Account/Presentation/.* }]
+
+    - name: WorkoutDomain
+      collectors: [{ type: directory, value: src/Workout/Domain/.* }]
+    - name: WorkoutApplication
+      collectors: [{ type: directory, value: src/Workout/Application/.* }]
+    - name: WorkoutInfrastructure
+      collectors: [{ type: directory, value: src/Workout/Infrastructure/.* }]
+    - name: WorkoutPresentation
+      collectors: [{ type: directory, value: src/Workout/Presentation/.* }]
+
+    - name: SitePresentation
+      collectors: [{ type: directory, value: src/Site/Presentation/.* }]
+
+    # PSR interfaces carry no framework, so the application may use them (the clock).
+    - name: Psr
+      collectors: [{ type: classLike, value: '^Psr\\' }]
+    - name: Framework
+      collectors: [{ type: classLike, value: '^(Symfony|Doctrine|Opis)\\' }]
+
+  ruleset:
+    SharedDomain: ~
+    SharedApplication: [SharedDomain]
+    SharedInfrastructure: [SharedDomain, SharedApplication, Framework, Psr]
+    SharedPresentation: [SharedDomain, SharedApplication, Framework, Psr]
+
+    AccountDomain: [SharedDomain]
+    AccountApplication: [AccountDomain, SharedDomain, SharedApplication, Psr]
+    AccountInfrastructure: [AccountDomain, AccountApplication, SharedDomain, SharedApplication, SharedInfrastructure, Framework, Psr]
+    AccountPresentation: [AccountDomain, AccountApplication, SharedDomain, SharedApplication, SharedPresentation, Framework, Psr]
+
+    WorkoutDomain: [SharedDomain]
+    WorkoutApplication: [WorkoutDomain, SharedDomain, SharedApplication, Psr]
+    WorkoutInfrastructure: [WorkoutDomain, WorkoutApplication, SharedDomain, SharedApplication, SharedInfrastructure, Framework, Psr]
+    WorkoutPresentation: [WorkoutDomain, WorkoutApplication, SharedDomain, SharedApplication, SharedPresentation, Framework, Psr]
+
+    SitePresentation: [SharedPresentation, Framework]

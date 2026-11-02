@@ -1,10 +1,4 @@
 security:
-    providers:
-        users:
-            entity:
-                class: App\Entity\User
-                property: id
-
     firewalls:
         dev:
             # Ensure dev tools and static assets are always allowed
@@ -14,9 +8,9 @@ security:
         api:
             pattern: ^/api/
             stateless: true
-            provider: users
+            # The authenticator loads the user itself, so the firewall needs no user provider.
             custom_authenticators:
-                - App\Account\DeviceAuthenticator
+                - App\Account\Presentation\Http\DeviceAuthenticator
 
     # Note: Only the *first* matching rule is applied
     access_control:
