@@ -1,0 +1,10 @@
+/* The styles of the game. The screens of stage 6 add their own after the shared design system. */
+@import '../styles/fonts.css';
+@import '../styles/tokens.css';
+@import '../styles/base.css';
+@import '../styles/components.css';
+
+/* The temporary screen until stage 6. */
+.app {
+  padding: var(--page-gutter);
+}

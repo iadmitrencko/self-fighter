@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{# The frame of the public pages: header, main content and footer. #}
+
+{% block assets %}
+    {#- The h1 is the largest text on the screen, so its font comes first. #}
+    <link rel="preload" href="{{ asset('node_modules/@fontsource/unbounded/files/unbounded-cyrillic-900-normal.woff2', 'vite') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ asset('node_modules/@fontsource/unbounded/files/unbounded-latin-900-normal.woff2', 'vite') }}" as="font" type="font/woff2" crossorigin>
+    {{ parent() }}
+{% endblock %}
+
+{% block body %}
+    <a class="skip-link button button--primary" href="#main">{{ 'site.skip_to_content'|trans }}</a>
+    <header class="site-header">
+        <div class="container site-header__inner">
+            {{ include('site/_logo.html.twig') }}
+            <nav class="site-nav" aria-label="{{ 'site.nav.label'|trans }}">
+                <a class="site-nav__link" href="{{ path('home') }}#modes">{{ 'site.nav.modes'|trans }}</a>
+                <a class="site-nav__link" href="{{ path('home') }}#how">{{ 'site.nav.how'|trans }}</a>
+                <a class="button button--primary" href="{{ path('workout') }}">{{ 'site.start'|trans }}</a>
+            </nav>
+        </div>
+    </header>
+    <main id="main">
+        {% block main %}{% endblock %}
+    </main>
+    <footer class="site-footer">
+        <div class="container">
+            <div class="site-footer__inner">
+                <nav aria-label="{{ 'site.footer.nav_label'|trans }}">
+                    <ul class="site-footer__links" role="list">
+                        <li><a class="site-footer__link" href="{{ path('home') }}">{{ 'site.footer.home'|trans }}</a></li>
+                        <li><a class="site-footer__link" href="{{ path('home') }}#modes">{{ 'site.nav.modes'|trans }}</a></li>
+                        <li><a class="site-footer__link" href="{{ path('home') }}#how">{{ 'site.nav.how'|trans }}</a></li>
+                        <li><a class="site-footer__link" href="{{ path('workout') }}">{{ 'site.start'|trans }}</a></li>
+                    </ul>
+                </nav>
+                <p class="site-footer__note">{{ 'site.footer.guest_data'|trans }}</p>
+                <p class="site-footer__copy">© {{ 'now'|date('Y') }} {{ 'site.name'|trans }}</p>
+            </div>
+        </div>
+    </footer>
+{% endblock %}

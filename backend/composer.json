@@ -12,6 +12,7 @@
         "doctrine/orm": "^3.7",
         "opis/json-schema": "^2.6",
         "pentatrion/vite-bundle": "^8.2",
+        "symfony/asset": "7.4.*",
         "symfony/console": "7.4.*",
         "symfony/dotenv": "7.4.*",
         "symfony/flex": "^2",
@@ -20,6 +21,7 @@
         "symfony/rate-limiter": "7.4.*",
         "symfony/runtime": "7.4.*",
         "symfony/security-bundle": "7.4.*",
+        "symfony/translation": "7.4.*",
         "symfony/twig-bundle": "7.4.*",
         "symfony/yaml": "7.4.*"
     },

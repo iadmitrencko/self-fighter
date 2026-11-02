@@ -1,0 +1,20 @@
+{% extends 'site/layout.html.twig' %}
+
+{# Any error but 404. In production it shows nothing about the cause. #}
+
+{% block title %}{{ 'error.other.title'|trans }} — {{ 'site.name'|trans }}{% endblock %}
+
+{% block meta %}
+    <meta name="robots" content="noindex">
+{% endblock %}
+
+{% block main %}
+    <div class="container error-page">
+        <p class="eyebrow error-page__code">{{ 'error.code'|trans({'%code%': status_code}) }}</p>
+        <h1 class="error-page__title">{{ 'error.other.title'|trans }}</h1>
+        <p class="error-page__text">{{ 'error.other.text'|trans }}</p>
+        <div class="error-page__actions">
+            <a class="button button--primary button--large" href="{{ path('home') }}">{{ 'error.home'|trans }}</a>
+        </div>
+    </div>
+{% endblock %}

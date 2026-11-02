@@ -1,0 +1,50 @@
+{# An example of a fight in progress, as the game shows it (§3.1 of the specification: the concept at a glance). #}
+<figure class="fight-preview">
+    <figcaption class="visually-hidden">{{ 'home.preview.caption'|trans }}</figcaption>
+    <p class="eyebrow fight-preview__meta">
+        <span>{{ 'home.preview.mode'|trans }}</span>
+        <span class="fight-preview__round">{{ 'home.preview.round'|trans }}</span>
+    </p>
+    <div class="fight-preview__score">
+        <p class="fight-preview__side">
+            <span class="fight-preview__label">{{ 'home.preview.you'|trans }}</span>
+            <span class="fight-preview__points">2</span>
+        </p>
+        <span class="fight-preview__colon" aria-hidden="true">:</span>
+        <p class="fight-preview__side fight-preview__side--rival">
+            <span class="fight-preview__label">{{ 'home.preview.rival'|trans }}</span>
+            <span class="fight-preview__points">0</span>
+        </p>
+    </div>
+    <p class="fight-preview__caption">{{ 'home.preview.score'|trans }}</p>
+    <table class="fight-preview__table">
+        <thead>
+            <tr>
+                <th scope="col"><span class="visually-hidden">{{ 'home.preview.exercise'|trans }}</span></th>
+                <th scope="col"><span class="visually-hidden">{{ 'home.preview.you'|trans }}</span></th>
+                <th scope="col"><span class="visually-hidden">{{ 'home.preview.rival'|trans }}</span></th>
+                <th scope="col"><span class="visually-hidden">{{ 'home.preview.result'|trans }}</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th class="fight-preview__exercise" scope="row">{{ 'home.preview.push_ups'|trans }}</th>
+                <td class="fight-preview__you">24</td>
+                <td class="fight-preview__rival">21</td>
+                <td class="fight-preview__outcome"><span aria-hidden="true">▲</span> {{ 'home.preview.win'|trans }}</td>
+            </tr>
+            <tr>
+                <th class="fight-preview__exercise" scope="row">{{ 'home.preview.squats'|trans }}</th>
+                <td class="fight-preview__you">30</td>
+                <td class="fight-preview__rival">34</td>
+                <td class="fight-preview__outcome fight-preview__outcome--loss"><span aria-hidden="true">▼</span> {{ 'home.preview.loss'|trans }}</td>
+            </tr>
+            <tr>
+                <th class="fight-preview__exercise" scope="row">{{ 'home.preview.pull_ups'|trans }}</th>
+                <td class="fight-preview__you">9</td>
+                <td class="fight-preview__rival">7</td>
+                <td class="fight-preview__outcome"><span aria-hidden="true">▲</span> {{ 'home.preview.win'|trans }}</td>
+            </tr>
+        </tbody>
+    </table>
+</figure>

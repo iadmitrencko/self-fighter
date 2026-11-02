@@ -52,6 +52,8 @@ docker compose exec node npm install package
 - Бекенд складається з модулів `Account`, `Workout`, `Site` і спільного ядра `Shared`. У кожного модуля є шари `Domain`, `Application`, `Infrastructure` і `Presentation`. `Domain` не залежить від Symfony й Doctrine, мапінг лежить у XML в `Infrastructure`. Модулі звертаються один до одного лише через порти `Shared` і посилаються на чужі дані тільки за id. Межі перевіряє Deptrac (`backend/deptrac.yaml`) у `make lint`.
 - Формат спроби описує `backend/schema/attempt.schema.json`, його перевіряють і сервер, і тести домену. Зміна формату означає нову `schemaVersion`, оновлену схему й міграцію Doctrine для наявних записів.
 - Публічні сторінки рендерить Twig. Вони не запускають сесію, не читають cookie пристрою й не завантажують React.
+- Стилі пишемо звичайним CSS на токенах із `frontend/src/styles`. Ці файли спільні для Twig і React, тож кольори, шрифти й відступи беремо з токенів, а не вписуємо числами. Шрифти віддає наш сервер, Google Fonts не підключаємо.
+- Тексти Twig-сторінок лежать у `backend/translations/messages.uk.yaml` і виводяться через Translator. `make lint` знаходить ключі без перекладу.
 - TypeScript зафіксовано на `~6.0`, бо `typescript-eslint` не підтримує 7.x. Тег MySQL задаємо явно, бо `latest` вказує на іншу гілку.
 - Дії GitHub закріплюємо за повним SHA, а образи інструментів за digest. `aquasecurity/trivy-action` не використовуємо.
 - На машині розробника працюють інші Docker-проєкти. Команди мають стосуватися лише проєкту `self-fighter`, тому `docker system prune` не використовуємо.

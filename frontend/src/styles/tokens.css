@@ -1,0 +1,70 @@
+/*
+ * Design tokens from design/*.dc.html, shared by the public pages and the game.
+ * Colors are named by their role, so a screen asks for "the opponent" rather than "blue".
+ */
+:root {
+  color-scheme: dark;
+
+  --color-bg: #111214;
+  --color-surface: #1b1d21;
+  --color-line: #2c2f35;
+  --color-line-strong: #3a3e45;
+  /* Dashed borders only: on the surface it gives 2.76:1, too little for text. */
+  --color-line-dashed: #5e626a;
+  --color-text: #f3f1ea;
+  --color-text-soft: #c9cbd1;
+  --color-text-muted: #a3a6ad;
+  /* Replaces #5e626a of the mockups for text: 5.08:1 on the surface (section 9 of the plan). */
+  --color-text-faint: #8a8d94;
+  /* The player, a win and the main action. */
+  --color-accent: #ff6b2c;
+  --color-accent-hover: #ff8a55;
+  --color-on-accent: #111214;
+  /* The opponent and a loss. */
+  --color-rival: #5b9bff;
+  --color-rival-text: #8fb8ff;
+  --color-error: #ffb08a;
+  --color-stripe: rgb(255 255 255 / 3.5%);
+  --color-stripe-on-accent: rgb(0 0 0 / 6%);
+
+  --shadow-raised: 0 30px 80px rgb(0 0 0 / 45%);
+
+  /* The fallback faces from fonts.css keep the text in place until the fonts arrive. */
+  --font-display: Unbounded, 'Unbounded Fallback', 'Unbounded Roboto Fallback', 'Arial Black', sans-serif;
+  --font-text: Manrope, 'Manrope Fallback', 'Manrope Roboto Fallback', system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-s: 0.8125rem;
+  --text-m: 0.9375rem;
+  --text-base: 1rem;
+  --text-l: 1.25rem;
+  --tracking-caps: 0.12em;
+
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-s: 0.75rem;
+  --space-m: 1rem;
+  --space-l: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+  --space-4xl: 6rem;
+
+  --radius-xs: 3px;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --page-width: 77.5rem;
+  --page-gutter: 1.25rem;
+  /* The smallest comfortable target for a finger (§16.2). */
+  --tap-target: 2.75rem;
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --page-gutter: 2rem;
+  }
+}

@@ -45,8 +45,9 @@ lint-backend: ## Перевірити код бекенду
 	$(APP) vendor/bin/phpstan analyse --no-progress
 	$(APP) vendor/bin/deptrac analyse --no-progress
 	$(APP) php bin/console lint:twig templates
-	$(APP) php bin/console lint:yaml config --parse-tags
+	$(APP) php bin/console lint:yaml config translations --parse-tags
 	$(APP) php bin/console lint:container
+	$(APP) php bin/console debug:translation uk --only-missing
 	$(APP) php bin/console doctrine:schema:validate --skip-sync
 
 lint-frontend: ## Перевірити код фронтенду

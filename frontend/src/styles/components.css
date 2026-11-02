@@ -1,0 +1,124 @@
+/*
+ * Components shared by the public pages and the game, built from design/*.dc.html.
+ * Components of the game screens join them in stage 6, together with the screens that use them.
+ */
+
+/* Two triangles facing each other: the player and the opponent. */
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625em;
+  min-height: var(--tap-target);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.logo:hover {
+  color: var(--color-text);
+}
+
+.logo__mark {
+  width: 1.75em;
+  height: 1.75em;
+  flex: none;
+}
+
+.logo__you {
+  fill: var(--color-accent);
+}
+
+.logo__rival {
+  fill: var(--color-rival);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: var(--tap-target);
+  padding: 0 1.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  font-family: var(--font-text);
+  font-size: var(--text-m);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button--primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.button--primary:hover {
+  background: var(--color-accent-hover);
+  color: var(--color-on-accent);
+}
+
+.button--outline {
+  border-color: var(--color-line-strong);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.button--outline:hover {
+  border-color: var(--color-text-faint);
+  color: var(--color-text);
+}
+
+/* The main action of a screen. */
+.button--large {
+  min-height: 3.75rem;
+  padding: 0 2rem;
+  border-radius: var(--radius-m);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+}
+
+/* From here «Почати тренування» fits on one line at the size of the mockups. */
+@media (min-width: 30rem) {
+  .button--large {
+    font-size: 1.0625rem;
+  }
+}
+
+.button__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+}
+
+.card {
+  padding: var(--space-l);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-l);
+  background: var(--color-surface);
+}
+
+/* A short label in capitals above a heading or a value. */
+.eyebrow {
+  color: var(--color-text-muted);
+  font-size: var(--text-s);
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+/* Diagonal stripes of the mockups. Set --stripe for a colored background. */
+.stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--stripe, var(--color-stripe)) 0 2px,
+    transparent 2px 14px
+  );
+}

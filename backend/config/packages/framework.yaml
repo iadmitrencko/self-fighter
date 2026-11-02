@@ -8,6 +8,12 @@ framework:
     #esi: true
     #fragments: true
 
+    assets:
+        packages:
+            # A file Vite built, by its source path: asset('node_modules/…/font.woff2', 'vite').
+            vite:
+                version_strategy: Pentatrion\ViteBundle\Asset\ViteAssetVersionStrategy
+
 when@test:
     framework:
         test: true

@@ -28,6 +28,8 @@ expect_status 200 /healthz
 expect_status 200 /
 expect_status 200 /workout
 expect_status 404 /workout/unknown
+expect_status 404 /missing
+expect_status 200 /favicon.ico
 expect_status 200 /api/v1/me
 expect_status 401 /api/v1/attempts
 
@@ -54,3 +56,13 @@ esac
 script=$(printf '%s' "$workout" | sed -n 's|.*src="\(/build/assets/[^"]*\.js\)".*|\1|p' | head -n 1)
 [ -n "$script" ] || fail 'the workout page does not reference a built script'
 expect_status 200 "$script"
+
+cache=$(request --head "$base_url$script" | tr -d '\r' | grep -i '^cache-control:' || true)
+case "$cache" in
+*immutable*) echo 'ok: built files are cached for good' ;;
+*) fail "the built script is served with \"$cache\" instead of an immutable cache" ;;
+esac
+
+font=$(printf '%s' "$home" | sed -n 's|.*rel="preload" href="\(/build/assets/[^"]*\.woff2\)".*|\1|p' | head -n 1)
+[ -n "$font" ] || fail 'the home page does not preload the font of its heading'
+expect_status 200 "$font"
