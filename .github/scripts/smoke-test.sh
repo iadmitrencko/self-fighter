@@ -28,6 +28,12 @@ expect_status 200 /healthz
 expect_status 200 /
 expect_status 200 /workout
 expect_status 404 /workout/unknown
+expect_status 200 /api/v1/me
+expect_status 401 /api/v1/attempts
+
+me=$(request "$base_url/api/v1/me")
+[ "$me" = '{"user":null,"exercises":[],"settings":{}}' ] || fail "/api/v1/me answered $me to a new visitor"
+echo 'ok: a new visitor has no user'
 
 home=$(request "$base_url/")
 case "$home" in

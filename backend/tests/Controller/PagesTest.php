@@ -28,6 +28,18 @@ final class PagesTest extends WebTestCase
         self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
     }
 
+    // A page that sets no cookie stays the same for everyone and can be cached by a CDN.
+    public function testPagesSetNoCookies(): void
+    {
+        $client = self::createClient();
+
+        foreach (['/', '/workout'] as $page) {
+            $client->request('GET', $page);
+
+            self::assertSame([], $client->getResponse()->headers->getCookies(), $page);
+        }
+    }
+
     public function testUnknownPageReturnsNotFound(): void
     {
         $client = self::createClient();

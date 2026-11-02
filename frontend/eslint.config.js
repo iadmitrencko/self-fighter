@@ -50,6 +50,29 @@ export default defineConfig([
     },
   },
   {
+    // Screens reach data only through the storage contract (section 3.7 of the plan).
+    files: ['src/app/**/*.{ts,tsx}'],
+    ignores: ['src/app/main.tsx', 'src/app/**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/storage/*', '!**/storage/contract', '!**/storage/errors', '!**/storage/ids'],
+              message: 'Screens use the storage contract, main.tsx chooses its implementation.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        { name: 'fetch', message: 'Screens use the storage contract.' },
+        { name: 'localStorage', message: 'Screens use the storage contract.' },
+      ],
+    },
+  },
+  {
     // Randomness and time are injected, so every rule is deterministic under test.
     files: ['src/domain/**/*.ts'],
     ignores: ['**/*.test.ts', 'src/domain/testing/**'],

@@ -39,6 +39,8 @@ services:
       - ./backend/public:/srv/backend/public
       # Twig changes trigger a full page reload
       - ./backend/templates:/srv/backend/templates:ro
+      # Vitest checks the attempts of the domain against the schema the server uses
+      - ./backend/schema:/srv/backend/schema:ro
       - ./docker/node/docker-entrypoint.sh:/usr/local/bin/app-entrypoint:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5173/build/@vite/client"]

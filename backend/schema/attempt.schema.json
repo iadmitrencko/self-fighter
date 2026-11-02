@@ -1,0 +1,274 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "A finished attempt, format version 1",
+  "description": "The structure and limits of an attempt; the game rules stay in frontend/src/domain. Section 3.7 of the plan.",
+  "oneOf": [
+    { "$ref": "#/definitions/targetAttempt" },
+    { "$ref": "#/definitions/randomOpponentAttempt" },
+    { "$ref": "#/definitions/opponentLevelsAttempt" },
+    { "$ref": "#/definitions/ladderAttempt" }
+  ],
+  "definitions": {
+    "targetAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "mode", "config", "result"],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "id": { "$ref": "#/definitions/attemptId" },
+        "startedAt": { "$ref": "#/definitions/instant" },
+        "finishedAt": { "$ref": "#/definitions/instant" },
+        "durationMs": { "$ref": "#/definitions/duration" },
+        "mode": { "enum": ["target"] },
+        "config": { "$ref": "#/definitions/targetConfig" },
+        "result": { "$ref": "#/definitions/fightResult" }
+      }
+    },
+    "randomOpponentAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "mode", "config", "result"],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "id": { "$ref": "#/definitions/attemptId" },
+        "startedAt": { "$ref": "#/definitions/instant" },
+        "finishedAt": { "$ref": "#/definitions/instant" },
+        "durationMs": { "$ref": "#/definitions/duration" },
+        "mode": { "enum": ["random-opponent"] },
+        "config": { "$ref": "#/definitions/randomOpponentConfig" },
+        "result": { "$ref": "#/definitions/fightResult" }
+      }
+    },
+    "opponentLevelsAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "mode", "config", "result"],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "id": { "$ref": "#/definitions/attemptId" },
+        "startedAt": { "$ref": "#/definitions/instant" },
+        "finishedAt": { "$ref": "#/definitions/instant" },
+        "durationMs": { "$ref": "#/definitions/duration" },
+        "mode": { "enum": ["opponent-levels"] },
+        "config": { "$ref": "#/definitions/opponentLevelsConfig" },
+        "result": { "$ref": "#/definitions/fightResult" }
+      }
+    },
+    "ladderAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "mode", "config", "result"],
+      "properties": {
+        "schemaVersion": { "enum": [1] },
+        "id": { "$ref": "#/definitions/attemptId" },
+        "startedAt": { "$ref": "#/definitions/instant" },
+        "finishedAt": { "$ref": "#/definitions/instant" },
+        "durationMs": { "$ref": "#/definitions/duration" },
+        "mode": { "enum": ["ladder"] },
+        "config": { "$ref": "#/definitions/ladderConfig" },
+        "result": { "$ref": "#/definitions/ladderResult" }
+      }
+    },
+
+    "targetConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "rule", "rounds", "exercises"],
+      "properties": {
+        "mode": { "enum": ["target"] },
+        "rule": { "$ref": "#/definitions/rule" },
+        "rounds": { "$ref": "#/definitions/rounds" },
+        "exercises": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "targets"],
+            "properties": {
+              "id": { "$ref": "#/definitions/exerciseId" },
+              "name": { "$ref": "#/definitions/exerciseName" },
+              "targets": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 20,
+                "items": { "$ref": "#/definitions/reps" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "randomOpponentConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "rule", "rounds", "exercises"],
+      "properties": {
+        "mode": { "enum": ["random-opponent"] },
+        "rule": { "$ref": "#/definitions/rule" },
+        "rounds": { "$ref": "#/definitions/rounds" },
+        "exercises": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "min", "max"],
+            "properties": {
+              "id": { "$ref": "#/definitions/exerciseId" },
+              "name": { "$ref": "#/definitions/exerciseName" },
+              "min": { "$ref": "#/definitions/opponentBound" },
+              "max": { "$ref": "#/definitions/opponentBound" }
+            }
+          }
+        }
+      }
+    },
+    "opponentLevelsConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "rule", "rounds", "difficulty", "exercises"],
+      "properties": {
+        "mode": { "enum": ["opponent-levels"] },
+        "rule": { "$ref": "#/definitions/rule" },
+        "rounds": { "$ref": "#/definitions/rounds" },
+        "difficulty": { "enum": ["easy", "medium", "hard"] },
+        "exercises": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "upperBound"],
+            "properties": {
+              "id": { "$ref": "#/definitions/exerciseId" },
+              "name": { "$ref": "#/definitions/exerciseName" },
+              "upperBound": { "$ref": "#/definitions/opponentBound" }
+            }
+          }
+        }
+      }
+    },
+    "ladderConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "rule", "exercise", "max", "returnDown"],
+      "properties": {
+        "mode": { "enum": ["ladder"] },
+        "rule": { "$ref": "#/definitions/rule" },
+        "exercise": { "$ref": "#/definitions/exercise" },
+        "max": { "$ref": "#/definitions/ladderStep" },
+        "returnDown": { "type": "boolean" }
+      }
+    },
+
+    "fightResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rounds", "won", "drawn", "lost", "outcome"],
+      "properties": {
+        "rounds": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "#/definitions/roundResult" }
+        },
+        "won": { "$ref": "#/definitions/roundCount" },
+        "drawn": { "$ref": "#/definitions/roundCount" },
+        "lost": { "$ref": "#/definitions/roundCount" },
+        "outcome": { "$ref": "#/definitions/outcome" }
+      }
+    },
+    "roundResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exercises", "won", "lost", "outcome"],
+      "properties": {
+        "exercises": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": { "$ref": "#/definitions/exerciseResult" }
+        },
+        "won": { "$ref": "#/definitions/roundCount" },
+        "lost": { "$ref": "#/definitions/roundCount" },
+        "outcome": { "$ref": "#/definitions/outcome" }
+      }
+    },
+    "exerciseResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exercise", "target", "actual", "outcome"],
+      "properties": {
+        "exercise": { "$ref": "#/definitions/exercise" },
+        "target": { "$ref": "#/definitions/reps" },
+        "actual": { "$ref": "#/definitions/reps" },
+        "outcome": { "$ref": "#/definitions/decisiveOutcome" }
+      }
+    },
+    "ladderResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stages", "maxPassed", "passedCount", "outcome"],
+      "properties": {
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 199,
+          "items": { "$ref": "#/definitions/ladderStageResult" }
+        },
+        "maxPassed": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "passedCount": { "type": "integer", "minimum": 0, "maximum": 199 },
+        "outcome": { "$ref": "#/definitions/decisiveOutcome" }
+      }
+    },
+    "ladderStageResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "actual", "passed"],
+      "properties": {
+        "target": { "$ref": "#/definitions/ladderStep" },
+        "actual": { "type": ["integer", "null"], "minimum": 0, "maximum": 9999 },
+        "passed": { "type": "boolean" }
+      }
+    },
+
+    "attemptId": {
+      "description": "UUID v7 created by the browser when the attempt starts.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "$ref": "#/definitions/exerciseId" },
+        "name": { "$ref": "#/definitions/exerciseName" }
+      }
+    },
+    "exerciseId": {
+      "description": "The slug of a ready exercise or the UUID of a custom one.",
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "exerciseName": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "instant": {
+      "description": "UTC time as Date.prototype.toISOString() writes it.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "duration": { "type": "integer", "minimum": 0, "maximum": 31536000000 },
+    "rule": { "enum": ["over", "meet"] },
+    "rounds": { "type": "integer", "minimum": 1, "maximum": 20 },
+    "roundCount": { "type": "integer", "minimum": 0, "maximum": 20 },
+    "reps": { "type": "integer", "minimum": 0, "maximum": 9999 },
+    "opponentBound": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "ladderStep": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "outcome": { "enum": ["win", "draw", "loss"] },
+    "decisiveOutcome": { "enum": ["win", "loss"] }
+  }
+}

@@ -11,6 +11,7 @@ import {
   ROUNDS_MIN,
 } from '../domain/config/limits';
 import type { ConfigErrorCode } from '../domain/config/validation';
+import type { StorageErrorCode } from '../storage/errors';
 
 export const validationMessages: Record<ConfigErrorCode | ExerciseErrorCode, string> = {
   'mode-required': 'Обери режим тренування.',
@@ -34,3 +35,16 @@ export const validationMessages: Record<ConfigErrorCode | ExerciseErrorCode, str
   'exercise-name-taken': 'Вправа з такою назвою вже є в каталозі.',
   'exercise-description-too-long': `Опис вправи може містити до ${EXERCISE_DESCRIPTION_MAX} символів.`,
 };
+
+// §17.2: a failed save is explained and can be repeated.
+export const storageMessages: Record<StorageErrorCode, string> = {
+  offline: "Немає зв'язку із сервером. Перевір інтернет і спробуй ще раз.",
+  server: 'Сервер зараз не відповідає. Спробуй ще раз за хвилину.',
+  'rate-limited': 'Забагато дій поспіль. Зачекай кілька хвилин і спробуй ще раз.',
+  rejected: 'Сервер не прийняв ці дані. Онови сторінку й спробуй ще раз.',
+  'exercise-name-taken': validationMessages['exercise-name-taken'],
+};
+
+// Shown while the browser refuses localStorage and keeps the workout in memory only.
+export const memoryOnlyWarning =
+  'Браузер не дає зберегти тренування на цьому пристрої. Якщо оновити сторінку, незавершена спроба зникне.';

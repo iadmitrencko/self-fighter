@@ -1,0 +1,25 @@
+security:
+    providers:
+        users:
+            entity:
+                class: App\Entity\User
+                property: id
+
+    firewalls:
+        dev:
+            # Ensure dev tools and static assets are always allowed
+            pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
+            security: false
+        # Public pages stay outside: they neither read the device cookie nor depend on the user.
+        api:
+            pattern: ^/api/
+            stateless: true
+            provider: users
+            custom_authenticators:
+                - App\Account\DeviceAuthenticator
+
+    # Note: Only the *first* matching rule is applied
+    access_control:
+        # Anyone may ask who they are, and the first write creates a guest.
+        - { path: ^/api/v1/me$, methods: [GET, POST], roles: PUBLIC_ACCESS }
+        - { path: ^/api/, roles: ROLE_USER }

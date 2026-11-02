@@ -1,0 +1,12 @@
+framework:
+    rate_limiter:
+        # Per IP address. A browser needs a guest once, so a flood of them is a script.
+        guest_creation:
+            policy: sliding_window
+            limit: 60
+            interval: '1 hour'
+        # Per user. Far above a real workout pace, it keeps a script from filling the database.
+        api_write:
+            policy: sliding_window
+            limit: 300
+            interval: '1 hour'
