@@ -31,9 +31,6 @@ home:
     result: Результат
     win: Перемога
     loss: Поразка
-    push_ups: Віджимання
-    squats: Присідання
-    pull_ups: Підтягування
   modes:
     title: Чотири способи кинути собі виклик
     lead: "Усі режими працюють зі спільним каталогом вправ: віджимання, присідання, підтягування — або власні."
@@ -76,6 +73,15 @@ home:
       text: Додай власну вправу один раз — використовуй у будь-якому режимі.
   cta:
     title: Перший раунд — зараз.
+
+# The ready-made exercises of the game (§5.1), by their ids in attempts.
+exercise:
+  push-ups: Віджимання
+  squats: Присідання
+  pull-ups: Підтягування
+
+workout:
+  noscript: Гра працює в браузері з увімкненим JavaScript.
 
 error:
   code: Помилка %code%

@@ -1,0 +1,84 @@
+import { screen, within } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { createSession } from '../../domain/engine/session';
+import { finalize } from '../../domain/history/attempt';
+import { play, randomOpponentConfig, testDeps } from '../../domain/testing/fixtures';
+import { createApiStorage } from '../../storage/api';
+import { createBrowserBuffer } from '../../storage/buffer';
+import { createMemoryStorage } from '../../storage/memory';
+import { finishedAttempt } from '../../storage/testing/attempts';
+import { createFakeServer } from '../../storage/testing/fakeServer';
+import { renderGame } from '../testing/render';
+
+async function saved(attempt: ReturnType<typeof finishedAttempt>) {
+  const storage = createMemoryStorage();
+  await storage.attempts.save(attempt);
+
+  return storage;
+}
+
+describe('result of an attempt', () => {
+  // §13.2: rounds, exercises and the counts of won, drawn and lost rounds.
+  it('shows every round of a fight', async () => {
+    const attempt = finishedAttempt('draw', '2026-10-29T17:42:00.000Z');
+    renderGame(`/result/${attempt.id}`, { storage: await saved(attempt) });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Нічия' })).toBeTruthy();
+    expect(screen.getByText('0 : 0')).toBeTruthy();
+    expect(screen.getByText('29 жовтня о 17:42')).toBeTruthy();
+    const round = screen.getByRole('article');
+    expect(within(round).getByRole('heading', { name: 'Раунд 1' })).toBeTruthy();
+    expect(within(round).getAllByRole('row').map((row) => row.textContent)).toEqual([
+      'РаундиТиЦільРезультат',
+      'Віджимання1110▲перемога',
+      'Присідання910▼поразка',
+    ]);
+  });
+
+  // §13.3: the top, the highest step passed, the steps and the way back down.
+  it('shows the steps of a ladder', async () => {
+    const attempt = finishedAttempt('win', '2026-10-29T17:42:00.000Z', 'ladder');
+    renderGame(`/result/${attempt.id}`, { storage: await saved(attempt) });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Перемога' })).toBeTruthy();
+    expect(screen.getByText('1 / 1')).toBeTruthy();
+    expect(screen.getByText('Найвищий пройдений етап').nextElementSibling?.textContent).toBe('1');
+    expect(screen.getByText('Повернення вниз').nextElementSibling?.textContent).toBe('ні');
+    expect(screen.getByText('Етап 1: 1, пройдено')).toBeTruthy();
+  });
+
+  // §13.4: the same settings, new rolls of the opponent, the old attempt untouched.
+  it('repeats an attempt with new results of the opponent', async () => {
+    const attempt = finalize(play(createSession(randomOpponentConfig(), testDeps()), () => 30), new Date());
+    const storage = await saved(attempt);
+    const { user } = renderGame(`/result/${attempt.id}`, { storage });
+
+    expect(await screen.findByText('«Повторити» — ті самі налаштування, нові результати суперника.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Повторити' }));
+
+    const session = storage.activeSession.load();
+    expect(session?.config).toEqual(attempt.config);
+    expect(session?.id).not.toBe(attempt.id);
+    expect(screen.getByRole('heading', { level: 1, name: 'Віджимання' })).toBeTruthy();
+    expect((await storage.attempts.get(attempt.id))?.attempt).toEqual(attempt);
+  });
+
+  // §15.4: an attempt that waits for the network says so.
+  it('says when an attempt still waits for the server', async () => {
+    const server = createFakeServer();
+    server.online = false;
+    const storage = createApiStorage({ fetch: server.fetch, buffer: createBrowserBuffer(null) });
+    const attempt = finishedAttempt('win', '2026-10-29T17:42:00.000Z');
+    await storage.attempts.save(attempt);
+    renderGame(`/result/${attempt.id}`, { storage });
+
+    expect(await screen.findByText("Спроба очікує надсилання: вона піде на сервер, щойно з'явиться зв'язок.")).toBeTruthy();
+  });
+
+  it('says when there is no such attempt', async () => {
+    renderGame('/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Спробу не знайдено' })).toBeTruthy();
+  });
+});

@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down kill logs ps sh test test-backend test-frontend lint lint-backend lint-frontend lint-infra audit audit-backend audit-frontend bundle fix migrate
+.PHONY: help up down kill logs ps sh test test-backend test-frontend lint lint-backend lint-frontend lint-infra audit audit-backend audit-frontend bundle e2e fix migrate
 
 COMPOSE := docker compose
 APP := $(COMPOSE) exec -T app
@@ -7,6 +7,14 @@ NODE := $(COMPOSE) exec -T node
 
 HADOLINT_IMAGE := hadolint/hadolint:v2.15.1-alpine@sha256:a1d49ae1a4e83c1dbad26b8c1ad7588c8bd1e04f4866b34ad3cac50335198552
 ACTIONLINT_IMAGE := rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+
+# E2E tests run the production image as a separate project, next to the development stack.
+E2E_COMPOSE := APP_IMAGE=self-fighter-app:e2e APP_SECRET=e2e-secret SERVER_NAME=localhost \
+	MYSQL_PASSWORD=e2e MYSQL_ROOT_PASSWORD=e2e-root \
+	$(COMPOSE) -p self-fighter-e2e -f compose.yaml -f compose.prod.yaml -f compose.e2e.yaml
+# CI builds the image with its own cache and passes E2E_BUILD= to skip the build here.
+E2E_BUILD ?= 1
 
 help: ## Показати доступні команди
 	@awk 'BEGIN {FS = ":.*## "} /^[a-z-]+:.*## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -68,6 +76,14 @@ audit-frontend: ## Перевірити залежності фронтенду
 
 bundle: ## Перевірити бюджет розміру JS
 	$(NODE) npm run check:bundle
+
+e2e: ## Запустити E2E-тести на prod-образі в Playwright
+	$(if $(E2E_BUILD),$(E2E_COMPOSE) build app)
+	$(E2E_COMPOSE) run --rm app php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration
+	$(E2E_COMPOSE) up -d --no-build --wait --wait-timeout 300
+	docker run --rm --network container:self-fighter-e2e-app-1 -e CI -v "$(CURDIR)/e2e:/e2e" -w /e2e $(PLAYWRIGHT_IMAGE) \
+		sh -c 'npm ci --no-audit --no-fund && npx playwright test'; \
+		status=$$?; $(E2E_COMPOSE) down --volumes --remove-orphans; exit $$status
 
 fix: ## Виправити стиль коду
 	$(APP) vendor/bin/php-cs-fixer fix

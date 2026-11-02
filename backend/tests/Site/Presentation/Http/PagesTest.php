@@ -76,6 +76,55 @@ final class PagesTest extends WebTestCase
         self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
     }
 
+    // Section 3.4: Symfony knows every screen of the game, so a reload opens it and anything else is a 404.
+    public function testEveryScreenOfTheGameHasItsAddress(): void
+    {
+        $client = self::createClient();
+        $screens = [
+            '/workout/setup/target',
+            '/workout/setup/random-opponent',
+            '/workout/setup/opponent-levels',
+            '/workout/setup/ladder',
+            '/workout/fight',
+            '/workout/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
+            '/workout/history',
+            '/workout/account',
+        ];
+
+        foreach ($screens as $screen) {
+            $client->request('GET', $screen);
+
+            self::assertResponseIsSuccessful($screen);
+            self::assertSelectorExists('#root');
+        }
+
+        foreach (['/workout/setup/boxing', '/workout/result/42', '/workout/unknown'] as $address) {
+            $client->request('GET', $address);
+
+            self::assertResponseStatusCodeSame(404, $address);
+        }
+
+        // Section 6.3: an address with a trailing slash leads to the one without it.
+        $client->request('GET', '/workout/');
+        self::assertResponseRedirects('/workout', 301);
+    }
+
+    // §5.1: the game gets the ready-made exercises with the page, before its first request.
+    public function testShellCarriesTheReadyMadeExercises(): void
+    {
+        $client = self::createClient();
+        $crawler = $client->request('GET', '/workout');
+
+        self::assertSame(
+            ['exercises' => [
+                ['id' => 'push-ups', 'name' => 'Віджимання'],
+                ['id' => 'squats', 'name' => 'Присідання'],
+                ['id' => 'pull-ups', 'name' => 'Підтягування'],
+            ]],
+            json_decode((string) $crawler->filter('#root')->attr('data-game'), true, 512, \JSON_THROW_ON_ERROR),
+        );
+    }
+
     // A page that sets no cookie stays the same for everyone and can be cached by a CDN.
     public function testPagesSetNoCookies(): void
     {
@@ -86,14 +135,6 @@ final class PagesTest extends WebTestCase
 
             self::assertSame([], $client->getResponse()->headers->getCookies(), $page);
         }
-    }
-
-    public function testUnknownPageReturnsNotFound(): void
-    {
-        $client = self::createClient();
-        $client->request('GET', '/workout/unknown');
-
-        self::assertResponseStatusCodeSame(404);
     }
 
     // Visitors see the error pages only when debugging is off, as in production.

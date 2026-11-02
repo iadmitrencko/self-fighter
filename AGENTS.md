@@ -13,6 +13,7 @@ Self-Fighter — вебзастосунок, який перетворює тр�
 - `backend/` — Symfony 7.4 LTS на PHP 8.5, публічні сторінки на Twig, MySQL 9.7.
 - `frontend/` — React і TypeScript, збірка через Vite у `backend/public/build`.
 - `docker/` — конфігурація FrankenPHP, Node і MySQL.
+- `e2e/` — сценарії Playwright з axe для пунктів «Продукт» і «Режими» §18.
 
 ## Build & Run Commands
 
@@ -27,6 +28,7 @@ Self-Fighter — вебзастосунок, який перетворює тр�
 | `make lint` | Запустити PHP CS Fixer, PHPStan, Deptrac, перевірки Symfony, ESLint, TypeScript, hadolint і actionlint |
 | `make audit` | Перевірити залежності на вразливості |
 | `make bundle` | Перевірити бюджет розміру JS |
+| `make e2e` | Запустити E2E-тести на prod-образі. Стек піднімається окремим проєктом поруч із dev і після тестів видаляється |
 | `make fix` | Виправити стиль коду |
 | `make migrate` | Застосувати міграції |
 | `make logs`, `make ps`, `make sh` | Логи, стан контейнерів, shell у застосунку |

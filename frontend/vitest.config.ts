@@ -5,10 +5,11 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
+    setupFiles: ['src/app/testing/setup.ts'],
     coverage: {
       provider: 'v8',
       include: ['src/**'],
-      exclude: ['src/domain/testing/**'],
+      exclude: ['src/domain/testing/**', 'src/app/testing/**', 'src/app/main.tsx'],
       reporter: ['text'],
       thresholds: {
         // The rules that decide who wins must be fully covered (§17.3 of the specification).

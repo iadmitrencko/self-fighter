@@ -1,0 +1,5 @@
+# End-to-end tests (make e2e): the production stack under its own project name and without host
+# ports, so it runs next to the development stack. Playwright joins the network of the app container.
+services:
+  app:
+    ports: !reset []

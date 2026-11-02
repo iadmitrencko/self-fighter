@@ -1,0 +1,72 @@
+import { useId, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { commonTexts } from '../../i18n/uk';
+
+// A modal dialog of the browser: the page behind it is inert and Escape closes it.
+// It opens when it appears, so a screen shows it with `{open && <Dialog />}`.
+export function Dialog({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+
+  useLayoutEffect(() => {
+    const element = dialog.current;
+    element?.showModal();
+
+    // Closing before the dialog leaves the page returns the focus to the button that opened it.
+    return () => element?.close();
+  }, []);
+
+  return (
+    <dialog ref={dialog} className="dialog" aria-labelledby={titleId} onClose={onClose}>
+      <h2 id={titleId} className="dialog__title">
+        {title}
+      </h2>
+      {children}
+    </dialog>
+  );
+}
+
+// The safe answer comes first, so it is the one a stray tap or Enter picks.
+export function ConfirmDialog({
+  title,
+  text,
+  confirm,
+  cancel = commonTexts.cancel,
+  busy = false,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  text: string;
+  confirm: string;
+  cancel?: string;
+  busy?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Dialog title={title} onClose={onCancel}>
+      <p className="dialog__text">{text}</p>
+      <div className="dialog__actions">
+        <button type="button" className="button button--outline button--large" onClick={onCancel}>
+          {cancel}
+        </button>
+        <button
+          type="button"
+          className="button button--danger button--large"
+          disabled={busy}
+          onClick={onConfirm}
+        >
+          {confirm}
+        </button>
+      </div>
+    </Dialog>
+  );
+}

@@ -52,7 +52,7 @@ export default defineConfig([
   {
     // Screens reach data only through the storage contract (section 3.7 of the plan).
     files: ['src/app/**/*.{ts,tsx}'],
-    ignores: ['src/app/main.tsx', 'src/app/**/*.test.{ts,tsx}'],
+    ignores: ['src/app/main.tsx', 'src/app/**/*.test.{ts,tsx}', 'src/app/testing/**'],
     rules: {
       'no-restricted-imports': [
         'error',
