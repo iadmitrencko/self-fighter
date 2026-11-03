@@ -1,0 +1,16 @@
+{% extends 'content/layout.html.twig' %}
+
+{% set title = 'guides.title'|trans %}
+{% set description = 'guides.description'|trans %}
+{% set heading = 'guides.heading'|trans %}
+{% set lead = 'guides.lead'|trans %}
+{% set indexable = true %}
+{% set breadcrumbs = [{name: 'site.footer.home'|trans, path: path('home')}, {name: 'site.nav.guides'|trans}] %}
+
+{% block content %}
+    {{ include('content/_cards.html.twig', {items: pages|map(page => {
+        path: path('guide', {slug: page.slug}),
+        heading: page.article.heading,
+        text: page.article.lead,
+    })}) }}
+{% endblock %}

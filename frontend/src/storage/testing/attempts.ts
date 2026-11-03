@@ -1,3 +1,4 @@
+import type { ChallengeRef } from '../../domain/catalog/challenge';
 import { createSession } from '../../domain/engine/session';
 import { finalize, type Attempt } from '../../domain/history/attempt';
 import type { Outcome } from '../../domain/results/results';
@@ -19,13 +20,14 @@ export function finishedAttempt(
   outcome: Outcome,
   finishedAt: string,
   mode: 'target' | 'ladder' = 'target',
+  challenge: ChallengeRef | null = null,
 ): Attempt {
   const deps = testDeps({ newId: () => newId(Date.parse(finishedAt)) });
 
   if (mode === 'ladder') {
     const config = ladderConfig({ max: 1, returnDown: false, rule: 'meet' });
 
-    return finalize(play(createSession(config, deps), () => (outcome === 'win' ? 1 : 0)), new Date(finishedAt));
+    return finalize(play(createSession(config, deps, challenge), () => (outcome === 'win' ? 1 : 0)), new Date(finishedAt));
   }
   const config = targetConfig({
     rounds: 1,
@@ -36,5 +38,5 @@ export function finishedAttempt(
   });
   const reps = [...TARGET_REPS[outcome]];
 
-  return finalize(play(createSession(config, deps), () => reps.shift() ?? 0), new Date(finishedAt));
+  return finalize(play(createSession(config, deps, challenge), () => reps.shift() ?? 0), new Date(finishedAt));
 }

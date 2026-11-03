@@ -27,8 +27,9 @@ describe('finalize', () => {
     const attempt = finalize(session, FINISHED_AT);
 
     expect(attempt).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: session.id,
+      challenge: null,
       mode: 'target',
       startedAt: '2026-10-30T10:00:00.000Z',
       finishedAt: '2026-10-30T10:18:24.000Z',
@@ -36,6 +37,14 @@ describe('finalize', () => {
       config: session.config,
     });
     expect(attempt.result.outcome).toBe('win');
+  });
+
+  // §21.3: the history knows which challenge the attempt took.
+  it('keeps the challenge of the session', () => {
+    const challenge = { slug: 'pull-ups-ladder-to-3', title: 'Драбина підтягувань до 3' };
+    const session = play(createSession(ladderConfig({ max: 3 }), testDeps(), challenge), () => 9);
+
+    expect(finalize(session, FINISHED_AT).challenge).toEqual(challenge);
   });
 
   it.each([

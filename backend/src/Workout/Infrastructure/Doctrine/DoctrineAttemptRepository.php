@@ -69,6 +69,20 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
         return $counts;
     }
 
+    public function passedChallenges(UserId $owner, AttemptFilter $filter): array
+    {
+        $slugs = $this->filtered($owner, $filter)
+            ->select('DISTINCT a.challenge')
+            ->andWhere('a.challenge IS NOT NULL')
+            ->andWhere('a.outcome = :won')
+            ->setParameter('won', Outcome::Win->value)
+            ->orderBy('a.challenge')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_values(array_filter($slugs, 'is_string'));
+    }
+
     public function removeAllOf(UserId $owner): void
     {
         $this->entityManager

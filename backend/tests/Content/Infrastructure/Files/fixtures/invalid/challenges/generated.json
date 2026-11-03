@@ -1,0 +1,5 @@
+[
+  { "slug": "extreme", "mode": "target", "exercises": ["plank"], "level": "extreme" },
+  { "mode": "target" },
+  "not a challenge"
+]

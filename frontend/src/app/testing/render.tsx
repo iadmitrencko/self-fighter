@@ -6,7 +6,7 @@ import type { GameStorage } from '../../storage/contract';
 import { newId } from '../../storage/ids';
 import { createMemoryStorage } from '../../storage/memory';
 import { App } from '../App';
-import type { Game } from '../game';
+import type { Challenge, Game } from '../game';
 
 export const READY_MADE = [pushUps, squats, pullUps];
 
@@ -18,11 +18,15 @@ export function testClock(start = STARTED_AT): () => Date {
 }
 
 // Renders the game at a path under /workout, with storage in memory and fixed randomness.
-export function renderGame(path: string, options: { storage?: GameStorage; seed?: number } = {}) {
+export function renderGame(
+  path: string,
+  options: { storage?: GameStorage; seed?: number; challenge?: Challenge } = {},
+) {
   const storage = options.storage ?? createMemoryStorage();
   const game: Game = {
     storage,
     exercises: READY_MADE,
+    challenge: options.challenge ?? null,
     deps: { rng: seededRng(options.seed ?? 7), now: testClock(), newId },
   };
   const user = userEvent.setup();

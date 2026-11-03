@@ -29,7 +29,13 @@ final readonly class JsonSchemaAttemptFormat implements AttemptFormat
 
     public function readAttempt(string $json): ?array
     {
-        return $this->read($json, self::URI);
+        $attempt = $this->read($json, self::URI);
+
+        // A tab opened before the release or an attempt that waited for the network still speaks
+        // version 1. It took no challenge, and the history keeps every attempt in one format.
+        return null !== $attempt && 1 === $attempt['schemaVersion']
+            ? ['schemaVersion' => self::VERSION, 'challenge' => null] + $attempt
+            : $attempt;
     }
 
     public function readConfiguration(string $json, Mode $mode): ?array

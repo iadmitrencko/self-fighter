@@ -12,8 +12,12 @@ use App\Workout\Domain\Mode;
  */
 interface AttemptFormat
 {
+    // Version 2 added the ready-made challenge of an attempt. Version 1 is still accepted (section 3.7 of the plan).
+    public const int VERSION = 2;
+
     /**
-     * @return array<mixed>|null the attempt, or null when the JSON is not a finished attempt of a supported format version
+     * @return array<mixed>|null the attempt in the current format version, or null when the JSON is not
+     *                           a finished attempt of a supported version
      */
     public function readAttempt(string $json): ?array;
 

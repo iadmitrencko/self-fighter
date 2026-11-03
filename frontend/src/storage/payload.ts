@@ -74,12 +74,20 @@ export function parseStatistics(body: unknown): Statistics {
     typeof body.total !== 'number' ||
     typeof body.wins !== 'number' ||
     typeof body.draws !== 'number' ||
-    typeof body.losses !== 'number'
+    typeof body.losses !== 'number' ||
+    !Array.isArray(body.challenges) ||
+    !body.challenges.every((slug) => typeof slug === 'string')
   ) {
     throw unexpected();
   }
 
-  return { total: body.total, wins: body.wins, draws: body.draws, losses: body.losses };
+  return {
+    total: body.total,
+    wins: body.wins,
+    draws: body.draws,
+    losses: body.losses,
+    challenges: body.challenges,
+  };
 }
 
 // The export joins what every module of the server keeps about the user.

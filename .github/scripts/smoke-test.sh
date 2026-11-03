@@ -1,6 +1,7 @@
 #!/bin/sh
 # Checks a running deployment from the outside: smoke-test.sh <base-url>
-# Set SMOKE_INSECURE=1 to accept the self-signed certificate of a local stack.
+# Set SMOKE_INSECURE=1 to accept the self-signed certificate of a local stack,
+# and SMOKE_WWW to the www address of the site to check that it leads to the main one.
 set -eu
 
 base_url=${1:?Usage: smoke-test.sh <base-url>}
@@ -46,6 +47,22 @@ case "$home" in
 *noindex*) fail 'the home page is closed from indexing' ;;
 *) echo 'ok: the home page can be indexed' ;;
 esac
+
+# Section 6.3 of the plan: production is open to search engines and names its sitemap.
+robots=$(request "$base_url/robots.txt")
+case "$robots" in
+*'Sitemap: '*) echo 'ok: robots.txt opens the site and names the sitemap' ;;
+*) fail 'robots.txt closes the site from search engines' ;;
+esac
+expect_status 200 /sitemap.xml
+expect_status 200 /challenges
+expect_status 200 /og.png
+
+if [ -n "${SMOKE_WWW:-}" ]; then
+	redirect=$(request --output /dev/null --write-out '%{http_code} %{redirect_url}' "$SMOKE_WWW/challenges")
+	[ "$redirect" = "301 $base_url/challenges" ] || fail "$SMOKE_WWW/challenges answered \"$redirect\" instead of a redirect to $base_url"
+	echo 'ok: the www address leads to the main one'
+fi
 
 workout=$(request "$base_url/workout")
 case "$workout" in

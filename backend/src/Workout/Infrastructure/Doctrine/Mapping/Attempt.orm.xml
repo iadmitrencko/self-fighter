@@ -15,6 +15,7 @@
         <field name="owner" column="user_id" type="user_id"/>
         <field name="mode" length="20" enum-type="App\Workout\Domain\Mode"/>
         <field name="outcome" length="4" enum-type="App\Workout\Domain\Outcome"/>
+        <field name="challenge" length="80" nullable="true"/>
         <field name="schemaVersion" type="smallint"/>
         <field name="finishedAt" type="datetime_immutable"/>
         <field name="document" type="json"/>

@@ -64,6 +64,28 @@ describe('result of an attempt', () => {
     expect((await storage.attempts.get(attempt.id))?.attempt).toEqual(attempt);
   });
 
+  // §21.3: a win with the settings of the page passes the challenge; «Повторити» tries it again.
+  it('says that a challenge is passed', async () => {
+    const challenge = { slug: '100-squats', title: '100 присідань' };
+    const attempt = finishedAttempt('win', '2026-10-29T17:42:00.000Z', 'target', challenge);
+    const storage = await saved(attempt);
+    const { user } = renderGame(`/result/${attempt.id}`, { storage });
+
+    expect(await screen.findByText('Виклик «100 присідань» пройдено')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Сторінка виклику' }).getAttribute('href')).toBe('/challenges/100-squats');
+
+    await user.click(screen.getByRole('button', { name: 'Повторити' }));
+
+    expect(storage.activeSession.load()?.challenge).toEqual(challenge);
+  });
+
+  it('says that a challenge lost is not passed yet', async () => {
+    const attempt = finishedAttempt('draw', '2026-10-29T17:42:00.000Z', 'target', { slug: '100-squats', title: '100 присідань' });
+    renderGame(`/result/${attempt.id}`, { storage: await saved(attempt) });
+
+    expect(await screen.findByText('Виклик «100 присідань» ще не пройдено: переможи, щоб його зарахувати.')).toBeTruthy();
+  });
+
   // §15.4: an attempt that waits for the network says so.
   it('says when an attempt still waits for the server', async () => {
     const server = createFakeServer();

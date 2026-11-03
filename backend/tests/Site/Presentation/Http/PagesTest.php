@@ -27,6 +27,23 @@ final class PagesTest extends WebTestCase
         self::assertCount(3, $crawler->filter('#how li'));
         self::assertCount(4, $crawler->filter('.benefit'));
         self::assertGreaterThanOrEqual(2, $crawler->filter('main a[href="/workout"]')->count());
+        self::assertSame(
+            ['/modes/target', '/modes/random-opponent', '/modes/opponent-levels', '/modes/ladder', '/challenges'],
+            $crawler->filter('#modes a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
+        );
+    }
+
+    // Section 6.3 of the plan: search engines learn the name of the site and how people say it.
+    public function testHomePageNamesTheSiteForSearchEngines(): void
+    {
+        $client = self::createClient();
+        $crawler = $client->request('GET', '/');
+        $data = json_decode($crawler->filter('script[type="application/ld+json"]')->text(), true, 512, \JSON_THROW_ON_ERROR);
+
+        self::assertSame('http://localhost/', $crawler->filter('link[rel="canonical"]')->attr('href'));
+        self::assertSame(['WebSite', 'Organization'], array_column($data, '@type'));
+        self::assertSame(['Селф Файтер', 'Селф Файтер'], array_column($data, 'alternateName'));
+        self::assertSame('http://localhost/apple-touch-icon.png', $data[1]['logo']);
     }
 
     public function testHomePageHasItsOwnTitleAndDescription(): void
@@ -61,7 +78,7 @@ final class PagesTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         self::assertSame(
-            ['/', '/#modes', '/#how', '/workout', '/workout/history', '/workout/account'],
+            ['/', '/challenges', '/modes', '/exercises', '/guides', '/about', '/workout', '/workout/history', '/workout/account'],
             $crawler->filter('footer nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
     }
@@ -79,9 +96,32 @@ final class PagesTest extends WebTestCase
         self::assertSame($footer, $game->filter('footer')->html());
         self::assertSelectorExists('main #root');
         self::assertSame(
-            ['/#modes', '/#how', '/workout/history', '/workout/account', '/workout'],
+            ['/challenges', '/modes', '/exercises', '/workout/history', '/workout/account', '/workout'],
             $game->filter('header nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
+    }
+
+    // §14.2: the score of the player stands on every page; the browser fills in its numbers.
+    public function testEveryPageShowsTheScoreOfThePlayer(): void
+    {
+        $client = self::createClient();
+        $scores = [];
+
+        foreach (['/', '/challenges', '/workout', '/workout/history'] as $page) {
+            $crawler = $client->request('GET', $page);
+            $scores[] = $crawler->filter('.score')->outerHtml();
+
+            self::assertSame(
+                ['total', 'wins', 'draws', 'losses', 'challenges'],
+                $crawler->filter('.score [data-score]')->each(static fn (Crawler $value): string => (string) $value->attr('data-score')),
+                $page,
+            );
+            self::assertSame(['Тренування', 'Перемоги', 'Нічиї', 'Поразки', 'Виклики'], $crawler->filter('.score dt')->each(
+                static fn (Crawler $label): string => $label->text(),
+            ));
+        }
+        // The same HTML for everyone: the page reads no cookie and stays cacheable.
+        self::assertCount(1, array_unique($scores));
     }
 
     public function testWorkoutShellIsNotIndexed(): void
@@ -107,6 +147,7 @@ final class PagesTest extends WebTestCase
             '/workout/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
             '/workout/history',
             '/workout/account',
+            '/workout/challenge/100-push-ups',
         ];
 
         foreach ($screens as $screen) {
@@ -116,7 +157,7 @@ final class PagesTest extends WebTestCase
             self::assertSelectorExists('#root');
         }
 
-        foreach (['/workout/setup/boxing', '/workout/result/42', '/workout/unknown'] as $address) {
+        foreach (['/workout/setup/boxing', '/workout/result/42', '/workout/unknown', '/workout/challenge/1000-push-ups'] as $address) {
             $client->request('GET', $address);
 
             self::assertResponseStatusCodeSame(404, $address);
@@ -143,6 +184,29 @@ final class PagesTest extends WebTestCase
         );
     }
 
+    // §21.3: the game opens a ready-made challenge with its configuration and lets the player change it.
+    public function testShellCarriesTheOpenedChallenge(): void
+    {
+        $client = self::createClient();
+        $crawler = $client->request('GET', '/workout/challenge/push-ups-ladder-to-10');
+        $game = json_decode((string) $crawler->filter('#root')->attr('data-game'), true, 512, \JSON_THROW_ON_ERROR);
+
+        self::assertSame(['push-ups', 'squats', 'pull-ups'], array_column($game['exercises'], 'id'));
+        // MySQL keeps the keys of a JSON object in its own order.
+        self::assertEquals([
+            'slug' => 'push-ups-ladder-to-10',
+            'title' => 'Драбина віджимань до 10',
+            'config' => [
+                'mode' => 'ladder',
+                'rule' => 'meet',
+                'exercise' => ['id' => 'push-ups', 'name' => 'Віджимання'],
+                'max' => 10,
+                'returnDown' => false,
+            ],
+        ], $game['challenge']);
+        self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
+    }
+
     // A page that sets no cookie stays the same for everyone and can be cached by a CDN.
     public function testPagesSetNoCookies(): void
     {
@@ -163,7 +227,7 @@ final class PagesTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(404);
         self::assertSelectorTextSame('h1', 'Сторінку не знайдено');
-        self::assertSame('noindex', $crawler->filter('meta[name="robots"]')->attr('content'));
+        self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
         self::assertSame(['/', '/workout'], $crawler->filter('.error-page a')->each(
             static fn (Crawler $link): string => (string) $link->attr('href'),
         ));
@@ -176,7 +240,7 @@ final class PagesTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(405);
         self::assertSelectorTextSame('h1', 'Щось пішло не так');
-        self::assertSame('noindex', $crawler->filter('meta[name="robots"]')->attr('content'));
+        self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
         self::assertStringNotContainsString('MethodNotAllowed', (string) $client->getResponse()->getContent());
     }
 }

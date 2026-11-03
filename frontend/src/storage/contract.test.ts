@@ -193,13 +193,28 @@ describe.each([
       await storage.attempts.save(finishedAttempt('loss', '2026-11-02T11:00:00.000Z', 'ladder'));
       await storage.attempts.flush();
 
-      expect(await storage.attempts.stats()).toEqual({ total: 5, wins: 2, draws: 1, losses: 2 });
+      expect(await storage.attempts.stats()).toEqual({ total: 5, wins: 2, draws: 1, losses: 2, challenges: [] });
       expect(await storage.attempts.stats({ mode: 'ladder' })).toEqual({
         total: 1,
         wins: 0,
         draws: 0,
         losses: 1,
+        challenges: [],
       });
+    });
+
+    // §21.3: a challenge counts once it is won, however often it is tried.
+    it('counts the challenges passed', async () => {
+      const squats = { slug: '100-squats', title: '100 присідань' };
+      const ladder = { slug: 'pull-ups-ladder-to-3', title: 'Драбина підтягувань до 3' };
+      await storage.attempts.save(finishedAttempt('loss', '2026-11-02T09:00:00.000Z', 'target', squats));
+      await storage.attempts.save(finishedAttempt('win', '2026-11-02T10:00:00.000Z', 'target', squats));
+      await storage.attempts.save(finishedAttempt('win', '2026-11-02T11:00:00.000Z', 'target', squats));
+      await storage.attempts.save(finishedAttempt('loss', '2026-11-02T12:00:00.000Z', 'ladder', ladder));
+      await storage.attempts.flush();
+
+      expect((await storage.attempts.stats()).challenges).toEqual(['100-squats']);
+      expect((await storage.attempts.stats({ mode: 'ladder' })).challenges).toEqual([]);
     });
   });
 

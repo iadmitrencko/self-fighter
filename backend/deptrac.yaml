@@ -38,6 +38,15 @@ deptrac:
     - name: WorkoutPresentation
       collectors: [{ type: directory, value: src/Workout/Presentation/.* }]
 
+    - name: ContentDomain
+      collectors: [{ type: directory, value: src/Content/Domain/.* }]
+    - name: ContentApplication
+      collectors: [{ type: directory, value: src/Content/Application/.* }]
+    - name: ContentInfrastructure
+      collectors: [{ type: directory, value: src/Content/Infrastructure/.* }]
+    - name: ContentPresentation
+      collectors: [{ type: directory, value: src/Content/Presentation/.* }]
+
     - name: SitePresentation
       collectors: [{ type: directory, value: src/Site/Presentation/.* }]
 
@@ -45,7 +54,7 @@ deptrac:
     - name: Psr
       collectors: [{ type: classLike, value: '^Psr\\' }]
     - name: Framework
-      collectors: [{ type: classLike, value: '^(Symfony|Doctrine|Opis)\\' }]
+      collectors: [{ type: classLike, value: '^(Symfony|Doctrine|Opis|League|Twig)\\' }]
 
   ruleset:
     SharedDomain: ~
@@ -63,4 +72,9 @@ deptrac:
     WorkoutInfrastructure: [WorkoutDomain, WorkoutApplication, SharedDomain, SharedApplication, SharedInfrastructure, Framework, Psr]
     WorkoutPresentation: [WorkoutDomain, WorkoutApplication, SharedDomain, SharedApplication, SharedPresentation, Framework, Psr]
 
-    SitePresentation: [SharedPresentation, Framework]
+    ContentDomain: [SharedDomain]
+    ContentApplication: [ContentDomain, SharedDomain, SharedApplication, Psr]
+    ContentInfrastructure: [ContentDomain, ContentApplication, SharedDomain, SharedApplication, SharedInfrastructure, Framework, Psr]
+    ContentPresentation: [ContentDomain, ContentApplication, SharedDomain, SharedApplication, SharedPresentation, Framework, Psr]
+
+    SitePresentation: [SharedDomain, SharedApplication, SharedPresentation, Framework]

@@ -1,6 +1,6 @@
 /*
- * The public pages: the landing (design/Main.dc.html) and the error pages, inside the frame of
- * every page. Mobile first; the mockup shows the desktop at 1440px.
+ * The public pages: the landing (design/Main.dc.html), the pages of content and the error pages,
+ * inside the frame of every page. Mobile first; the mockup shows the desktop at 1440px.
  * The imports are inlined at build time, so a page loads a single stylesheet.
  */
 @import '../styles/fonts.css';
@@ -8,6 +8,7 @@
 @import '../styles/base.css';
 @import '../styles/components.css';
 @import '../styles/frame.css';
+@import './content.css';
 
 /* Hero */
 
@@ -312,9 +313,14 @@
 }
 
 .mode-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-m);
+}
+
+.mode-card:hover {
+  border-color: var(--color-line-strong);
 }
 
 .mode-card__number {
@@ -340,6 +346,28 @@
 .mode-card__text {
   color: var(--color-text-soft);
   line-height: 1.55;
+}
+
+/* The whole card leads to the page of the mode. */
+.mode-card__link {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.mode-card__link::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  content: '';
+}
+
+.mode-card:hover .mode-card__link {
+  color: var(--color-accent-hover);
+}
+
+.section__more {
+  margin-top: var(--space-l);
+  color: var(--color-text-muted);
 }
 
 .steps {

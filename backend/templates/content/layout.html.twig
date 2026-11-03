@@ -1,0 +1,24 @@
+{% extends 'site/layout.html.twig' %}
+
+{#- A page of content: breadcrumbs, the heading with its lead, then the page itself.
+    A page sets title, description, heading, lead, breadcrumbs and indexable. #}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block meta %}
+    {{ include('site/_social.html.twig') }}
+    {% block structured_data %}{% endblock %}
+{% endblock %}
+
+{% block main %}
+    <div class="container page">
+        {{ include('site/_breadcrumbs.html.twig') }}
+        <header class="page-head">
+            {% block eyebrow %}{% endblock %}
+            <h1 class="page-head__title">{{ heading }}</h1>
+            <p class="page-head__lead">{{ lead }}</p>
+            {% block actions %}{% endblock %}
+        </header>
+        {% block content %}{% endblock %}
+    </div>
+{% endblock %}

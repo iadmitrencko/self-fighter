@@ -10,6 +10,7 @@
         "doctrine/doctrine-bundle": "^3.3",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.7",
+        "league/commonmark": "^2.7",
         "opis/json-schema": "^2.6",
         "pentatrion/vite-bundle": "^8.2",
         "symfony/asset": "7.4.*",

@@ -15,11 +15,14 @@
         <div class="container site-header__inner">
             {{ include('site/_logo.html.twig') }}
             <nav class="site-nav" aria-label="{{ 'site.nav.label'|trans }}">
-                <a class="site-nav__link site-nav__link--section" href="{{ path('home') }}#modes">
+                <a class="site-nav__link site-nav__link--section" href="{{ path('challenges') }}">
+                    <span class="site-nav__label">{{ 'site.nav.challenges'|trans }}</span>
+                </a>
+                <a class="site-nav__link site-nav__link--section" href="{{ path('modes') }}">
                     <span class="site-nav__label">{{ 'site.nav.modes'|trans }}</span>
                 </a>
-                <a class="site-nav__link site-nav__link--section" href="{{ path('home') }}#how">
-                    <span class="site-nav__label">{{ 'site.nav.how'|trans }}</span>
+                <a class="site-nav__link site-nav__link--section" href="{{ path('exercises') }}">
+                    <span class="site-nav__label">{{ 'site.nav.exercises'|trans }}</span>
                 </a>
                 <a class="site-nav__link" href="{{ path('workout_history') }}">
                     <svg class="site-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/></svg>
@@ -33,6 +36,7 @@
             </nav>
         </div>
     </header>
+    {{ include('site/_score.html.twig') }}
     <main id="main">
         {% block main %}{% endblock %}
     </main>
@@ -42,8 +46,11 @@
                 <nav aria-label="{{ 'site.footer.nav_label'|trans }}">
                     <ul class="site-footer__links" role="list">
                         <li><a class="site-footer__link" href="{{ path('home') }}">{{ 'site.footer.home'|trans }}</a></li>
-                        <li><a class="site-footer__link" href="{{ path('home') }}#modes">{{ 'site.nav.modes'|trans }}</a></li>
-                        <li><a class="site-footer__link" href="{{ path('home') }}#how">{{ 'site.nav.how'|trans }}</a></li>
+                        <li><a class="site-footer__link" href="{{ path('challenges') }}">{{ 'site.nav.challenges'|trans }}</a></li>
+                        <li><a class="site-footer__link" href="{{ path('modes') }}">{{ 'site.nav.modes'|trans }}</a></li>
+                        <li><a class="site-footer__link" href="{{ path('exercises') }}">{{ 'site.nav.exercises'|trans }}</a></li>
+                        <li><a class="site-footer__link" href="{{ path('guides') }}">{{ 'site.nav.guides'|trans }}</a></li>
+                        <li><a class="site-footer__link" href="{{ path('about') }}">{{ 'site.nav.about'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('workout') }}">{{ 'site.start'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('workout_history') }}">{{ 'site.nav.history'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('workout_account') }}">{{ 'site.nav.account'|trans }}</a></li>

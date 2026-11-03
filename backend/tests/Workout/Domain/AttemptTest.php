@@ -24,6 +24,15 @@ final class AttemptTest extends TestCase
         self::assertSame($document, $attempt->document());
     }
 
+    // §21.3: the statistics count the challenges an attempt passed.
+    public function testRemembersTheChallengeOfTheAttempt(): void
+    {
+        $owner = UserId::generate();
+
+        self::assertSame('100-push-ups', $this->attemptOf($owner, Documents::fight(overrides: ['challenge' => Documents::challenge('100-push-ups')]))->challenge());
+        self::assertNull($this->attemptOf($owner, Documents::fight())->challenge());
+    }
+
     /**
      * @param array<string, mixed> $change
      */

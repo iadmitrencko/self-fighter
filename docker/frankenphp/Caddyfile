@@ -18,6 +18,11 @@
 	root /app/public
 	encode zstd br gzip
 
+	# Section 6.3 of the plan: www leads to the main address. SERVER_NAME lists both hosts,
+	# Caddy redirects plain HTTP to HTTPS by itself.
+	@www header_regexp www Host ^www\.(.+)$
+	redir @www https://{re.www.1}{uri} permanent
+
 	# Built files carry a hash in their names, so browsers and the CDN may keep them for a year.
 	@builtAssets path /build/assets/*
 	header @builtAssets Cache-Control "public, max-age=31536000, immutable"

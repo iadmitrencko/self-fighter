@@ -62,7 +62,10 @@ jobs:
     env:
       COMPOSE_FILE: compose.yaml:compose.prod.yaml
       APP_SECRET: ci-secret
-      SERVER_NAME: localhost
+      SERVER_NAME: localhost, www.localhost
+      DEFAULT_URI: https://localhost
+      # The smoke test checks the site as production opens it to search engines.
+      SEO_INDEXING: 1
       MYSQL_PASSWORD: ci-password
       MYSQL_ROOT_PASSWORD: ci-root-password
       TRIVY_IMAGE: aquasec/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c
@@ -88,14 +91,15 @@ jobs:
           docker save self-fighter-app:prod --output image.tar
           docker run --rm --volume "$PWD/image.tar:/image.tar:ro" "$TRIVY_IMAGE" image \
             --input /image.tar --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
-      - name: Run migrations in a separate container
-        run: docker compose run --rm app php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration
+      - name: Run migrations and sync the content in a separate container
+        run: docker compose run --rm app sh -c 'php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration && php bin/console app:content:sync'
       - name: Start the production stack
         run: docker compose up -d --no-build --wait --wait-timeout 300
       - name: Smoke test
         run: .github/scripts/smoke-test.sh https://localhost
         env:
           SMOKE_INSECURE: 1
+          SMOKE_WWW: https://www.localhost
       - name: Show container logs
         if: failure()
         run: docker compose logs --no-color --tail=200

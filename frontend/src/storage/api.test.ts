@@ -150,13 +150,30 @@ describe('storage over the API', () => {
         'pending',
         'saved',
       ]);
-      expect(await storage.attempts.stats()).toEqual({ total: 2, wins: 1, draws: 0, losses: 1 });
+      expect(await storage.attempts.stats()).toEqual({ total: 2, wins: 1, draws: 0, losses: 1, challenges: [] });
       expect(await storage.attempts.stats({ outcome: 'win' })).toEqual({
         total: 1,
         wins: 1,
         draws: 0,
         losses: 0,
+        challenges: [],
       });
+    });
+
+    // A challenge passed on the server and again while offline still counts once.
+    it('joins the challenges passed on the server and those waiting for it', async () => {
+      const squats = { slug: '100-squats', title: '100 присідань' };
+      const pushUps = { slug: '100-push-ups', title: '100 віджимань' };
+      await storage.attempts.save(finishedAttempt('win', '2026-11-02T09:00:00.000Z', 'target', squats));
+      await storage.attempts.flush();
+      // Each send stops at the oldest attempt: two saves and the flush meet one failure each.
+      server.failNext(503, 3);
+
+      await storage.attempts.save(finishedAttempt('win', '2026-11-02T10:00:00.000Z', 'target', squats));
+      await storage.attempts.save(finishedAttempt('win', '2026-11-02T11:00:00.000Z', 'target', pushUps));
+      await storage.attempts.flush();
+
+      expect((await storage.attempts.stats()).challenges).toEqual(['100-push-ups', '100-squats']);
     });
 
     it('marks an attempt the server refuses and stops sending it', async () => {

@@ -1,0 +1,31 @@
+{% extends 'content/layout.html.twig' %}
+
+{#- An exercise (§21.2): technique, mistakes and the challenges it takes part in. #}
+
+{% set article = exercise.article %}
+{% set title = article.title %}
+{% set description = article.description %}
+{% set heading = article.heading %}
+{% set lead = article.lead %}
+{% set indexable = exercise.indexable %}
+{% set breadcrumbs = [
+    {name: 'site.footer.home'|trans, path: path('home')},
+    {name: 'site.nav.exercises'|trans, path: path('exercises')},
+    {name: heading},
+] %}
+
+{% block eyebrow %}<p class="eyebrow page-head__eyebrow">{{ 'exercise_page.eyebrow'|trans }}</p>{% endblock %}
+
+{% block content %}
+    <div class="prose">{{ article.html|raw }}</div>
+    {% if challenges is not empty %}
+        <section class="page-section" aria-labelledby="challenges">
+            <h2 class="page-section__title" id="challenges">{{ 'exercise_page.challenges_title'|trans }}</h2>
+            {{ include('content/_challenge_list.html.twig', {heading_level: 3}) }}
+        </section>
+    {% endif %}
+    <div class="page-cta">
+        <a class="button button--primary button--large" href="{{ path('workout') }}">{{ 'site.start'|trans }}</a>
+        <a class="button button--outline button--large" href="{{ path('challenges') }}">{{ 'content.all_challenges'|trans }}</a>
+    </div>
+{% endblock %}

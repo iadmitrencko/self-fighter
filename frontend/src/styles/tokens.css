@@ -24,6 +24,9 @@
   --color-rival: #5b9bff;
   --color-rival-text: #8fb8ff;
   --color-error: #ffb08a;
+  /* A passed challenge: the green check of §21.3. 10:1 on the background. */
+  --color-passed: #5fd38d;
+  --color-on-passed: #111214;
   --color-stripe: rgb(255 255 255 / 3.5%);
   --color-stripe-on-accent: rgb(0 0 0 / 6%);
 

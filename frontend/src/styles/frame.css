@@ -42,7 +42,7 @@
   gap: var(--space-xs);
 }
 
-/* On a phone the history and the data are icons; the sections of the landing are a scroll away. */
+/* On a phone the history and the data are icons; the hubs of the site wait in the footer. */
 .site-nav__link {
   display: inline-flex;
   align-items: center;
@@ -120,6 +120,114 @@
 @media (min-width: 64rem) {
   .site-nav__link--section {
     display: inline-flex;
+  }
+}
+
+/* The score of the player under the header of every page */
+
+.score {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.score__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-l);
+  padding-block: var(--space-xs);
+}
+
+/* On a phone the five numbers need the whole width; their labels say what they count. */
+.score__title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.score__list {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.score__item {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  min-width: 0;
+  text-align: center;
+}
+
+.score__label {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score__value {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 900;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.score__item--wins .score__value {
+  color: var(--color-accent);
+}
+
+.score__item--losses .score__value {
+  color: var(--color-rival-text);
+}
+
+.score__item--challenges .score__value {
+  color: var(--color-passed);
+}
+
+@media (min-width: 48rem) {
+  .score__title {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    color: var(--color-text-muted);
+    font-size: var(--text-s);
+    font-weight: 700;
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  .score__list {
+    display: flex;
+    flex: none;
+    gap: var(--space-xl);
+  }
+
+  .score__inner {
+    padding-block: var(--space-s);
+  }
+
+  .score__item {
+    flex-direction: row-reverse;
+    align-items: baseline;
+    gap: var(--space-xs);
+  }
+
+  .score__value {
+    font-size: var(--text-l);
+  }
+
+  .score__label {
+    font-size: var(--text-m);
   }
 }
 

@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { pullUps, pushUps, randomOpponentConfig, squats } from '../../domain/testing/fixtures';
+import { ladderConfig, pullUps, pushUps, randomOpponentConfig, squats, targetConfig } from '../../domain/testing/fixtures';
 import { createMemoryStorage } from '../../storage/memory';
 import { renderGame } from '../testing/render';
 
@@ -133,6 +133,77 @@ describe('setup of a workout', () => {
     expect(await within(manage).findByText('Власних вправ ще немає.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Бурпі/ })).toBeNull();
     expect(await storage.exercises.list()).toEqual([]);
+  });
+
+  // §21.3: a ready-made challenge opens its settings filled in; they can be changed before the start.
+  it('opens a ready-made challenge with its settings', async () => {
+    const storage = createMemoryStorage();
+    await storage.settings.save(targetConfig());
+    const challenge = {
+      slug: '100-push-ups',
+      title: '100 віджимань',
+      config: targetConfig({ rule: 'meet', rounds: 3, exercises: [{ ...pushUps, targets: [10, 10, 10] }] }),
+    };
+    const { user } = renderGame('/challenge/100-push-ups', { storage, challenge });
+    await screen.findByRole('heading', { level: 1, name: 'Налаштуй бій' });
+
+    expect(screen.getByText('Готовий виклик · режим «Ціль»')).toBeTruthy();
+    expect(screen.getByText('100 віджимань')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'До сторінки виклику' }).getAttribute('href')).toBe('/challenges/100-push-ups');
+    // The challenge wins over the last settings of the mode.
+    expect(screen.queryByRole('button', { name: 'Прибрати вправу Присідання' })).toBeNull();
+    expect(screen.getByRole<HTMLInputElement>('radio', { name: /Виконати/ }).checked).toBe(true);
+
+    await user.clear(screen.getByRole('textbox', { name: 'Віджимання, раунд 3' }));
+    await user.type(screen.getByRole('textbox', { name: 'Віджимання, раунд 3' }), '12');
+
+    // A changed challenge is a workout of its own, and the player learns it before the start.
+    expect(screen.getByText('Налаштування змінено, тож перемога не зарахує виклик. Поверни значення виклику, щоб його пройти.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Почати бій' }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Віджимання' })).toBeTruthy();
+    expect(storage.activeSession.load()?.config).toEqual({
+      mode: 'target',
+      rule: 'meet',
+      rounds: 3,
+      exercises: [{ ...pushUps, targets: [10, 10, 12] }],
+    });
+    expect(storage.activeSession.load()?.challenge).toBeNull();
+  });
+
+  // §21.3: the settings of the page take the challenge, so a win passes it.
+  it('takes the challenge with the settings of its page', async () => {
+    const challenge = { slug: '100-push-ups', title: '100 віджимань', config: targetConfig({ rule: 'meet', rounds: 1, exercises: [{ ...pushUps, targets: [10] }] }) };
+    const { user, storage } = renderGame('/challenge/100-push-ups', { challenge });
+    await screen.findByRole('heading', { level: 1, name: 'Налаштуй бій' });
+
+    expect(screen.getByText('Налаштування заповнено з виклику. Їх можна змінити перед стартом.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Почати бій' }));
+
+    expect(storage.activeSession.load()?.challenge).toEqual({ slug: '100-push-ups', title: '100 віджимань' });
+  });
+
+  it('opens a ladder challenge', async () => {
+    const challenge = { slug: 'pull-ups-pyramid-to-7', title: 'Піраміда підтягувань до 7', config: ladderConfig({ max: 7 }) };
+    const { user, storage } = renderGame('/challenge/pull-ups-pyramid-to-7', { challenge });
+    await screen.findByRole('heading', { level: 1, name: 'Налаштуй драбину' });
+
+    expect(screen.getByRole<HTMLInputElement>('radio', { name: 'Підтягування' }).checked).toBe(true);
+    expect(screen.getByRole<HTMLInputElement>('checkbox', { name: 'Повернення вниз після максимуму' }).checked).toBe(true);
+
+    await user.click(screen.getByRole('button', { name: 'Почати драбину' }));
+
+    expect(storage.activeSession.load()?.config).toEqual(ladderConfig({ max: 7 }));
+  });
+
+  // The page carries the challenge of its own address only.
+  it('knows no other challenge than the one of the page', async () => {
+    const challenge = { slug: '100-push-ups', title: '100 віджимань', config: targetConfig() };
+    renderGame('/challenge/200-push-ups', { challenge });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Сторінку не знайдено' })).toBeTruthy();
   });
 
   it('keeps ready-made exercises when custom ones fail to load', async () => {

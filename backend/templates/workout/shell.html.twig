@@ -2,10 +2,6 @@
 
 {# The game lives in the same frame as the site: React renders the screen inside the main content. #}
 
-{% block meta %}
-    <meta name="robots" content="noindex, follow">
-{% endblock %}
-
 {% block assets %}
     {{ vite_entry_link_tags('app') }}
     {{ vite_entry_script_tags('app', { dependency: 'react' }) }}

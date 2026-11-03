@@ -7,6 +7,7 @@ services:
     environment:
       APP_ENV: dev
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
+      DEFAULT_URI: http://localhost:${HTTP_PORT:-8080}
     ports:
       - ${HTTP_PORT:-8080}:80
     volumes:
@@ -41,6 +42,8 @@ services:
       - ./backend/templates:/srv/backend/templates:ro
       # Vitest checks the attempts of the domain against the schema the server uses
       - ./backend/schema:/srv/backend/schema:ro
+      # The challenge generator reads the matrix and writes generated.json next to it
+      - ./backend/content:/srv/backend/content
       - ./docker/node/docker-entrypoint.sh:/usr/local/bin/app-entrypoint:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5173/build/@vite/client"]

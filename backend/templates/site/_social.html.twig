@@ -1,0 +1,17 @@
+{#- The description, the canonical address and Open Graph of a public page (section 6.3 of the plan).
+    The address comes from the route, so a query string never reaches the canonical link.
+    Expects title and description; og_type is website unless the page says otherwise. #}
+{%- set page_url = site_url ~ path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')) %}
+<meta name="description" content="{{ description }}">
+<link rel="canonical" href="{{ page_url }}">
+<meta property="og:type" content="{{ og_type|default('website') }}">
+<meta property="og:site_name" content="{{ 'site.name'|trans }}">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:url" content="{{ page_url }}">
+<meta property="og:title" content="{{ title }}">
+<meta property="og:description" content="{{ description }}">
+<meta property="og:image" content="{{ site_url }}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ 'site.og_image_alt'|trans }}">
+<meta name="twitter:card" content="summary_large_image">

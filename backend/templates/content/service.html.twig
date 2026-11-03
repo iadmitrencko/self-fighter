@@ -1,0 +1,15 @@
+{% extends 'content/layout.html.twig' %}
+
+{#- About the project; the privacy policy and the terms will use it too. #}
+
+{% set article = page.article %}
+{% set title = article.title %}
+{% set description = article.description %}
+{% set heading = article.heading %}
+{% set lead = article.lead %}
+{% set indexable = page.indexable %}
+{% set breadcrumbs = [{name: 'site.footer.home'|trans, path: path('home')}, {name: heading}] %}
+
+{% block content %}
+    <div class="prose">{{ article.html|raw }}</div>
+{% endblock %}

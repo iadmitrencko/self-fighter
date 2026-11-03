@@ -1,0 +1,17 @@
+{#- Cards of challenges: what the challenge asks and how hard it is. Expects challenges and heading_level.
+    A passed challenge gets a green check once src/score/score.ts knows the score of the visitor. #}
+<ul class="challenge-list" role="list">
+    {% for challenge in challenges %}
+        {%- set ladder = challenge.program.kind == 'ladder' %}
+        <li class="card challenge-card" data-challenge="{{ challenge.slug }}">
+            <p class="eyebrow">{{ ('mode.' ~ challenge.mode)|trans }} · {{ ('challenge.level.' ~ challenge.level.value)|trans }}</p>
+            <h{{ heading_level }} class="challenge-card__title">
+                <a class="challenge-card__link" href="{{ path('challenge', {slug: challenge.slug}) }}">{{ challenge.article.heading }}</a>
+            </h{{ heading_level }}>
+            <p class="challenge-card__facts">
+                {{- ladder ? 'unit.stages'|trans({'%count%': challenge.stages}) : 'unit.rounds'|trans({'%count%': challenge.config.rounds}) }} · {{ 'unit.reps'|trans({'%count%': challenge.totalReps}) -}}
+            </p>
+            <span class="passed-mark"><svg class="passed-mark__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span class="visually-hidden">{{ 'challenge.passed'|trans }}</span></span>
+        </li>
+    {% endfor %}
+</ul>

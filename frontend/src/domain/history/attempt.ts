@@ -1,3 +1,4 @@
+import type { ChallengeRef } from '../catalog/challenge';
 import type { FightConfig, FightMode, LadderConfig } from '../config/types';
 import {
   nextStageIndex,
@@ -19,6 +20,7 @@ interface AttemptBase {
   readonly startedAt: string;
   readonly finishedAt: string;
   readonly durationMs: number;
+  readonly challenge: ChallengeRef | null;
 }
 
 export interface FightAttempt extends AttemptBase {
@@ -51,6 +53,7 @@ export function finalize(session: Session, finishedAt: Date): Attempt {
     finishedAt: finishedAt.toISOString(),
     // The device clock can move backwards during a workout.
     durationMs: Math.max(0, finishedAt.getTime() - Date.parse(session.startedAt)),
+    challenge: session.challenge,
   };
 
   return session.mode === 'ladder'

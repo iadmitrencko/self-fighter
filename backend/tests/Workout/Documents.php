@@ -22,11 +22,12 @@ final class Documents
         $pushUps = ['id' => 'push-ups', 'name' => 'Віджимання'];
 
         return array_replace([
-            'schemaVersion' => 1,
+            'schemaVersion' => 2,
             'id' => AttemptId::generate()->value,
             'startedAt' => '2026-11-02T10:00:00.000Z',
             'finishedAt' => $finishedAt,
             'durationMs' => 1_104_000,
+            'challenge' => null,
             'mode' => 'target',
             'config' => self::targetConfig(),
             'result' => [
@@ -45,16 +46,19 @@ final class Documents
     }
 
     /**
+     * @param array<string, mixed> $overrides
+     *
      * @return array<string, mixed>
      */
-    public static function ladder(string $outcome = 'win', string $finishedAt = '2026-11-02T10:05:00.000Z'): array
+    public static function ladder(string $outcome = 'win', string $finishedAt = '2026-11-02T10:05:00.000Z', array $overrides = []): array
     {
-        return [
-            'schemaVersion' => 1,
+        return array_replace([
+            'schemaVersion' => 2,
             'id' => AttemptId::generate()->value,
             'startedAt' => '2026-11-02T10:00:00.000Z',
             'finishedAt' => $finishedAt,
             'durationMs' => 300_000,
+            'challenge' => null,
             'mode' => 'ladder',
             'config' => self::ladderConfig(),
             'result' => [
@@ -66,7 +70,17 @@ final class Documents
                 'passedCount' => 1,
                 'outcome' => $outcome,
             ],
-        ];
+        ], $overrides);
+    }
+
+    /**
+     * A ready-made challenge as the game names it in an attempt (§21.3).
+     *
+     * @return array{slug: string, title: string}
+     */
+    public static function challenge(string $slug): array
+    {
+        return ['slug' => $slug, 'title' => 'Виклик '.$slug];
     }
 
     /**

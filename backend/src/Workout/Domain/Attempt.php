@@ -21,6 +21,7 @@ final class Attempt
         private readonly UserId $owner,
         private readonly Mode $mode,
         private readonly Outcome $outcome,
+        private readonly ?string $challenge,
         private readonly int $schemaVersion,
         private readonly \DateTimeImmutable $finishedAt,
         private readonly array $document,
@@ -41,12 +42,14 @@ final class Attempt
         $outcome = Outcome::tryFrom(self::text($result['outcome'] ?? null));
         $finishedAt = Instant::parse(self::text($document['finishedAt'] ?? null));
         $schemaVersion = $document['schemaVersion'] ?? null;
+        // The slug of a ready-made challenge, so the statistics can count the ones passed (§21.3).
+        $challenge = \is_array($document['challenge'] ?? null) ? self::text($document['challenge']['slug'] ?? null) : '';
 
         if (null === $id || null === $mode || null === $outcome || null === $finishedAt || !\is_int($schemaVersion)) {
             return null;
         }
 
-        return new self($id, $owner, $mode, $outcome, $schemaVersion, $finishedAt, $document);
+        return new self($id, $owner, $mode, $outcome, '' === $challenge ? null : $challenge, $schemaVersion, $finishedAt, $document);
     }
 
     public function id(): AttemptId
@@ -57,6 +60,11 @@ final class Attempt
     public function finishedAt(): \DateTimeImmutable
     {
         return $this->finishedAt;
+    }
+
+    public function challenge(): ?string
+    {
+        return $this->challenge;
     }
 
     /**

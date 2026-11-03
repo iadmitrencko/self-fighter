@@ -11,6 +11,10 @@ services:
       APP_ENV: prod
       APP_SECRET: ${APP_SECRET:?}
       SERVER_NAME: ${SERVER_NAME:?}, app:80
+      # The address of canonical links and of the sitemap, e.g. https://example.com
+      DEFAULT_URI: ${DEFAULT_URI:?}
+      # Only production sets 1; staging stays closed from search engines (section 6.3 of the plan).
+      SEO_INDEXING: ${SEO_INDEXING:-0}
     ports:
       - 80:80
       - 443:443

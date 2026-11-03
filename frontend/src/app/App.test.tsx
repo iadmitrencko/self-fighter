@@ -1,8 +1,9 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { createSession } from '../domain/engine/session';
 import { targetConfig, testDeps } from '../domain/testing/fixtures';
 import { createMemoryStorage } from '../storage/memory';
+import { finishedAttempt } from '../storage/testing/attempts';
 import { renderGame } from './testing/render';
 
 describe('the game', () => {
@@ -69,6 +70,23 @@ describe('navigation', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Історія' })).toBeTruthy();
     header.remove();
+  });
+
+  // The score in the frame of the site follows the history on every screen.
+  it('shows the score of the player in the frame of the site', async () => {
+    const storage = createMemoryStorage();
+    await storage.attempts.save(finishedAttempt('win', '2026-10-29T10:00:00.000Z', 'target', { slug: '100-squats', title: '100 присідань' }));
+    await storage.attempts.save(finishedAttempt('loss', '2026-10-29T11:00:00.000Z'));
+    const frame = document.createElement('dl');
+    frame.innerHTML = ['total', 'wins', 'draws', 'losses', 'challenges'].map((key) => `<dd data-score="${key}">–</dd>`).join('');
+    document.body.append(frame);
+
+    renderGame('/', { storage });
+
+    await waitFor(() => {
+      expect([...frame.querySelectorAll('dd')].map((value) => value.textContent)).toEqual(['2', '1', '0', '1', '1']);
+    });
+    frame.remove();
   });
 
   it('leaves links of the site and new tabs to the browser', async () => {

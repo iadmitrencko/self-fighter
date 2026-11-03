@@ -1,0 +1,20 @@
+{#- The way up to the hubs: links for people, BreadcrumbList for search engines.
+    Expects breadcrumbs: [{name, path}, …, {name}], the last one is this page. #}
+<nav class="breadcrumbs" aria-label="{{ 'site.breadcrumbs'|trans }}">
+    <ol class="breadcrumbs__list" role="list">
+        {% for crumb in breadcrumbs %}
+            <li class="breadcrumbs__item">
+                {%- if loop.last -%}
+                    <span aria-current="page">{{ crumb.name }}</span>
+                {%- else -%}
+                    <a class="breadcrumbs__link" href="{{ crumb.path }}">{{ crumb.name }}</a>
+                {%- endif -%}
+            </li>
+        {% endfor %}
+    </ol>
+</nav>
+{%- set items = [] %}
+{%- for crumb in breadcrumbs %}
+    {%- set items = items|merge([{'@type': 'ListItem', position: loop.index, name: crumb.name}|merge(loop.last ? {} : {item: site_url ~ crumb.path})]) %}
+{%- endfor %}
+{{ include('site/_json_ld.html.twig', {data: {'@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items}}) }}

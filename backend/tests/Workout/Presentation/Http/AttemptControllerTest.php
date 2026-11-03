@@ -72,7 +72,7 @@ final class AttemptControllerTest extends ApiTestCase
         self::assertSame(['items' => [], 'nextCursor' => null], $this->responseData());
 
         $this->send('GET', '/api/v1/stats');
-        self::assertSame(['total' => 0, 'wins' => 0, 'draws' => 0, 'losses' => 0], $this->responseData());
+        self::assertSame(['total' => 0, 'wins' => 0, 'draws' => 0, 'losses' => 0, 'challenges' => []], $this->responseData());
     }
 
     /**
@@ -104,10 +104,34 @@ final class AttemptControllerTest extends ApiTestCase
         yield 'too many rounds' => [[...$fight, 'config' => [...$config, 'rounds' => 21]]];
         yield 'too many repetitions' => [[...$fight, 'config' => [...$config, 'exercises' => [['id' => 'push-ups', 'name' => 'Віджимання', 'targets' => [10_000]]]]]];
         yield 'empty exercise name' => [[...$fight, 'config' => [...$config, 'exercises' => [['id' => 'push-ups', 'name' => '', 'targets' => [10]]]]]];
-        yield 'unknown format version' => [[...$fight, 'schemaVersion' => 2]];
+        yield 'unknown format version' => [[...$fight, 'schemaVersion' => 3]];
+        yield 'version 2 without a challenge' => [array_diff_key($fight, ['challenge' => true])];
+        yield 'version 1 with a challenge' => [[...$fight, 'schemaVersion' => 1]];
+        yield 'challenge with a strange address' => [[...$fight, 'challenge' => ['slug' => '100 Push-Ups', 'title' => '100 віджимань']]];
+        yield 'challenge without a title' => [[...$fight, 'challenge' => ['slug' => '100-push-ups', 'title' => '']]];
         yield 'id that is not UUID v7' => [[...$fight, 'id' => '6f9619ff-8b86-4011-b42d-00cf4fc964ff']];
         yield 'time with an offset' => [[...$fight, 'finishedAt' => '2026-11-02T12:18:24.000+02:00']];
         yield 'date that does not exist' => [[...$fight, 'finishedAt' => '2026-02-30T10:00:00.000Z']];
+    }
+
+    // Section 3.7 of the plan: a tab opened before the release still sends version 1, and the
+    // history keeps it as version 2 with no challenge.
+    public function testAttemptOfThePreviousVersionIsUpgraded(): void
+    {
+        $this->signUp();
+        $previous = [...array_diff_key(Documents::fight(), ['challenge' => true]), 'schemaVersion' => 1];
+
+        $this->send('PUT', '/api/v1/attempts/'.$previous['id'], $previous);
+
+        self::assertResponseStatusCodeSame(201);
+
+        $this->send('PUT', '/api/v1/attempts/'.$previous['id'], $previous);
+
+        self::assertResponseStatusCodeSame(204);
+
+        $this->send('GET', '/api/v1/attempts/'.$previous['id']);
+
+        self::assertEquals([...$previous, 'schemaVersion' => 2, 'challenge' => null], $this->responseData());
     }
 
     public function testIdInPathMustMatchTheAttempt(): void
@@ -228,10 +252,41 @@ final class AttemptControllerTest extends ApiTestCase
         }
 
         $this->send('GET', '/api/v1/stats');
-        self::assertSame(['total' => 4, 'wins' => 2, 'draws' => 1, 'losses' => 1], $this->responseData());
+        self::assertSame(['total' => 4, 'wins' => 2, 'draws' => 1, 'losses' => 1, 'challenges' => []], $this->responseData());
 
         $this->send('GET', '/api/v1/stats?mode=ladder');
-        self::assertSame(['total' => 1, 'wins' => 1, 'draws' => 0, 'losses' => 0], $this->responseData());
+        self::assertSame(['total' => 1, 'wins' => 1, 'draws' => 0, 'losses' => 0, 'challenges' => []], $this->responseData());
+    }
+
+    // §21.3: a challenge is passed by a win and counts once, however often it is tried.
+    public function testStatisticsNameTheChallengesPassed(): void
+    {
+        $this->signUp();
+        $squats = ['challenge' => Documents::challenge('100-squats')];
+        $ladder = ['challenge' => Documents::challenge('pull-ups-ladder-to-3')];
+        $attempts = [
+            Documents::fight('loss', overrides: $squats),
+            Documents::fight('win', overrides: $squats),
+            Documents::fight('win', overrides: $squats),
+            Documents::fight('draw', overrides: ['challenge' => Documents::challenge('100-push-ups')]),
+            Documents::ladder('win', overrides: $ladder),
+        ];
+
+        foreach ($attempts as $attempt) {
+            $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
+        }
+
+        $this->send('GET', '/api/v1/stats');
+        self::assertSame(
+            ['total' => 5, 'wins' => 3, 'draws' => 1, 'losses' => 1, 'challenges' => ['100-squats', 'pull-ups-ladder-to-3']],
+            $this->responseData(),
+        );
+
+        $this->send('GET', '/api/v1/stats?mode=target');
+        self::assertSame(['total' => 4, 'wins' => 2, 'draws' => 1, 'losses' => 1, 'challenges' => ['100-squats']], $this->responseData());
+
+        $this->send('GET', '/api/v1/stats?outcome=loss');
+        self::assertSame(['total' => 1, 'wins' => 0, 'draws' => 0, 'losses' => 1, 'challenges' => []], $this->responseData());
     }
 
     public function testWritesOfOneUserAreLimited(): void

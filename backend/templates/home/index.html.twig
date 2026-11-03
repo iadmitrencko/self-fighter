@@ -2,10 +2,19 @@
 
 {# The landing (§3.1 of the specification, design/Main.dc.html). #}
 
-{% block title %}{{ 'home.title'|trans }}{% endblock %}
+{% set title = 'home.title'|trans %}
+{% set description = 'home.description'|trans %}
+{% set indexable = true %}
+
+{% block title %}{{ title }}{% endblock %}
 
 {% block meta %}
-    <meta name="description" content="{{ 'home.description'|trans }}">
+    {{ include('site/_social.html.twig') }}
+    {%- set site = {name: 'site.name'|trans, alternateName: 'site.alternate_name'|trans, url: site_url ~ path('home')} %}
+    {{ include('site/_json_ld.html.twig', {data: [
+        {'@context': 'https://schema.org', '@type': 'WebSite', inLanguage: 'uk'}|merge(site),
+        {'@context': 'https://schema.org', '@type': 'Organization', logo: site_url ~ '/apple-touch-icon.png'}|merge(site),
+    ]}) }}
 {% endblock %}
 
 {% block main %}
@@ -39,28 +48,31 @@
             <li class="card mode-card">
                 <span class="mode-card__number" aria-hidden="true">01</span>
                 <svg class="mode-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>
-                <h3 class="mode-card__title">{{ 'home.modes.target.name'|trans }}</h3>
+                <h3 class="mode-card__title"><a class="mode-card__link" href="{{ path('mode', {slug: 'target'}) }}">{{ 'home.modes.target.name'|trans }}</a></h3>
                 <p class="mode-card__text">{{ 'home.modes.target.text'|trans }}</p>
             </li>
             <li class="card mode-card">
                 <span class="mode-card__number" aria-hidden="true">02</span>
                 <svg class="mode-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.3"/><circle cx="15.5" cy="15.5" r="1.3"/><circle cx="12" cy="12" r="1.3"/></svg>
-                <h3 class="mode-card__title">{{ 'home.modes.random_opponent.name'|trans }}</h3>
+                <h3 class="mode-card__title"><a class="mode-card__link" href="{{ path('mode', {slug: 'random-opponent'}) }}">{{ 'home.modes.random_opponent.name'|trans }}</a></h3>
                 <p class="mode-card__text">{{ 'home.modes.random_opponent.text'|trans }}</p>
             </li>
             <li class="card mode-card">
                 <span class="mode-card__number" aria-hidden="true">03</span>
                 <svg class="mode-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V14M10 20V9M16 20V4"/><path d="M2 20h20"/></svg>
-                <h3 class="mode-card__title">{{ 'home.modes.opponent_levels.name'|trans }}</h3>
+                <h3 class="mode-card__title"><a class="mode-card__link" href="{{ path('mode', {slug: 'opponent-levels'}) }}">{{ 'home.modes.opponent_levels.name'|trans }}</a></h3>
                 <p class="mode-card__text">{{ 'home.modes.opponent_levels.text'|trans }}</p>
             </li>
             <li class="card mode-card">
                 <span class="mode-card__number" aria-hidden="true">04</span>
                 <svg class="mode-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h4v-4h4v-4h4V8h4V4"/></svg>
-                <h3 class="mode-card__title">{{ 'home.modes.ladder.name'|trans }}</h3>
+                <h3 class="mode-card__title"><a class="mode-card__link" href="{{ path('mode', {slug: 'ladder'}) }}">{{ 'home.modes.ladder.name'|trans }}</a></h3>
                 <p class="mode-card__text">{{ 'home.modes.ladder.text'|trans }}</p>
             </li>
         </ul>
+        <p class="section__more">
+            {{- 'home.modes.challenges'|trans }} <a href="{{ path('challenges') }}">{{ 'home.modes.challenges_link'|trans }}</a>
+        </p>
     </section>
 
     <section class="container section" id="how" aria-labelledby="how-title">

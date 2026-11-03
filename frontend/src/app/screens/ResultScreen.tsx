@@ -63,7 +63,7 @@ function Result({ stored: { attempt, status } }: { stored: StoredAttempt }) {
 
   // §13.4: the same settings, new rolls of the opponent; the old attempt stays as it was.
   const repeat = () => {
-    storage.activeSession.save(createSession(attempt.config, deps));
+    storage.activeSession.save(createSession(attempt.config, deps, attempt.challenge));
     void navigate(paths.fight);
   };
 
@@ -78,6 +78,7 @@ function Result({ stored: { attempt, status } }: { stored: StoredAttempt }) {
             <span>{formatDateTime(attempt.finishedAt)}</span>
             <span>{resultTexts.duration(formatDuration(attempt.durationMs))}</span>
           </p>
+          {attempt.challenge !== null && <ChallengeResult attempt={attempt} />}
           {status !== 'saved' && (
             <div className="notice notice--warning">
               <StatusBadge status={status} />
@@ -103,6 +104,25 @@ function Result({ stored: { attempt, status } }: { stored: StoredAttempt }) {
         {attempt.mode === 'ladder' ? <LadderDetails attempt={attempt} /> : <FightRounds attempt={attempt} />}
       </div>
     </Screen>
+  );
+}
+
+// §21.3: a win with the settings of the page passes the challenge for good.
+function ChallengeResult({ attempt }: { attempt: Attempt }) {
+  const { challenge } = attempt;
+  const passed = attempt.result.outcome === 'win';
+
+  if (challenge === null) {
+    return null;
+  }
+
+  return (
+    <p className={`challenge-result${passed ? ' challenge-result--passed' : ''}`}>
+      {passed && <Icon name="check" className="challenge-result__icon" />}
+      <span>{passed ? resultTexts.challengePassed(challenge.title) : resultTexts.challengeFailed(challenge.title)}</span>
+      {/* The page of the challenge belongs to the site, so it opens as a page. */}
+      <a href={`/challenges/${challenge.slug}`}>{resultTexts.toChallenge}</a>
+    </p>
   );
 }
 

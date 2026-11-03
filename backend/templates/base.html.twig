@@ -3,8 +3,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    {# SEO block: every public page sets its title and description, the rest close themselves from indexing. #}
     <title>{% block title %}{{ 'site.name'|trans }}{% endblock %}</title>
+    {#- A page opens itself to search engines with `indexable`; drafts, the game and the errors stay
+        closed, and so does every environment but production (SEO_INDEXING). #}
+    {% if not (seo_indexing and indexable|default(false)) %}
+        <meta name="robots" content="noindex, follow">
+    {% endif %}
     {% block meta %}{% endblock %}
     <meta name="theme-color" content="#111214">
     <link rel="icon" href="/favicon.ico" sizes="32x32">

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Content\Domain\Challenge" table="challenge">
+        <id name="slug" length="80"/>
+        <field name="mode" length="20"/>
+        <field name="exercises" type="json"/>
+        <field name="level" length="10" enum-type="App\Content\Domain\Level"/>
+        <field name="demand" length="12" enum-type="App\Content\Domain\Demand"/>
+        <field name="config" type="json"/>
+        <field name="program" type="json"/>
+        <field name="stages" type="integer"/>
+        <field name="totalReps" type="integer"/>
+        <field name="easier" length="80" nullable="true"/>
+        <field name="harder" length="80" nullable="true"/>
+        <field name="related" type="json"/>
+        <field name="position" type="integer"/>
+        <embedded name="article" class="App\Content\Domain\Article" use-column-prefix="false"/>
+        <field name="note" type="text"/>
+        <field name="reviewed" type="boolean"/>
+        <field name="updatedAt" type="datetime_immutable"/>
+    </entity>
+
+</doctrine-mapping>

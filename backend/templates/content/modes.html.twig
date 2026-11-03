@@ -1,0 +1,16 @@
+{% extends 'content/layout.html.twig' %}
+
+{% set title = 'modes.title'|trans %}
+{% set description = 'modes.description'|trans %}
+{% set heading = 'modes.heading'|trans %}
+{% set lead = 'modes.lead'|trans %}
+{% set indexable = true %}
+{% set breadcrumbs = [{name: 'site.footer.home'|trans, path: path('home')}, {name: 'site.nav.modes'|trans}] %}
+
+{% block content %}
+    {{ include('content/_cards.html.twig', {items: pages|map(page => {
+        path: path('mode', {slug: page.slug}),
+        heading: page.article.heading,
+        text: page.article.lead,
+    })}) }}
+{% endblock %}

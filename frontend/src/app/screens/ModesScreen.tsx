@@ -70,6 +70,10 @@ export function ModesScreen() {
             {modesTexts.next}
             <Icon name="arrow" className="button__icon" />
           </Link>
+          {/* The catalog is a page of the site, so it opens as a page. */}
+          <p className="modes-catalog">
+            {modesTexts.catalog} <a href="/challenges">{modesTexts.catalogLink}</a>
+          </p>
         </div>
       </div>
     </Screen>

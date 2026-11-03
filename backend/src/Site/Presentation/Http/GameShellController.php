@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Site\Presentation\Http;
 
+use App\Shared\Application\GameContent;
+use App\Shared\Domain\GameModes;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The page of the game: React takes over in the browser and reaches the data through /api.
@@ -16,26 +17,30 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class GameShellController extends AbstractController
 {
-    // The ready-made exercises of §5.1. Stage 7 moves them into the content of the site.
-    private const array EXERCISES = ['push-ups', 'squats', 'pull-ups'];
-
-    public function __construct(private readonly TranslatorInterface $translator)
+    public function __construct(private readonly GameContent $content)
     {
     }
 
     #[Route('/workout', name: 'workout', methods: ['GET'])]
-    #[Route('/workout/setup/{mode}', name: 'workout_setup', requirements: ['mode' => 'target|random-opponent|opponent-levels|ladder'], methods: ['GET'])]
+    #[Route('/workout/setup/{mode}', name: 'workout_setup', requirements: ['mode' => GameModes::PATTERN], methods: ['GET'])]
     #[Route('/workout/fight', name: 'workout_fight', methods: ['GET'])]
     #[Route('/workout/result/{id}', name: 'workout_result', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     #[Route('/workout/history', name: 'workout_history', methods: ['GET'])]
     #[Route('/workout/account', name: 'workout_account', methods: ['GET'])]
     public function __invoke(): Response
     {
-        $exercises = array_map(
-            fn (string $id): array => ['id' => $id, 'name' => $this->translator->trans('exercise.'.$id)],
-            self::EXERCISES,
-        );
+        return $this->render('workout/shell.html.twig', ['game' => ['exercises' => $this->content->exercises()]]);
+    }
 
-        return $this->render('workout/shell.html.twig', ['game' => ['exercises' => $exercises]]);
+    // §21.3: the settings of the challenge open filled in, and the player may change them.
+    #[Route('/workout/challenge/{slug}', name: 'workout_challenge', requirements: ['slug' => Requirement::ASCII_SLUG], methods: ['GET'])]
+    public function challenge(string $slug): Response
+    {
+        $challenge = $this->content->challenge($slug) ?? throw $this->createNotFoundException();
+
+        return $this->render('workout/shell.html.twig', ['game' => [
+            'exercises' => $this->content->exercises(),
+            'challenge' => $challenge,
+        ]]);
     }
 }

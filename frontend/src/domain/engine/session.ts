@@ -1,3 +1,4 @@
+import type { ChallengeRef } from '../catalog/challenge';
 import type { ExerciseRef } from '../catalog/exercise';
 import type { FightConfig, FightMode, LadderConfig, WorkoutConfig } from '../config/types';
 import { isValidReps } from '../config/validation';
@@ -5,12 +6,15 @@ import { ladderSequence } from './ladder';
 import { randomInt, rollLevelOpponent, type Rng } from './opponents';
 import { ladderStageRule, stagePassed, type FightStage, type Stage } from './rules';
 
-export const SCHEMA_VERSION = 1 as const;
+// Version 2 remembers the ready-made challenge of the attempt (section 3.7 of the plan).
+export const SCHEMA_VERSION = 2 as const;
 
 interface SessionBase {
   readonly schemaVersion: typeof SCHEMA_VERSION;
   readonly id: string;
   readonly startedAt: string;
+  // null for a workout of the player's own settings.
+  readonly challenge: ChallengeRef | null;
 }
 
 export interface FightSession extends SessionBase {
@@ -82,16 +86,21 @@ function ladderStages({ max, returnDown, rule }: LadderConfig): Stage[] {
   }));
 }
 
-export function createSession(config: FightConfig, deps: SessionDeps): FightSession;
-export function createSession(config: LadderConfig, deps: SessionDeps): LadderSession;
-export function createSession(config: WorkoutConfig, deps: SessionDeps): Session;
+export function createSession(config: FightConfig, deps: SessionDeps, challenge?: ChallengeRef | null): FightSession;
+export function createSession(config: LadderConfig, deps: SessionDeps, challenge?: ChallengeRef | null): LadderSession;
+export function createSession(config: WorkoutConfig, deps: SessionDeps, challenge?: ChallengeRef | null): Session;
 // Everything the attempt depends on is fixed here, so a reload cannot change it (§7.3, §11.6).
-export function createSession(source: WorkoutConfig, { rng, now, newId }: SessionDeps): Session {
+export function createSession(
+  source: WorkoutConfig,
+  { rng, now, newId }: SessionDeps,
+  challenge: ChallengeRef | null = null,
+): Session {
   const config = JSON.parse(JSON.stringify(source)) as WorkoutConfig;
   const base = {
     schemaVersion: SCHEMA_VERSION,
     id: newId(),
     startedAt: now().toISOString(),
+    challenge: challenge === null ? null : { slug: challenge.slug, title: challenge.title },
   };
 
   return config.mode === 'ladder'

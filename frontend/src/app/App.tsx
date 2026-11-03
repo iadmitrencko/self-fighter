@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect } from 'react';
 import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
 import { notFoundTexts } from '../i18n/uk';
+import { showScore } from '../score/score';
 import { BACK, Screen, ScreenHead } from './components/Screen';
-import { GameProvider, type Game } from './game';
+import { GameProvider, useGame, type Game } from './game';
 import { BASE, isMode } from './paths';
 import { AccountScreen } from './screens/AccountScreen';
 import { HistoryScreen } from './screens/HistoryScreen';
@@ -17,9 +18,11 @@ export function App({ game }: { game: Game }) {
     <GameProvider game={game}>
       <ScrollToTop />
       <SiteLinks />
+      <ScoreSync />
       <Routes>
         <Route index element={<ModesScreen />} />
         <Route path="setup/:mode" element={<SetupRoute />} />
+        <Route path="challenge/:slug" element={<ChallengeRoute />} />
         <Route path="fight" element={<WorkoutScreen />} />
         <Route path="result/:id" element={<ResultScreen />} />
         <Route path="history" element={<HistoryScreen />} />
@@ -34,6 +37,39 @@ function SetupRoute() {
   const { mode } = useParams();
 
   return isMode(mode) ? <SetupScreen key={mode} mode={mode} /> : <NotFound />;
+}
+
+// The page carries the challenge of its address only: another one needs its own page.
+function ChallengeRoute() {
+  const { slug } = useParams();
+  const { challenge } = useGame();
+
+  return challenge !== null && challenge.slug === slug ? (
+    <SetupScreen key={slug} mode={challenge.config.mode} challenge={challenge} />
+  ) : (
+    <NotFound />
+  );
+}
+
+// The score in the frame of the site follows the history: every screen reads it again.
+function ScoreSync() {
+  const { storage } = useGame();
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    let current = true;
+
+    storage.attempts.stats().then(
+      (stats) => current && showScore(stats),
+      () => undefined,
+    );
+
+    return () => {
+      current = false;
+    };
+  }, [storage, pathname]);
+
+  return null;
 }
 
 // A new screen starts at its top, as a new page would.

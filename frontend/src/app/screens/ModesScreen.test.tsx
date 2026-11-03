@@ -29,6 +29,13 @@ describe('choice of a mode', () => {
     expect(screen.getByRole('link', { name: 'Далі — налаштування' }).getAttribute('href')).toBe('/setup/ladder');
   });
 
+  // Stage 7 of the plan: the ready-made challenges are a page of the site.
+  it('leads to the catalog of challenges', () => {
+    renderGame('/');
+
+    expect(screen.getByRole('link', { name: 'Обери готовий виклик' }).getAttribute('href')).toBe('/challenges');
+  });
+
   // §12.4: an interrupted attempt can be continued or dropped.
   it('offers back an attempt in progress', async () => {
     const storage = createMemoryStorage();

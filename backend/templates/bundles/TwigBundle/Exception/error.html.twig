@@ -4,10 +4,6 @@
 
 {% block title %}{{ 'error.other.title'|trans }} — {{ 'site.name'|trans }}{% endblock %}
 
-{% block meta %}
-    <meta name="robots" content="noindex">
-{% endblock %}
-
 {% block main %}
     <div class="container error-page">
         <p class="eyebrow error-page__code">{{ 'error.code'|trans({'%code%': status_code}) }}</p>

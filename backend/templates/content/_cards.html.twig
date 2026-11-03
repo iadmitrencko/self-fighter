@@ -1,0 +1,10 @@
+{#- The pages of a hub: a heading that leads to the page and its lead. Expects items: [{path, heading, text, meta?}]. #}
+<ul class="cards" role="list">
+    {% for item in items %}
+        <li class="card hub-card">
+            {% if item.meta is defined %}<p class="eyebrow">{{ item.meta }}</p>{% endif %}
+            <h2 class="hub-card__title"><a class="hub-card__link" href="{{ item.path }}">{{ item.heading }}</a></h2>
+            <p class="hub-card__text">{{ item.text }}</p>
+        </li>
+    {% endfor %}
+</ul>

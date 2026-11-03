@@ -1,24 +1,28 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "A finished attempt, format version 1",
-  "description": "The structure and limits of an attempt; the game rules stay in frontend/src/domain. Section 3.7 of the plan.",
+  "title": "A finished attempt, format version 2",
+  "description": "The structure and limits of an attempt; the game rules stay in frontend/src/domain. The API also accepts version 1, which has no challenge, and stores it as version 2. Section 3.7 of the plan.",
   "oneOf": [
     { "$ref": "#/definitions/targetAttempt" },
     { "$ref": "#/definitions/randomOpponentAttempt" },
     { "$ref": "#/definitions/opponentLevelsAttempt" },
     { "$ref": "#/definitions/ladderAttempt" }
   ],
+  "if": { "properties": { "schemaVersion": { "const": 1 } } },
+  "then": { "not": { "required": ["challenge"] } },
+  "else": { "required": ["challenge"] },
   "definitions": {
     "targetAttempt": {
       "type": "object",
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [1] },
+        "schemaVersion": { "enum": [1, 2] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
         "durationMs": { "$ref": "#/definitions/duration" },
+        "challenge": { "$ref": "#/definitions/challengeRef" },
         "mode": { "enum": ["target"] },
         "config": { "$ref": "#/definitions/targetConfig" },
         "result": { "$ref": "#/definitions/fightResult" }
@@ -29,11 +33,12 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [1] },
+        "schemaVersion": { "enum": [1, 2] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
         "durationMs": { "$ref": "#/definitions/duration" },
+        "challenge": { "$ref": "#/definitions/challengeRef" },
         "mode": { "enum": ["random-opponent"] },
         "config": { "$ref": "#/definitions/randomOpponentConfig" },
         "result": { "$ref": "#/definitions/fightResult" }
@@ -44,11 +49,12 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [1] },
+        "schemaVersion": { "enum": [1, 2] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
         "durationMs": { "$ref": "#/definitions/duration" },
+        "challenge": { "$ref": "#/definitions/challengeRef" },
         "mode": { "enum": ["opponent-levels"] },
         "config": { "$ref": "#/definitions/opponentLevelsConfig" },
         "result": { "$ref": "#/definitions/fightResult" }
@@ -59,11 +65,12 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [1] },
+        "schemaVersion": { "enum": [1, 2] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
         "durationMs": { "$ref": "#/definitions/duration" },
+        "challenge": { "$ref": "#/definitions/challengeRef" },
         "mode": { "enum": ["ladder"] },
         "config": { "$ref": "#/definitions/ladderConfig" },
         "result": { "$ref": "#/definitions/ladderResult" }
@@ -235,6 +242,21 @@
       }
     },
 
+    "challengeRef": {
+      "description": "Version 2: the ready-made challenge the attempt took with the settings of its page, or null.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["slug", "title"],
+          "properties": {
+            "slug": { "type": "string", "maxLength": 80, "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+            "title": { "type": "string", "minLength": 1, "maxLength": 160 }
+          }
+        }
+      ]
+    },
     "attemptId": {
       "description": "UUID v7 created by the browser when the attempt starts.",
       "type": "string",

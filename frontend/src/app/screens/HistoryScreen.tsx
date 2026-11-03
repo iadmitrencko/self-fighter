@@ -169,6 +169,17 @@ function StatisticsCard({ stats }: { stats: Statistics }) {
           </div>
         ))}
       </dl>
+      {/* §21.3: the challenges passed, each counted once. The catalog is a page of the site. */}
+      <p className="stats__challenges">
+        <span className="stats__challenges-label">
+          <Icon name="check" className="stats__challenges-icon" />
+          {historyTexts.challenges}
+        </span>
+        <span className="stats__challenges-number">{stats.challenges.length}</span>
+        <a className="stats__catalog" href="/challenges">
+          {historyTexts.catalog}
+        </a>
+      </p>
     </section>
   );
 }
@@ -234,6 +245,11 @@ function HistoryItem({ stored: { attempt, status } }: { stored: StoredAttempt })
       <Link className="history__link" to={paths.result(attempt.id)}>
         <span className="history__mode">{modeNames[attempt.mode]}</span>
         <span className="history__details">{details(attempt)}</span>
+        {attempt.challenge !== null && (
+          <span className={`history__challenge${attempt.result.outcome === 'win' ? ' history__challenge--passed' : ''}`}>
+            {historyTexts.challenge(attempt.challenge.title, attempt.result.outcome === 'win')}
+          </span>
+        )}
       </Link>
       <span className="history__badges">
         <OutcomeBadge outcome={attempt.result.outcome} />

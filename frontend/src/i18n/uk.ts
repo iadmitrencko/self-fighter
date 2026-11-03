@@ -137,6 +137,8 @@ export const modesTexts = {
   win: 'Перемога',
   length: 'Тривалість',
   next: 'Далі — налаштування',
+  catalog: 'Не хочеться складати тренування?',
+  catalogLink: 'Обери готовий виклик',
   resumeTitle: 'Незавершене тренування',
   resumeProgress: (mode: Mode, done: number, total: number) =>
     `${modeNames[mode]} · пройдено етапів: ${done} з ${total}`,
@@ -147,6 +149,10 @@ export const modesTexts = {
 export const setupTexts = {
   title: (mode: Mode) => (mode === 'ladder' ? 'Налаштуй драбину' : 'Налаштуй бій'),
   step: (mode: Mode) => `Крок 2 / 2 · режим «${modeNames[mode]}»`,
+  challengeStep: (mode: Mode) => `Готовий виклик · режим «${modeNames[mode]}»`,
+  challengeFilled: 'Налаштування заповнено з виклику. Їх можна змінити перед стартом.',
+  challengeChanged: 'Налаштування змінено, тож перемога не зарахує виклик. Поверни значення виклику, щоб його пройти.',
+  toChallenge: 'До сторінки виклику',
   exercises: (count: number) => `Вправи · ${count} / ${EXERCISES_MAX}`,
   exercise: 'Вправа',
   remove: (name: string) => `Прибрати вправу ${name}`,
@@ -288,6 +294,9 @@ export const resultTexts = {
     actual === null
       ? `Етап ${target}: не дійшли`
       : `Етап ${target}: ${actual}, ${passed ? 'пройдено' : 'не пройдено'}`,
+  challengePassed: (title: string) => `Виклик «${title}» пройдено`,
+  challengeFailed: (title: string) => `Виклик «${title}» ще не пройдено: переможи, щоб його зарахувати.`,
+  toChallenge: 'Сторінка виклику',
   pending: "Спроба очікує надсилання: вона піде на сервер, щойно з'явиться зв'язок.",
   rejected: 'Сервер не прийняв цю спробу, тож вона лишається тільки в цьому браузері.',
   repeat: 'Повторити',
@@ -301,6 +310,9 @@ export const historyTexts = {
   title: 'Історія',
   stats: 'Загальна статистика',
   total: 'Завершено тренувань',
+  challenges: 'Пройдено викликів',
+  catalog: 'Каталог викликів',
+  challenge: (title: string, passed: boolean) => (passed ? `Виклик пройдено · ${title}` : `Виклик · ${title}`),
   modeFilter: 'Режим',
   outcomeFilter: 'Результат',
   all: 'Усі',

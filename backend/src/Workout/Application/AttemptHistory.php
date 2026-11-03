@@ -48,6 +48,7 @@ final readonly class AttemptHistory
             $counts[Outcome::Win->value] ?? 0,
             $counts[Outcome::Draw->value] ?? 0,
             $counts[Outcome::Loss->value] ?? 0,
+            $this->attempts->passedChallenges($owner, $filter),
         );
     }
 }

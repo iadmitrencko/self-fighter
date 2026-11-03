@@ -42,6 +42,27 @@ describe('history', () => {
     expect(within(newest as HTMLElement).getByText('Поразка')).toBeTruthy();
   });
 
+  // §21.3: the challenges passed count once each, and the list says which challenge an attempt took.
+  it('counts the challenges passed', async () => {
+    const squats = { slug: '100-squats', title: '100 присідань' };
+    const storage = await storageWith(
+      finishedAttempt('loss', '2026-10-29T10:00:00.000Z', 'target', squats),
+      finishedAttempt('win', '2026-10-29T11:00:00.000Z', 'target', squats),
+      finishedAttempt('win', '2026-10-29T12:00:00.000Z', 'target', squats),
+    );
+    renderGame('/history', { storage });
+
+    expect(await screen.findAllByRole('listitem')).toHaveLength(3);
+    const stats = screen.getByRole('region', { name: 'Загальна статистика' });
+    expect(within(stats).getByText('Пройдено викликів').nextElementSibling?.textContent).toBe('1');
+    expect(within(stats).getByRole('link', { name: 'Каталог викликів' }).getAttribute('href')).toBe('/challenges');
+    expect(screen.getAllByText(/^Виклик/).map((label) => label.textContent)).toEqual([
+      'Виклик пройдено · 100 присідань',
+      'Виклик пройдено · 100 присідань',
+      'Виклик · 100 присідань',
+    ]);
+  });
+
   // §14.3: filters by mode and by result.
   it('filters by mode and result together with the statistics', async () => {
     const storage = await storageWith(

@@ -1,0 +1,143 @@
+{% extends 'content/layout.html.twig' %}
+
+{#- A ready-made challenge (§21.3): the whole program without the game, who it suits, how to change it,
+    its own text and the way to the easier, the harder and the related ones. #}
+
+{% set article = challenge.article %}
+{% set title = article.title %}
+{% set description = article.description %}
+{% set heading = article.heading %}
+{% set lead = article.lead %}
+{% set indexable = challenge.indexable %}
+{% set breadcrumbs = [
+    {name: 'site.footer.home'|trans, path: path('home')},
+    {name: 'site.nav.challenges'|trans, path: path('challenges')},
+    {name: heading},
+] %}
+{% set ladder = challenge.program.kind == 'ladder' %}
+{% set kind = ladder ? (challenge.config.returnDown ? 'pyramid' : 'ladder') : 'rounds' %}
+
+{% block eyebrow %}
+    <p class="eyebrow page-head__eyebrow" data-challenge="{{ challenge.slug }}">
+        {{- ('mode.' ~ challenge.mode)|trans }} · {{ ('challenge.level.' ~ challenge.level.value)|trans -}}
+        <span class="passed-label"> · {{ 'challenge.passed'|trans }} ✓</span>
+    </p>
+{% endblock %}
+
+{% block actions %}
+    <dl class="facts">
+        <div class="facts__item">
+            <dt class="facts__label">{{ (ladder ? 'challenge.facts.stages' : 'challenge.facts.rounds')|trans }}</dt>
+            <dd class="facts__value">{{ ladder ? challenge.stages : challenge.config.rounds }}</dd>
+        </div>
+        <div class="facts__item">
+            <dt class="facts__label">{{ 'challenge.facts.reps'|trans }}</dt>
+            <dd class="facts__value">{{ challenge.totalReps }}</dd>
+        </div>
+        <div class="facts__item">
+            <dt class="facts__label">{{ 'challenge.facts.rule'|trans }}</dt>
+            <dd class="facts__value facts__value--text">{{ ('challenge.rule.' ~ challenge.config.rule)|trans }}</dd>
+        </div>
+    </dl>
+    <a class="button button--primary button--large page-head__action" href="{{ path('workout_challenge', {slug: challenge.slug}) }}">
+        {{- 'challenge.start'|trans -}}
+        <svg class="button__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+    <p class="page-head__note">{{ 'challenge.start_note'|trans }}</p>
+{% endblock %}
+
+{% block content %}
+    <section class="page-section" aria-labelledby="program">
+        <h2 class="page-section__title" id="program">{{ 'challenge.program'|trans }}</h2>
+        {% if ladder %}
+            <ol class="stages" aria-label="{{ 'challenge.stages_label'|trans }}">
+                {% for reps in challenge.program.stages %}
+                    <li class="stages__item">{{ reps }}</li>
+                {% endfor %}
+            </ol>
+        {% else %}
+            {#- A long table scrolls sideways on a phone, so the keyboard can reach it too. #}
+            <div class="table-scroll" role="region" aria-label="{{ 'challenge.program_table'|trans }}" tabindex="0">
+                <table class="program">
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'challenge.round'|trans }}</th>
+                            {% for name in challenge.program.exercises %}
+                                <th scope="col">{{ name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for round in challenge.program.rounds %}
+                            <tr>
+                                <th scope="row">{{ loop.index }}</th>
+                                {% for target in round %}
+                                    <td>{{ target }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th scope="row">{{ 'challenge.total'|trans }}</th>
+                            {% for name in challenge.program.exercises %}
+                                {%- set column = loop.index0 %}
+                                <td>{{ challenge.program.rounds|reduce((total, round) => total + round[column], 0) }}</td>
+                            {% endfor %}
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% endif %}
+        <p class="page-section__note">{{ ('challenge.pass.' ~ (ladder ? 'ladder' : 'rounds') ~ '.' ~ challenge.config.rule)|trans }}</p>
+    </section>
+
+    <section class="page-section" aria-labelledby="audience">
+        <h2 class="page-section__title" id="audience">{{ 'challenge.audience_title'|trans }}</h2>
+        <p class="page-section__text">{{ ('challenge.audience.' ~ challenge.level.value)|trans }}</p>
+    </section>
+
+    <section class="page-section" aria-labelledby="adjust">
+        <h2 class="page-section__title" id="adjust">{{ 'challenge.adjust_title'|trans }}</h2>
+        <p class="page-section__text">{{ ('challenge.adjust.' ~ kind)|trans }}</p>
+        {% if easier or harder %}
+            <ul class="link-list" role="list">
+                {% if easier %}
+                    <li>{{ 'challenge.easier'|trans }} <a href="{{ path('challenge', {slug: easier.slug}) }}">{{ easier.article.heading }}</a></li>
+                {% endif %}
+                {% if harder %}
+                    <li>{{ 'challenge.harder'|trans }} <a href="{{ path('challenge', {slug: harder.slug}) }}">{{ harder.article.heading }}</a></li>
+                {% endif %}
+            </ul>
+        {% endif %}
+    </section>
+
+    {% if challenge.note is not empty %}
+        <section class="page-section" aria-labelledby="note">
+            <h2 class="page-section__title" id="note">{{ 'challenge.note_title'|trans }}</h2>
+            <div class="prose">{{ challenge.note|raw }}</div>
+        </section>
+    {% endif %}
+
+    <section class="page-section" aria-labelledby="links">
+        <h2 class="page-section__title" id="links">{{ 'challenge.links_title'|trans }}</h2>
+        <ul class="link-list" role="list">
+            {% for exercise in exercises %}
+                <li><a href="{{ path('exercise', {slug: exercise.slug}) }}">{{ 'challenge.exercise_link'|trans({'%name%': exercise.name}) }}</a></li>
+            {% endfor %}
+            <li><a href="{{ path('mode', {slug: challenge.mode}) }}">{{ 'challenge.mode_link'|trans({'%name%': ('mode.' ~ challenge.mode)|trans}) }}</a></li>
+        </ul>
+    </section>
+
+    {% if related is not empty %}
+        <section class="page-section" aria-labelledby="related">
+            <h2 class="page-section__title" id="related">{{ 'challenge.related_title'|trans }}</h2>
+            {{ include('content/_challenge_list.html.twig', {challenges: related, heading_level: 3}) }}
+        </section>
+    {% endif %}
+
+    <div class="page-cta">
+        <a class="button button--primary button--large" href="{{ path('workout_challenge', {slug: challenge.slug}) }}">{{ 'challenge.start'|trans }}</a>
+        <a class="button button--outline button--large" href="{{ path('challenges') }}">{{ 'content.all_challenges'|trans }}</a>
+    </div>
+{% endblock %}

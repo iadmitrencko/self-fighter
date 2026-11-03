@@ -82,13 +82,36 @@ describe('the format of attempts', () => {
 
   it.each([
     ['an unknown field', { rating: 5 }],
-    ['an unknown format version', { schemaVersion: 2 }],
+    ['an unknown format version', { schemaVersion: 3 }],
+    ['no challenge in version 2', { challenge: undefined }],
+    ['a challenge in version 1', { schemaVersion: 1 }],
+    ['a challenge without a title', { challenge: { slug: '100-push-ups', title: '' } }],
+    ['a challenge with a strange address', { challenge: { slug: '100 Push-Ups', title: '100 віджимань' } }],
     ['an id the browser did not create', { id: 'attempt-1' }],
     ['a time with an offset', { finishedAt: '2026-11-02T12:00:00.000+02:00' }],
     ['the mode of another configuration', { mode: 'ladder' }],
   ])('refuses an attempt with %s', (_, change) => {
-    const attempt = attemptOf(targetConfig(), () => 11);
+    const attempt = { ...attemptOf(targetConfig(), () => 11), challenge: { slug: '100-push-ups', title: '100 віджимань' } };
 
     expect(check(null, { ...attempt, ...change })).not.toBeNull();
+  });
+
+  // §21.3: version 2 names the ready-made challenge of the attempt, or null.
+  it('accepts an attempt that took a challenge', () => {
+    const challenge = { slug: 'pull-ups-ladder-to-3', title: 'Драбина підтягувань до 3' };
+    const attempt = finalize(
+      play(createSession(ladderConfig({ max: 3 }), testDeps({ newId: () => newId() }), challenge), () => 9),
+      FINISHED_AT,
+    );
+
+    expect(check(null, attempt)).toBeNull();
+  });
+
+  // Section 3.7 of the plan: a tab opened before the release still sends version 1.
+  it('still accepts an attempt of version 1', () => {
+    const attempt: Record<string, unknown> = { ...attemptOf(targetConfig(), () => 11), schemaVersion: 1 };
+    delete attempt.challenge;
+
+    expect(check(null, attempt)).toBeNull();
   });
 });

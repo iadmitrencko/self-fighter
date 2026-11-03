@@ -1,0 +1,159 @@
+# Ready-made challenges (section 6.2 of the plan). `make challenges` expands this file into
+# generated.json next to it, and both files go into Git, so every change shows up in a review.
+#
+# A page of a challenge gets indexed only with its own reviewed text in notes/{slug}.md and with
+# a demand other than `unverified` (section 21.4 of the specification):
+#   verified    the query has a confirmed search volume;
+#   navigation  the page is needed to move around the catalog;
+#   unverified  not checked yet, the page stays in the catalog with noindex.
+#
+# Neighbours of a family differ by a quarter of the volume at least: 100 and 105 push-ups would
+# be one program on two pages. The generator also refuses anything beyond the limits below.
+
+updated: 2026-11-03
+
+# The most a challenge may ask for in one set and in one workout.
+limits:
+  push-ups: { set: 40, total: 300 }
+  squats: { set: 60, total: 500 }
+  pull-ups: { set: 15, total: 100 }
+
+# One, few, many.
+units:
+  rounds: [раунд, раунди, раундів]
+  stages: [етап, етапи, етапів]
+  reps: [повторення, повторення, повторень]
+
+levels:
+  easy: легкий
+  medium: середній
+  hard: складний
+
+# The texts of a page, with values in braces. A total knows {exercise}, {genitive}, {total},
+# {reps}, {rounds}, {perRound} and {perRoundNumber}; a ladder knows {exercise}, {genitive},
+# {top}, {stages} and {reps}; a circuit knows {level}, {levelName}, {rounds}, {stages} and {reps}.
+templates:
+  total:
+    slug: '{total}-{exercise}'
+    heading: '{reps}'
+    title: '{reps} за тренування: {rounds} по {perRoundNumber}'
+    description: '{reps} за одне тренування: {rounds} по {perRound}. Повна програма, для кого підходить виклик і як змінити навантаження.'
+    lead: '{rounds} по {perRound}, разом {reps} за одне тренування. Уся програма нижче, а в грі її можна змінити перед стартом.'
+  ladder:
+    slug: '{exercise}-ladder-to-{top}'
+    heading: 'Драбина {genitive} до {top}'
+    title: 'Драбина {genitive} до {top}: {stages}, {reps}'
+    description: 'Драбина {genitive} від 1 до {top}: {stages}, разом {reps}. Уся послідовність етапів, правила проходження й поради, як підготуватися.'
+    lead: 'Від одного повторення до {top}, щоразу на одне більше: {stages}, разом {reps}. Один непройдений етап завершує спробу.'
+  pyramid:
+    slug: '{exercise}-pyramid-to-{top}'
+    heading: 'Піраміда {genitive} до {top}'
+    title: 'Піраміда {genitive} до {top} і назад: {reps}'
+    description: 'Піраміда {genitive}: від 1 до {top} і назад до 1, {stages}, разом {reps}. Уся послідовність етапів, правила проходження й поради.'
+    lead: 'Від одного повторення до {top} і назад до одного: {stages}, разом {reps}. Один непройдений етап завершує спробу.'
+  home:
+    slug: 'home-workout-{level}'
+    heading: 'Тренування вдома без інвентарю: {levelName} рівень'
+    title: 'Тренування вдома без інвентарю: {levelName} рівень'
+    description: 'Віджимання й присідання по колу: {rounds}, разом {reps}. Готова програма для дому без інвентарю, {levelName} рівень.'
+    lead: '{rounds} віджимань і присідань, разом {reps}. Потрібні лише підлога й трохи місця.'
+  full-body:
+    slug: 'full-body-workout-{level}'
+    heading: 'Тренування на все тіло: {levelName} рівень'
+    title: 'Тренування на все тіло без залу: {levelName} рівень'
+    description: 'Віджимання, присідання й підтягування по колу: {rounds}, разом {reps}. Готова програма на все тіло з власною вагою, {levelName} рівень.'
+    lead: '{rounds} трьох вправ на груди, ноги й спину, разом {reps}. Знадобиться перекладина.'
+
+# kind: total (one exercise, equal rounds), ladder (one exercise, stages) or circuit (several
+# exercises, equal rounds). rule: meet by default, over asks for one more than the target.
+families:
+  - kind: total
+    template: total
+    exercise: push-ups
+    variants:
+      - { total: 50, rounds: 5, level: easy }
+      - { total: 100, rounds: 10, level: medium }
+      - { total: 200, rounds: 10, level: hard }
+
+  - kind: total
+    template: total
+    exercise: squats
+    variants:
+      - { total: 100, rounds: 5, level: easy }
+      - { total: 200, rounds: 10, level: medium }
+      - { total: 300, rounds: 10, level: hard }
+
+  - kind: total
+    template: total
+    exercise: pull-ups
+    variants:
+      - { total: 20, rounds: 5, level: easy }
+      - { total: 50, rounds: 10, level: medium }
+      - { total: 100, rounds: 10, level: hard }
+
+  - kind: ladder
+    template: ladder
+    exercise: push-ups
+    variants:
+      - { top: 5, level: easy }
+      - { top: 10, level: medium }
+      - { top: 15, level: hard }
+
+  - kind: ladder
+    template: ladder
+    exercise: squats
+    variants:
+      - { top: 10, level: easy }
+      - { top: 20, level: medium }
+      - { top: 30, level: hard }
+
+  - kind: ladder
+    template: ladder
+    exercise: pull-ups
+    variants:
+      - { top: 3, level: easy }
+      - { top: 5, level: medium }
+      - { top: 8, level: hard }
+
+  - kind: ladder
+    template: pyramid
+    exercise: push-ups
+    returnDown: true
+    variants:
+      - { top: 5, level: easy }
+      - { top: 7, level: medium }
+      - { top: 10, level: hard }
+
+  - kind: ladder
+    template: pyramid
+    exercise: squats
+    returnDown: true
+    variants:
+      - { top: 10, level: easy }
+      - { top: 15, level: medium }
+      - { top: 20, level: hard }
+
+  - kind: ladder
+    template: pyramid
+    exercise: pull-ups
+    returnDown: true
+    variants:
+      - { top: 3, level: easy }
+      - { top: 5, level: medium }
+      - { top: 7, level: hard }
+
+  - kind: circuit
+    template: home
+    exercises: [push-ups, squats]
+    variants:
+      - { rounds: 3, level: easy, targets: { push-ups: 5, squats: 10 } }
+      - { rounds: 4, level: medium, targets: { push-ups: 10, squats: 20 } }
+      - { rounds: 5, level: hard, targets: { push-ups: 20, squats: 30 } }
+
+  - kind: circuit
+    template: full-body
+    exercises: [push-ups, squats, pull-ups]
+    variants:
+      - { rounds: 3, level: easy, targets: { push-ups: 5, squats: 10, pull-ups: 2 } }
+      - { rounds: 4, level: medium, targets: { push-ups: 10, squats: 20, pull-ups: 4 } }
+      - { rounds: 5, level: hard, targets: { push-ups: 15, squats: 30, pull-ups: 6 } }

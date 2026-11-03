@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router';
 import { createBrowserStorage } from '../storage/api';
 import { newId } from '../storage/ids';
 import { App } from './App';
-import { readExercises } from './game';
+import { readPage } from './game';
 import { BASE } from './paths';
 import './app.css';
 
@@ -24,7 +24,7 @@ createRoot(root).render(
       <App
         game={{
           storage,
-          exercises: readExercises(root),
+          ...readPage(root),
           deps: { rng: Math.random, now: () => new Date(), newId },
         }}
       />

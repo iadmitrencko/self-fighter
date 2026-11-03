@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down kill logs ps sh test test-backend test-frontend lint lint-backend lint-frontend lint-infra audit audit-backend audit-frontend bundle e2e fix migrate
+.PHONY: help up down kill logs ps sh test test-backend test-frontend lint lint-backend lint-frontend lint-infra audit audit-backend audit-frontend bundle e2e fix migrate challenges content
 
 COMPOSE := docker compose
 APP := $(COMPOSE) exec -T app
@@ -11,7 +11,7 @@ PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734
 
 # E2E tests run the production image as a separate project, next to the development stack.
 E2E_COMPOSE := APP_IMAGE=self-fighter-app:e2e APP_SECRET=e2e-secret SERVER_NAME=localhost \
-	MYSQL_PASSWORD=e2e MYSQL_ROOT_PASSWORD=e2e-root \
+	DEFAULT_URI=https://localhost SEO_INDEXING=1 MYSQL_PASSWORD=e2e MYSQL_ROOT_PASSWORD=e2e-root \
 	$(COMPOSE) -p self-fighter-e2e -f compose.yaml -f compose.prod.yaml -f compose.e2e.yaml
 # CI builds the image with its own cache and passes E2E_BUILD= to skip the build here.
 E2E_BUILD ?= 1
@@ -57,6 +57,7 @@ lint-backend: ## Перевірити код бекенду
 	$(APP) php bin/console lint:container
 	$(APP) php bin/console debug:translation uk --only-missing
 	$(APP) php bin/console doctrine:schema:validate --skip-sync
+	$(APP) php bin/console app:content:lint
 
 lint-frontend: ## Перевірити код фронтенду
 	$(NODE) npm run lint
@@ -79,7 +80,7 @@ bundle: ## Перевірити бюджет розміру JS
 
 e2e: ## Запустити E2E-тести на prod-образі в Playwright
 	$(if $(E2E_BUILD),$(E2E_COMPOSE) build app)
-	$(E2E_COMPOSE) run --rm app php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration
+	$(E2E_COMPOSE) run --rm app sh -c 'php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration && php bin/console app:content:sync'
 	$(E2E_COMPOSE) up -d --no-build --wait --wait-timeout 300
 	docker run --rm --network container:self-fighter-e2e-app-1 -e CI -v "$(CURDIR)/e2e:/e2e" -w /e2e $(PLAYWRIGHT_IMAGE) \
 		sh -c 'npm ci --no-audit --no-fund && npx playwright test'; \
@@ -91,6 +92,12 @@ fix: ## Виправити стиль коду
 
 migrate: ## Застосувати міграції
 	$(APP) php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration
+
+challenges: ## Перегенерувати готові виклики з матриці
+	$(NODE) npm run challenges
+
+content: ## Перенести контент із backend/content у базу
+	$(APP) php bin/console app:content:sync
 
 .env:
 	cp .env.example .env
