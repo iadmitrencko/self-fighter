@@ -7,7 +7,7 @@ import { createSession } from '../../domain/engine/session';
 import { commonTexts, setupTexts, validationMessages } from '../../i18n/uk';
 import type { CustomExercise } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
-import { Screen, ScreenHead } from '../components/Screen';
+import { BACK, Screen, ScreenHead } from '../components/Screen';
 import { Loading, MemoryWarning } from '../components/notices';
 import { useGame } from '../game';
 import { paths } from '../paths';
@@ -49,7 +49,7 @@ export function SetupScreen({ mode }: { mode: Mode }) {
   if (saved.status !== 'ready' || custom.status === 'loading') {
     return (
       <Screen title={setupTexts.title(mode)}>
-        <ScreenHead back={paths.modes} backLabel={setupTexts.back} eyebrow={setupTexts.step(mode)} title={setupTexts.title(mode)} />
+        <ScreenHead back={BACK.modes} eyebrow={setupTexts.step(mode)} title={setupTexts.title(mode)} />
         <Loading />
       </Screen>
     );
@@ -116,90 +116,95 @@ function SetupForm({
   }
 
   return (
-    <Screen title={setupTexts.title(mode)} wide={mode === 'target'}>
-      <ScreenHead back={paths.modes} backLabel={setupTexts.back} eyebrow={setupTexts.step(mode)} title={setupTexts.title(mode)} />
+    <Screen title={setupTexts.title(mode)}>
+      <ScreenHead back={BACK.modes} eyebrow={setupTexts.step(mode)} title={setupTexts.title(mode)} />
       <MemoryWarning />
+      {/* On a desktop the common choices stand on the left, the values of the mode on the right. */}
       <form
-        className="setup"
+        className="split split--setup"
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
           start();
         }}
       >
-        {customError !== null && (
-          <div className="notice notice--warning" role="status">
-            <p>{setupTexts.exercisesFailed}</p>
-            <button type="button" className="button button--outline" onClick={onCustomChanged}>
-              {commonTexts.retry}
-            </button>
-          </div>
-        )}
-        <ExercisePicker
-          ladder={ladder}
-          selected={setup.exercises}
-          catalog={catalog}
-          hasCustom={custom.length > 0}
-          invalid={isInvalid(errors, ['exercises-required', 'exercises-too-many', 'exercises-duplicate'])}
-          onPick={(exercise) => setSetup((current) => addExercise(current, exercise))}
-          onRemove={(id) => setSetup((current) => removeExercise(current, id))}
-          onCreate={() => setDialog({ kind: 'create' })}
-          onManage={() => setDialog({ kind: 'manage' })}
-        />
-        <RuleField value={setup.rule} onChange={(rule) => setSetup((current) => ({ ...current, rule }))} />
-        {!ladder && (
-          <RoundsField value={setup.rounds} onChange={(rounds) => setSetup((current) => setRounds(current, rounds))} />
-        )}
-        {mode === 'target' && (
-          <TargetGrid
-            setup={setup}
-            errors={errors}
-            onTarget={(id, round, value) => setSetup((current) => setTarget(current, id, round, value))}
-            onFill={(id) => setSetup((current) => fillTargets(current, id))}
+        <div className="split__column">
+          {customError !== null && (
+            <div className="notice notice--warning" role="status">
+              <p>{setupTexts.exercisesFailed}</p>
+              <button type="button" className="button button--outline" onClick={onCustomChanged}>
+                {commonTexts.retry}
+              </button>
+            </div>
+          )}
+          <ExercisePicker
+            ladder={ladder}
+            selected={setup.exercises}
+            catalog={catalog}
+            hasCustom={custom.length > 0}
+            invalid={isInvalid(errors, ['exercises-required', 'exercises-too-many', 'exercises-duplicate'])}
+            onPick={(exercise) => setSetup((current) => addExercise(current, exercise))}
+            onRemove={(id) => setSetup((current) => removeExercise(current, id))}
+            onCreate={() => setDialog({ kind: 'create' })}
+            onManage={() => setDialog({ kind: 'manage' })}
           />
-        )}
-        {mode === 'random-opponent' && (
-          <OpponentRanges
-            setup={setup}
-            errors={errors}
-            onRange={(id, bound, value) => setSetup((current) => setRange(current, id, bound, value))}
-          />
-        )}
-        {mode === 'opponent-levels' && (
-          <>
+          <RuleField value={setup.rule} onChange={(rule) => setSetup((current) => ({ ...current, rule }))} />
+          {!ladder && (
+            <RoundsField value={setup.rounds} onChange={(rounds) => setSetup((current) => setRounds(current, rounds))} />
+          )}
+          {mode === 'opponent-levels' && (
             <DifficultyField
               value={setup.difficulty}
               onChange={(difficulty) => setSetup((current) => ({ ...current, difficulty }))}
             />
+          )}
+        </div>
+        <div className="split__column">
+          {mode === 'target' && (
+            <TargetGrid
+              setup={setup}
+              errors={errors}
+              onTarget={(id, round, value) => setSetup((current) => setTarget(current, id, round, value))}
+              onFill={(id) => setSetup((current) => fillTargets(current, id))}
+            />
+          )}
+          {mode === 'random-opponent' && (
+            <OpponentRanges
+              setup={setup}
+              errors={errors}
+              onRange={(id, bound, value) => setSetup((current) => setRange(current, id, bound, value))}
+            />
+          )}
+          {mode === 'opponent-levels' && (
             <UpperBounds
               setup={setup}
               errors={errors}
               onBound={(id, value) => setSetup((current) => setBound(current, id, value))}
             />
-          </>
-        )}
-        {ladder && (
-          <LadderFields
-            setup={setup}
-            errors={errors}
-            onMax={(ladderMax) => setSetup((current) => ({ ...current, ladderMax }))}
-            onReturnDown={(returnDown) => setSetup((current) => ({ ...current, returnDown }))}
-          />
-        )}
-        <div className="screen__actions">
-          {errors.length > 0 && (
-            <div ref={summary} className="notice notice--error" role="alert" tabIndex={-1}>
-              <p className="notice__title">{setupTexts.errors}</p>
-              <ul className="notice__list">
-                {[...new Set(errors.map(({ code }) => code))].map((code) => (
-                  <li key={code}>{validationMessages[code]}</li>
-                ))}
-              </ul>
-            </div>
           )}
-          <button type="submit" className="button button--primary button--large">
-            {ladder ? setupTexts.startLadder : setupTexts.startFight}
-          </button>
+          {ladder && (
+            <LadderFields
+              setup={setup}
+              errors={errors}
+              onMax={(ladderMax) => setSetup((current) => ({ ...current, ladderMax }))}
+              onReturnDown={(returnDown) => setSetup((current) => ({ ...current, returnDown }))}
+            />
+          )}
+          <div className="screen__actions">
+            {errors.length > 0 && (
+              <div ref={summary} className="notice notice--error" role="alert" tabIndex={-1}>
+                <p className="notice__title">{setupTexts.errors}</p>
+                <ul className="notice__list">
+                  {[...new Set(errors.map(({ code }) => code))].map((code) => (
+                    <li key={code}>{validationMessages[code]}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <button type="submit" className="button button--primary button--large">
+              {ladder ? setupTexts.startLadder : setupTexts.startFight}
+            </button>
+          </div>
         </div>
       </form>
       {(dialog?.kind === 'create' || dialog?.kind === 'edit') && (

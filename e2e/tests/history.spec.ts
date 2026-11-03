@@ -22,11 +22,12 @@ test('one history keeps every mode and leaves interrupted attempts out', async (
   const stats = page.getByRole('region', { name: 'Загальна статистика' });
   await expect(stats.getByText('Завершено тренувань').locator('xpath=following-sibling::*')).toHaveText('2');
   await expect(stats.getByRole('definition')).toHaveText(['1', '0', '1']);
-  await expect(page.getByRole('list').last().getByRole('listitem')).toHaveCount(2);
+  const attempts = page.getByRole('main').getByRole('list').last().getByRole('listitem');
+  await expect(attempts).toHaveCount(2);
   await expectAccessible(page);
 
   await page.getByRole('radio', { name: 'Драбина' }).check();
-  await expect(page.getByRole('list').last().getByRole('listitem')).toHaveCount(1);
+  await expect(attempts).toHaveCount(1);
   expect(await savedAttempts(page)).toBe(2);
 });
 

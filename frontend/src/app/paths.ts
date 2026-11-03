@@ -1,6 +1,8 @@
 import type { Mode } from '../domain/config/types';
 
 // Screens of the game under /workout. Symfony knows the same list (GameShellController).
+export const BASE = '/workout';
+
 export const paths = {
   modes: '/',
   setup: (mode: Mode) => `/setup/${mode}`,

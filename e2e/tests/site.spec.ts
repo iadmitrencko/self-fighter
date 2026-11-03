@@ -24,3 +24,23 @@ test('an address the game does not have is a real 404', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Сторінку не знайдено' })).toBeVisible();
   await expectAccessible(page);
 });
+
+// Every page has the same header and footer, and every screen of the game leads back by itself.
+test('the header and the footer are the same everywhere and screens lead back', async ({ page }) => {
+  await page.goto('/');
+  const header = await page.locator('header.site-header').innerHTML();
+  const footer = await page.locator('footer.site-footer').innerHTML();
+
+  await page.getByRole('navigation', { name: 'Головна навігація' }).getByRole('link', { name: 'Історія' }).click();
+
+  await expect(page).toHaveURL('/workout/history');
+  await expect(page.getByRole('heading', { level: 1, name: 'Історія' })).toBeVisible();
+  expect(await page.locator('header.site-header').innerHTML()).toBe(header);
+  expect(await page.locator('footer.site-footer').innerHTML()).toBe(footer);
+  await expectAccessible(page);
+
+  await page.getByRole('link', { name: 'До вибору режиму' }).click();
+  await expect(page).toHaveURL('/workout');
+  await page.getByRole('link', { name: 'На головну' }).click();
+  await expect(page).toHaveURL('/');
+});

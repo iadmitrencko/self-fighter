@@ -9,7 +9,7 @@ import { commonTexts, historyTexts, modeNames, outcomeTexts } from '../../i18n/u
 import type { AttemptFilter, StoredAttempt } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
 import { Icon } from '../components/Icon';
-import { Screen, ScreenHead } from '../components/Screen';
+import { BACK, Screen, ScreenHead } from '../components/Screen';
 import { ErrorNotice, Loading, OutcomeBadge, StatusBadge } from '../components/notices';
 import { useGame } from '../game';
 import { MODES, paths } from '../paths';
@@ -66,63 +66,70 @@ export function HistoryScreen() {
 
   return (
     <Screen title={historyTexts.title}>
-      <ScreenHead back={paths.modes} title={historyTexts.title} />
+      <ScreenHead back={BACK.modes} title={historyTexts.title} />
       {failure !== null && <ErrorNotice error={failure} onRetry={retry} />}
-      {stats.status === 'ready' && <StatisticsCard stats={stats.value} />}
-      <div className="filters">
-        <FilterGroup
-          legend={historyTexts.modeFilter}
-          name="mode"
-          value={mode}
-          options={MODES.map((item) => ({ value: item, label: historyTexts.modeShort[item] }))}
-          onChange={setMode}
-        />
-        <FilterGroup
-          legend={historyTexts.outcomeFilter}
-          name="outcome"
-          value={outcome}
-          options={OUTCOMES.map((item) => ({ value: item, label: outcomeTexts[item].plural }))}
-          onChange={setOutcome}
-        />
-      </div>
-      {page.status === 'loading' && <Loading />}
-      {page.status === 'ready' && (
-        <>
-          {page.value.items.length === 0 ? (
-            <div className="empty">
-              <p>{filtered ? historyTexts.emptyFiltered : historyTexts.empty}</p>
-              {!filtered && (
-                <Link className="button button--primary button--large" to={paths.modes}>
-                  {historyTexts.start}
-                </Link>
+      {/* On a desktop the statistics and the filters stay beside the list. */}
+      <div className="split split--aside">
+        <div className="split__column">
+          {stats.status === 'ready' && <StatisticsCard stats={stats.value} />}
+          <div className="filters">
+            <FilterGroup
+              legend={historyTexts.modeFilter}
+              name="mode"
+              value={mode}
+              options={MODES.map((item) => ({ value: item, label: historyTexts.modeShort[item] }))}
+              onChange={setMode}
+            />
+            <FilterGroup
+              legend={historyTexts.outcomeFilter}
+              name="outcome"
+              value={outcome}
+              options={OUTCOMES.map((item) => ({ value: item, label: outcomeTexts[item].plural }))}
+              onChange={setOutcome}
+            />
+          </div>
+          <p className="note">
+            <Icon name="info" className="note__icon" />
+            <span>
+              {historyTexts.note} <Link to={paths.account}>{commonTexts.account}</Link>
+            </span>
+          </p>
+        </div>
+        <div className="split__column">
+          {page.status === 'loading' && <Loading />}
+          {page.status === 'ready' && (
+            <>
+              {page.value.items.length === 0 ? (
+                <div className="empty">
+                  <p>{filtered ? historyTexts.emptyFiltered : historyTexts.empty}</p>
+                  {!filtered && (
+                    <Link className="button button--primary button--large" to={paths.modes}>
+                      {historyTexts.start}
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <ul className="history" role="list">
+                  {[...page.value.items, ...(extra?.items ?? [])].map((stored) => (
+                    <HistoryItem key={stored.attempt.id} stored={stored} />
+                  ))}
+                </ul>
               )}
-            </div>
-          ) : (
-            <ul className="history" role="list">
-              {[...page.value.items, ...(extra?.items ?? [])].map((stored) => (
-                <HistoryItem key={stored.attempt.id} stored={stored} />
-              ))}
-            </ul>
+              {moreError !== null && <ErrorNotice error={moreError} />}
+              {cursor !== null && (
+                <button
+                  type="button"
+                  className="button button--outline button--large"
+                  disabled={loadingMore}
+                  onClick={() => void showMore(cursor)}
+                >
+                  {historyTexts.more}
+                </button>
+              )}
+            </>
           )}
-          {moreError !== null && <ErrorNotice error={moreError} />}
-          {cursor !== null && (
-            <button
-              type="button"
-              className="button button--outline button--large"
-              disabled={loadingMore}
-              onClick={() => void showMore(cursor)}
-            >
-              {historyTexts.more}
-            </button>
-          )}
-        </>
-      )}
-      <p className="note">
-        <Icon name="info" className="note__icon" />
-        <span>
-          {historyTexts.note} <Link to={paths.account}>{commonTexts.account}</Link>
-        </span>
-      </p>
+        </div>
+      </div>
     </Screen>
   );
 }

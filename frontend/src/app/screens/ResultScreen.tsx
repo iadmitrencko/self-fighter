@@ -16,7 +16,7 @@ import {
 } from '../../i18n/uk';
 import type { StoredAttempt } from '../../storage/contract';
 import { Icon } from '../components/Icon';
-import { Screen, ScreenHead, Title } from '../components/Screen';
+import { BACK, BackLink, Screen, ScreenHead, Title } from '../components/Screen';
 import { ErrorNotice, Loading, OutcomeBadge, StatusBadge } from '../components/notices';
 import { useGame } from '../game';
 import { paths } from '../paths';
@@ -40,7 +40,7 @@ export function ResultScreen() {
 
   return (
     <Screen title={resultTexts.notFound}>
-      <ScreenHead back={paths.history} title={stored.status === 'ready' ? resultTexts.notFound : commonTexts.history} />
+      <ScreenHead back={BACK.history} title={stored.status === 'ready' ? resultTexts.notFound : commonTexts.history} />
       {stored.status === 'loading' && <Loading />}
       {stored.status === 'failed' && <ErrorNotice error={stored.error} onRetry={reload} />}
       {stored.status === 'ready' && (
@@ -69,32 +69,38 @@ function Result({ stored: { attempt, status } }: { stored: StoredAttempt }) {
 
   return (
     <Screen title={outcomeTexts[attempt.result.outcome].name}>
-      {attempt.mode === 'ladder' ? <LadderHero attempt={attempt} /> : <FightHero attempt={attempt} />}
-      <p className="result-meta">
-        <span>{formatDateTime(attempt.finishedAt)}</span>
-        <span>{resultTexts.duration(formatDuration(attempt.durationMs))}</span>
-      </p>
-      {status !== 'saved' && (
-        <div className="notice notice--warning">
-          <StatusBadge status={status} />
-          <p>{status === 'pending' ? resultTexts.pending : resultTexts.rejected}</p>
+      <BackLink back={BACK.history} />
+      {/* The summary and the next steps first, the breakdown by rounds or steps after them. */}
+      <div className="split split--result">
+        <div className="split__column">
+          {attempt.mode === 'ladder' ? <LadderHero attempt={attempt} /> : <FightHero attempt={attempt} />}
+          <p className="result-meta">
+            <span>{formatDateTime(attempt.finishedAt)}</span>
+            <span>{resultTexts.duration(formatDuration(attempt.durationMs))}</span>
+          </p>
+          {status !== 'saved' && (
+            <div className="notice notice--warning">
+              <StatusBadge status={status} />
+              <p>{status === 'pending' ? resultTexts.pending : resultTexts.rejected}</p>
+            </div>
+          )}
+          <div className="screen__actions">
+            <button type="button" className="button button--primary button--large" onClick={repeat}>
+              <Icon name="repeat" className="button__icon" />
+              {resultTexts.repeat}
+            </button>
+            <div className="result-links">
+              <Link className="button button--outline" to={paths.modes}>
+                {commonTexts.newWorkout}
+              </Link>
+              <Link className="button button--outline" to={paths.history}>
+                {commonTexts.history}
+              </Link>
+            </div>
+            <p className="hint result-note">{resultTexts.repeatNote(attempt.mode)}</p>
+          </div>
         </div>
-      )}
-      {attempt.mode === 'ladder' ? <LadderDetails attempt={attempt} /> : <FightRounds attempt={attempt} />}
-      <div className="screen__actions">
-        <button type="button" className="button button--primary button--large" onClick={repeat}>
-          <Icon name="repeat" className="button__icon" />
-          {resultTexts.repeat}
-        </button>
-        <div className="result-links">
-          <Link className="button button--outline" to={paths.modes}>
-            {commonTexts.newWorkout}
-          </Link>
-          <Link className="button button--outline" to={paths.history}>
-            {commonTexts.history}
-          </Link>
-        </div>
-        <p className="hint result-note">{resultTexts.repeatNote(attempt.mode)}</p>
+        {attempt.mode === 'ladder' ? <LadderDetails attempt={attempt} /> : <FightRounds attempt={attempt} />}
       </div>
     </Screen>
   );

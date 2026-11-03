@@ -1,9 +1,9 @@
-import { useLayoutEffect } from 'react';
-import { Link, Route, Routes, useLocation, useParams } from 'react-router';
+import { useEffect, useLayoutEffect } from 'react';
+import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
 import { notFoundTexts } from '../i18n/uk';
-import { Screen, Title } from './components/Screen';
+import { BACK, Screen, ScreenHead } from './components/Screen';
 import { GameProvider, type Game } from './game';
-import { isMode, paths } from './paths';
+import { BASE, isMode } from './paths';
 import { AccountScreen } from './screens/AccountScreen';
 import { HistoryScreen } from './screens/HistoryScreen';
 import { ModesScreen } from './screens/ModesScreen';
@@ -16,6 +16,7 @@ export function App({ game }: { game: Game }) {
   return (
     <GameProvider game={game}>
       <ScrollToTop />
+      <SiteLinks />
       <Routes>
         <Route index element={<ModesScreen />} />
         <Route path="setup/:mode" element={<SetupRoute />} />
@@ -46,16 +47,49 @@ function ScrollToTop() {
   return null;
 }
 
+/**
+ * The header and the footer of the site lead to screens of the game as well. Inside the game they
+ * open a screen without loading the page again, so they work offline in the middle of a workout.
+ */
+function SiteLinks() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const open = (event: MouseEvent) => {
+      const link = event.target instanceof Element ? event.target.closest('a') : null;
+
+      if (
+        link === null ||
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        link.target !== '' ||
+        link.hasAttribute('download') ||
+        link.origin !== window.location.origin ||
+        (link.pathname !== BASE && !link.pathname.startsWith(`${BASE}/`))
+      ) {
+        return;
+      }
+      event.preventDefault();
+      void navigate(`${link.pathname.slice(BASE.length) || '/'}${link.search}${link.hash}`);
+    };
+
+    document.addEventListener('click', open);
+
+    return () => document.removeEventListener('click', open);
+  }, [navigate]);
+
+  return null;
+}
+
 function NotFound() {
   return (
     <Screen title={notFoundTexts.title}>
-      <Title className="screen-title">{notFoundTexts.title}</Title>
+      <ScreenHead back={BACK.modes} title={notFoundTexts.title} />
       <p>{notFoundTexts.text}</p>
-      <div className="screen__actions">
-        <Link className="button button--primary button--large" to={paths.modes}>
-          {notFoundTexts.back}
-        </Link>
-      </div>
     </Screen>
   );
 }

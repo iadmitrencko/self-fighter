@@ -1,76 +1,13 @@
 /*
- * The public pages: header, footer, the landing (design/Main.dc.html) and the error pages.
- * Mobile first; the mockup shows the desktop at 1440px.
+ * The public pages: the landing (design/Main.dc.html) and the error pages, inside the frame of
+ * every page. Mobile first; the mockup shows the desktop at 1440px.
  * The imports are inlined at build time, so a page loads a single stylesheet.
  */
 @import '../styles/fonts.css';
 @import '../styles/tokens.css';
 @import '../styles/base.css';
 @import '../styles/components.css';
-
-.container {
-  width: 100%;
-  max-width: calc(var(--page-width) + 2 * var(--page-gutter));
-  margin-inline: auto;
-  padding-inline: var(--page-gutter);
-}
-
-.skip-link {
-  position: absolute;
-  top: var(--space-s);
-  left: var(--space-s);
-  z-index: 1;
-  transform: translateY(-200%);
-}
-
-.skip-link:focus {
-  transform: none;
-}
-
-/* Header */
-
-.site-header__inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-m);
-  padding-block: var(--space-s);
-}
-
-/* A phone shows the landing's own button right below, and the footer repeats the links. */
-.site-nav {
-  display: none;
-}
-
-.site-nav__link {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap-target);
-  color: var(--color-text-soft);
-  font-size: var(--text-m);
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.site-nav__link:hover {
-  color: var(--color-text);
-}
-
-@media (min-width: 48rem) {
-  .site-header__inner {
-    padding-block: var(--space-l);
-  }
-
-  .site-header .logo {
-    font-size: 1.25rem;
-  }
-
-  .site-nav {
-    display: flex;
-    align-items: center;
-    gap: 1.75rem;
-  }
-}
+@import '../styles/frame.css';
 
 /* Hero */
 
@@ -528,58 +465,6 @@
 @media (min-width: 48rem) {
   .cta {
     padding: 4.5rem 2.5rem;
-  }
-}
-
-/* Footer */
-
-.site-footer {
-  margin-top: var(--space-3xl);
-}
-
-.site-footer__inner {
-  display: grid;
-  gap: var(--space-m);
-  padding-block: var(--space-l) var(--space-xl);
-  border-top: 1px solid var(--color-line);
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-}
-
-.site-footer__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--space-l);
-  padding: 0;
-  list-style: none;
-}
-
-.site-footer__link {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap-target);
-  color: var(--color-text-soft);
-  text-decoration: none;
-}
-
-.site-footer__link:hover {
-  color: var(--color-text);
-}
-
-.site-footer__note {
-  max-width: 40rem;
-}
-
-@media (min-width: 48rem) {
-  .site-footer__inner {
-    grid-template-columns: minmax(0, 1fr) auto;
-    column-gap: var(--space-xl);
-  }
-
-  .site-footer__copy {
-    grid-row: 1;
-    grid-column: 2;
-    align-self: center;
   }
 }
 

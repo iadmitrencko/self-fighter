@@ -61,8 +61,26 @@ final class PagesTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         self::assertSame(
-            ['/', '/#modes', '/#how', '/workout'],
+            ['/', '/#modes', '/#how', '/workout', '/workout/history', '/workout/account'],
             $crawler->filter('footer nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
+        );
+    }
+
+    // The game opens inside the same header and footer as every page of the site.
+    public function testGameLivesInTheFrameOfTheSite(): void
+    {
+        $client = self::createClient();
+        $site = $client->request('GET', '/');
+        $header = $site->filter('header')->html();
+        $footer = $site->filter('footer')->html();
+        $game = $client->request('GET', '/workout/history');
+
+        self::assertSame($header, $game->filter('header')->html());
+        self::assertSame($footer, $game->filter('footer')->html());
+        self::assertSelectorExists('main #root');
+        self::assertSame(
+            ['/#modes', '/#how', '/workout/history', '/workout/account', '/workout'],
+            $game->filter('header nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
     }
 

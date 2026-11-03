@@ -7,6 +7,8 @@ site:
     label: Головна навігація
     modes: Режими
     how: Як це працює
+    history: Історія
+    account: Мої дані
   footer:
     nav_label: Навігація сайтом
     home: Головна

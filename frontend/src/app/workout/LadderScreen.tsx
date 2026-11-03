@@ -59,61 +59,65 @@ export function LadderScreen({
         <InterruptButton onClick={onInterrupt} />
       </header>
       <MemoryWarning />
-      <section className="ladder">
-        <div
-          className="ladder__steps"
-          role="progressbar"
-          aria-label={fightTexts.progress}
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-valuenow={index}
-          aria-valuetext={ladderTexts.progress(index, total)}
-        >
-          {session.stages.slice(first, first + VISIBLE_STEPS).map((step, offset) => {
-            const position = first + offset;
-            const state = position < index ? 'done' : position === index ? 'current' : 'next';
+      <div className="split split--workout">
+        <section className="ladder">
+          <div
+            className="ladder__steps"
+            role="progressbar"
+            aria-label={fightTexts.progress}
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-valuenow={index}
+            aria-valuetext={ladderTexts.progress(index, total)}
+          >
+            {session.stages.slice(first, first + VISIBLE_STEPS).map((step, offset) => {
+              const position = first + offset;
+              const state = position < index ? 'done' : position === index ? 'current' : 'next';
 
-            return (
-              <span
-                key={position}
-                className={`ladder__step ladder__step--${state}`}
-                style={{ '--height': `${28 + (72 * step.target) / max}%` } as CSSProperties}
-              >
-                <span className="ladder__value">{step.target}</span>
-                <span className="ladder__mark">{state === 'done' ? '✓' : state === 'current' ? '●' : ''}</span>
-              </span>
-            );
-          })}
+              return (
+                <span
+                  key={position}
+                  className={`ladder__step ladder__step--${state}`}
+                  style={{ '--height': `${28 + (72 * step.target) / max}%` } as CSSProperties}
+                >
+                  <span className="ladder__value">{step.target}</span>
+                  <span className="ladder__mark">{state === 'done' ? '✓' : state === 'current' ? '●' : ''}</span>
+                </span>
+              );
+            })}
+          </div>
+          <p className="ladder__counts">
+            <span>{fightTexts.stage(index + 1, total)}</span>
+            <span>{ladderTexts.passed(index)}</span>
+          </p>
+        </section>
+        <div className="split__column">
+          <section className="ladder-target">
+            <p className="eyebrow">{index >= max ? ladderTexts.descent : ladderTexts.climb}</p>
+            <p className="ladder-target__value">{stage.target}</p>
+            <p className="ladder-target__need">{ladderTexts.need(stage.target, stage.rule)}</p>
+          </section>
+          <p className="ladder-status" role="status">
+            {passedStage === null ? '' : ladderTexts.stagePassed(passedStage)}
+          </p>
+          <form className="workout-form" noValidate onSubmit={submit}>
+            <RepsField
+              text={text}
+              error={error}
+              locked={false}
+              onChange={(value) => {
+                setText(value);
+                setError(false);
+              }}
+            />
+            <div className="screen__actions">
+              <button type="submit" className="button button--primary button--large">
+                {ladderTexts.submit}
+              </button>
+            </div>
+          </form>
         </div>
-        <p className="ladder__counts">
-          <span>{fightTexts.stage(index + 1, total)}</span>
-          <span>{ladderTexts.passed(index)}</span>
-        </p>
-      </section>
-      <section className="ladder-target">
-        <p className="eyebrow">{index >= max ? ladderTexts.descent : ladderTexts.climb}</p>
-        <p className="ladder-target__value">{stage.target}</p>
-        <p className="ladder-target__need">{ladderTexts.need(stage.target, stage.rule)}</p>
-      </section>
-      <p className="ladder-status" role="status">
-        {passedStage === null ? '' : ladderTexts.stagePassed(passedStage)}
-      </p>
-      <form className="workout-form" noValidate onSubmit={submit}>
-        <RepsField
-          text={text}
-          error={error}
-          locked={false}
-          onChange={(value) => {
-            setText(value);
-            setError(false);
-          }}
-        />
-        <div className="screen__actions">
-          <button type="submit" className="button button--primary button--large">
-            {ladderTexts.submit}
-          </button>
-        </div>
-      </form>
+      </div>
     </Screen>
   );
 }

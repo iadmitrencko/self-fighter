@@ -3,10 +3,9 @@ import { accountTexts } from '../../i18n/uk';
 import type { UserData } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
 import { ConfirmDialog } from '../components/Dialog';
-import { Screen, ScreenHead } from '../components/Screen';
+import { BACK, Screen, ScreenHead } from '../components/Screen';
 import { ErrorNotice, Loading } from '../components/notices';
 import { useGame } from '../game';
-import { paths } from '../paths';
 import { errorCode, useLoad } from '../useLoad';
 
 // §15.5: every user, a guest too, can download the data and delete it.
@@ -61,7 +60,7 @@ export function AccountScreen() {
 
   return (
     <Screen title={accountTexts.title}>
-      <ScreenHead back={paths.modes} title={accountTexts.title} />
+      <ScreenHead back={BACK.modes} title={accountTexts.title} />
       <p className="lead">{accountTexts.intro}</p>
       {user.status === 'loading' && <Loading />}
       {user.status === 'failed' && <ErrorNotice error={user.error} onRetry={reloadUser} />}
@@ -70,7 +69,7 @@ export function AccountScreen() {
         {message ?? (user.status === 'ready' && user.value === null ? accountTexts.nothing : '')}
       </p>
       {hasData && (
-        <>
+        <div className="account-sections">
           <section className="card account-section" aria-labelledby={exportId}>
             <h2 id={exportId} className="account-section__title">
               {accountTexts.exportTitle}
@@ -89,7 +88,7 @@ export function AccountScreen() {
               {accountTexts.delete}
             </button>
           </section>
-        </>
+        </div>
       )}
       {confirming && (
         <ConfirmDialog

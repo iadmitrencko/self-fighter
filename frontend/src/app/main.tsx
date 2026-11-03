@@ -5,6 +5,7 @@ import { createBrowserStorage } from '../storage/api';
 import { newId } from '../storage/ids';
 import { App } from './App';
 import { readExercises } from './game';
+import { BASE } from './paths';
 import './app.css';
 
 const root = document.getElementById('root');
@@ -19,7 +20,7 @@ void storage.attempts.flush();
 
 createRoot(root).render(
   <StrictMode>
-    <BrowserRouter basename="/workout">
+    <BrowserRouter basename={BASE}>
       <App
         game={{
           storage,

@@ -118,8 +118,9 @@ export const commonTexts = {
   retry: 'Спробувати ще раз',
   cancel: 'Скасувати',
   save: 'Зберегти',
-  back: 'Назад',
-  home: 'Self-Fighter, на головну сторінку',
+  toHome: 'На головну',
+  toModes: 'До вибору режиму',
+  toHistory: 'До історії',
   history: 'Історія',
   account: 'Мої дані',
   newWorkout: 'Нове тренування',
@@ -146,7 +147,6 @@ export const modesTexts = {
 export const setupTexts = {
   title: (mode: Mode) => (mode === 'ladder' ? 'Налаштуй драбину' : 'Налаштуй бій'),
   step: (mode: Mode) => `Крок 2 / 2 · режим «${modeNames[mode]}»`,
-  back: 'Назад до вибору режиму',
   exercises: (count: number) => `Вправи · ${count} / ${EXERCISES_MAX}`,
   exercise: 'Вправа',
   remove: (name: string) => `Прибрати вправу ${name}`,
@@ -342,5 +342,4 @@ export const accountTexts = {
 export const notFoundTexts = {
   title: 'Сторінку не знайдено',
   text: 'Такого екрана в грі немає.',
-  back: 'До вибору режиму',
 };

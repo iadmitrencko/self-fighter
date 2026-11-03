@@ -41,3 +41,60 @@ describe('the game', () => {
     expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Історія' }));
   });
 });
+
+describe('navigation', () => {
+  // Every screen leads back by itself, so nobody needs the button of the browser.
+  it.each([
+    ['/', 'На головну', '/'],
+    ['/setup/ladder', 'До вибору режиму', '/'],
+    ['/history', 'До вибору режиму', '/'],
+    ['/account', 'До вибору режиму', '/'],
+    ['/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85', 'До історії', '/history'],
+    ['/unknown', 'До вибору режиму', '/'],
+  ])('leads back from %s with «%s»', async (path, text, target) => {
+    renderGame(path);
+
+    expect((await screen.findByRole('link', { name: text })).getAttribute('href')).toBe(target);
+  });
+
+  // The header of the site opens screens of the game without loading the page again.
+  it('opens a screen of the game from a link of the site header', async () => {
+    const { user } = renderGame('/');
+    const header = document.createElement('a');
+    header.href = '/workout/history';
+    header.textContent = 'Історія в шапці';
+    document.body.append(header);
+
+    await user.click(header);
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Історія' })).toBeTruthy();
+    header.remove();
+  });
+
+  it('leaves links of the site and new tabs to the browser', async () => {
+    const { user } = renderGame('/');
+    const landing = document.createElement('a');
+    landing.href = '/#modes';
+    landing.textContent = 'Режими';
+    const tab = document.createElement('a');
+    tab.href = '/workout/history';
+    tab.target = '_blank';
+    tab.textContent = 'Історія в новій вкладці';
+    const clicks: boolean[] = [];
+    const remember = (event: MouseEvent) => {
+      clicks.push(event.defaultPrevented);
+      event.preventDefault();
+    };
+    document.body.append(landing, tab);
+    window.addEventListener('click', remember);
+
+    await user.click(landing);
+    await user.click(tab);
+
+    window.removeEventListener('click', remember);
+    landing.remove();
+    tab.remove();
+    expect(clicks).toEqual([false, false]);
+    expect(screen.getByRole('heading', { level: 1, name: 'Обери режим' })).toBeTruthy();
+  });
+});

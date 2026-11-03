@@ -4,7 +4,7 @@ import type { Mode } from '../../domain/config/types';
 import type { Session } from '../../domain/engine/session';
 import { modeGuides, modeNames, modesTexts } from '../../i18n/uk';
 import { Icon } from '../components/Icon';
-import { AppBar, Screen, Title } from '../components/Screen';
+import { BACK, Screen, ScreenHead } from '../components/Screen';
 import { MemoryWarning } from '../components/notices';
 import { useGame } from '../game';
 import { MODES, paths } from '../paths';
@@ -18,7 +18,7 @@ export function ModesScreen() {
 
   return (
     <Screen title={modesTexts.title}>
-      <AppBar />
+      <ScreenHead back={BACK.home} eyebrow={modesTexts.step} title={modesTexts.title} />
       <MemoryWarning />
       {session !== null && (
         <ResumeNotice
@@ -29,50 +29,48 @@ export function ModesScreen() {
           }}
         />
       )}
-      <div className="screen-intro">
-        <p className="eyebrow">{modesTexts.step}</p>
-        <Title className="screen-title">{modesTexts.title}</Title>
-      </div>
-      <fieldset className="choices">
-        <legend className="visually-hidden">{modesTexts.group}</legend>
-        {MODES.map((item, index) => (
-          <label key={item} className="choice">
-            <input
-              type="radio"
-              name="mode"
-              className="choice__input"
-              checked={item === mode}
-              onChange={() => setMode(item)}
-            />
-            <span className="choice__number" aria-hidden="true">
-              {String(index + 1).padStart(2, '0')}
-            </span>
-            <span className="choice__name">{modeNames[item]}</span>
-          </label>
-        ))}
-      </fieldset>
-      <section className="card mode-guide" aria-live="polite">
-        <h2 className="mode-guide__title">{modeNames[mode]}</h2>
-        <dl className="mode-guide__facts">
-          <div>
-            <dt className="eyebrow">{modesTexts.task}</dt>
-            <dd>{guide.task}</dd>
-          </div>
-          <div>
-            <dt className="eyebrow">{modesTexts.win}</dt>
-            <dd>{guide.win}</dd>
-          </div>
-          <div>
-            <dt className="eyebrow">{modesTexts.length}</dt>
-            <dd>{guide.length}</dd>
-          </div>
-        </dl>
-      </section>
-      <div className="screen__actions">
-        <Link className="button button--primary button--large" to={paths.setup(mode)}>
-          {modesTexts.next}
-          <Icon name="arrow" className="button__icon" />
-        </Link>
+      <div className="split">
+        <fieldset className="choices">
+          <legend className="visually-hidden">{modesTexts.group}</legend>
+          {MODES.map((item, index) => (
+            <label key={item} className="choice">
+              <input
+                type="radio"
+                name="mode"
+                className="choice__input"
+                checked={item === mode}
+                onChange={() => setMode(item)}
+              />
+              <span className="choice__number" aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <span className="choice__name">{modeNames[item]}</span>
+            </label>
+          ))}
+        </fieldset>
+        <div className="split__column">
+          <section className="card mode-guide" aria-live="polite">
+            <h2 className="mode-guide__title">{modeNames[mode]}</h2>
+            <dl className="mode-guide__facts">
+              <div>
+                <dt className="eyebrow">{modesTexts.task}</dt>
+                <dd>{guide.task}</dd>
+              </div>
+              <div>
+                <dt className="eyebrow">{modesTexts.win}</dt>
+                <dd>{guide.win}</dd>
+              </div>
+              <div>
+                <dt className="eyebrow">{modesTexts.length}</dt>
+                <dd>{guide.length}</dd>
+              </div>
+            </dl>
+          </section>
+          <Link className="button button--primary button--large" to={paths.setup(mode)}>
+            {modesTexts.next}
+            <Icon name="arrow" className="button__icon" />
+          </Link>
+        </div>
       </div>
     </Screen>
   );

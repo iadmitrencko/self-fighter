@@ -1,4 +1,6 @@
-{% extends 'base.html.twig' %}
+{% extends 'site/layout.html.twig' %}
+
+{# The game lives in the same frame as the site: React renders the screen inside the main content. #}
 
 {% block meta %}
     <meta name="robots" content="noindex, follow">
@@ -9,8 +11,8 @@
     {{ vite_entry_script_tags('app', { dependency: 'react' }) }}
 {% endblock %}
 
-{% block body %}
+{% block main %}
     {#- The data the game needs before its first request: the ready-made exercises. #}
     <div id="root" data-game="{{ game|json_encode }}"></div>
-    <noscript><p class="app-noscript">{{ 'workout.noscript'|trans }}</p></noscript>
+    <noscript><p class="container app-noscript">{{ 'workout.noscript'|trans }}</p></noscript>
 {% endblock %}
