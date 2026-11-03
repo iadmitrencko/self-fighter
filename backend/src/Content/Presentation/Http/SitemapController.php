@@ -53,10 +53,13 @@ final class SitemapController extends AbstractController
         $add($exercises, 'exercise');
         $add($modes, 'mode');
         $add($guides, 'guide');
-        $about = $this->pages->find(PageType::Service, 'about');
+        // The pages about the service are named after their routes.
+        foreach (['about', 'privacy'] as $slug) {
+            $page = $this->pages->find(PageType::Service, $slug);
 
-        if (null !== $about && $about->indexable()) {
-            $urls[] = ['path' => $this->generateUrl('about'), 'updated' => $about->updatedAt()];
+            if (null !== $page && $page->indexable()) {
+                $urls[] = ['path' => $this->generateUrl($slug), 'updated' => $page->updatedAt()];
+            }
         }
 
         $response = $this->render('content/sitemap.xml.twig', ['urls' => $urls]);

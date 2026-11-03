@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Analytics\Domain\Event" table="analytics_event">
+        <!-- The report follows each player, counts the events of a period, and the purge drops the old ones -->
+        <indexes>
+            <index name="idx_analytics_event_user_name_occurred_at" columns="user_id,name,occurred_at"/>
+            <index name="idx_analytics_event_name_occurred_at" columns="name,occurred_at"/>
+            <index name="idx_analytics_event_occurred_at" columns="occurred_at"/>
+        </indexes>
+
+        <id name="id" type="event_id"/>
+        <field name="name" length="32" enum-type="App\Analytics\Domain\EventName"/>
+        <field name="mode" length="20"/>
+        <field name="outcome" length="4" nullable="true"/>
+        <field name="error" length="40" nullable="true"/>
+        <field name="user" column="user_id" type="user_id" nullable="true"/>
+        <field name="occurredAt" type="datetime_immutable"/>
+    </entity>
+
+</doctrine-mapping>

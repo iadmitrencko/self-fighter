@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ladderConfig, pullUps, pushUps, randomOpponentConfig, squats, targetConfig } from '../../domain/testing/fixtures';
 import { createMemoryStorage } from '../../storage/memory';
@@ -7,7 +7,7 @@ import { renderGame } from '../testing/render';
 describe('setup of a workout', () => {
   // §6.4: the first round fills the others until a round is changed by hand.
   it('starts «Ціль» with separate targets for each exercise and round', async () => {
-    const { user, storage } = renderGame('/setup/target');
+    const { user, storage, analytics } = renderGame('/setup/target');
     await screen.findByRole('heading', { level: 1, name: 'Налаштуй бій' });
 
     await user.click(screen.getByRole('button', { name: 'Додати вправу Віджимання' }));
@@ -31,11 +31,14 @@ describe('setup of a workout', () => {
       rounds: 3,
       exercises: [{ ...pushUps, targets: [10, 15, 10] }],
     });
+    // §19: the start goes after the settings, which make a new player a guest.
+    expect(await storage.settings.get('target')).not.toBeNull();
+    await waitFor(() => expect(analytics.events).toEqual([{ name: 'workout_started', mode: 'target' }]));
   });
 
   // §11.5: nothing starts until the setup is valid, and the problems are named.
   it('explains what keeps a workout from starting', async () => {
-    const { user, storage } = renderGame('/setup/target');
+    const { user, storage, analytics } = renderGame('/setup/target');
     await screen.findByRole('heading', { level: 1, name: 'Налаштуй бій' });
 
     await user.click(screen.getByRole('button', { name: 'Почати бій' }));
@@ -49,6 +52,15 @@ describe('setup of a workout', () => {
     expect(within(screen.getByRole('alert')).getByText('Задай ціль для кожного раунду.')).toBeTruthy();
     expect(screen.getByRole('textbox', { name: 'Присідання, раунд 1' }).getAttribute('aria-invalid')).toBe('true');
     expect(storage.activeSession.load()).toBeNull();
+
+    // §19: a refused start reports each kind of problem once; changing the form reports nothing.
+    await user.click(screen.getByRole('button', { name: 'Додати вправу Віджимання' }));
+    await user.click(screen.getByRole('button', { name: 'Почати бій' }));
+
+    expect(analytics.events).toEqual([
+      { name: 'setup_error', mode: 'target', error: 'exercises-required' },
+      { name: 'setup_error', mode: 'target', error: 'target-required' },
+    ]);
   });
 
   it('starts from the last configuration of the mode', async () => {

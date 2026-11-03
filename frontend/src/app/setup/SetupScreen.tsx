@@ -110,7 +110,7 @@ function SetupForm({
   customError: StorageErrorCode | null;
   onCustomChanged: () => void;
 }) {
-  const { storage, exercises: readyMade, deps } = useGame();
+  const { storage, analytics, exercises: readyMade, deps } = useGame();
   const navigate = useNavigate();
   const catalog: readonly ExerciseRef[] = [...readyMade, ...custom];
   const [setup, setSetup] = useState(() => restoreSetup(mode, saved, catalog));
@@ -136,13 +136,21 @@ function SetupForm({
   function start() {
     if (!validation.ok) {
       setAttempts((value) => value + 1);
+      // §19: what keeps players from starting, one event for each kind of problem.
+      for (const error of new Set(validation.errors.map(({ code }) => code))) {
+        analytics.track({ name: 'setup_error', mode, error });
+      }
 
       return;
     }
     // §11.6: the configuration is fixed here; later changes of the catalog cannot touch it.
     storage.activeSession.save(createSession(validation.config, deps, taken));
     // The next workout of this mode starts from here. It is not worth stopping a workout for.
-    storage.settings.save(validation.config).catch(() => undefined);
+    // These settings make a new player a guest, so the event that follows them names the user (§19).
+    void storage.settings
+      .save(validation.config)
+      .catch(() => undefined)
+      .then(() => analytics.track({ name: 'workout_started', mode }));
     void navigate(paths.fight);
   }
 

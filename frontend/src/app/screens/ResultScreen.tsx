@@ -58,12 +58,15 @@ export function ResultScreen() {
 }
 
 function Result({ stored: { attempt, status } }: { stored: StoredAttempt }) {
-  const { storage, deps } = useGame();
+  const { storage, analytics, deps } = useGame();
   const navigate = useNavigate();
 
   // §13.4: the same settings, new rolls of the opponent; the old attempt stays as it was.
   const repeat = () => {
     storage.activeSession.save(createSession(attempt.config, deps, attempt.challenge));
+    // §19 counts the repeats apart and the repeated workout among all the starts.
+    analytics.track({ name: 'workout_repeated', mode: attempt.mode });
+    analytics.track({ name: 'workout_started', mode: attempt.mode });
     void navigate(paths.fight);
   };
 

@@ -48,12 +48,22 @@ export interface AttemptPage {
   readonly nextCursor: string | null;
 }
 
+// An event of analytics as the server keeps it, sent only with consent (§22).
+export interface StoredEvent {
+  readonly name: string;
+  readonly mode: string;
+  readonly outcome?: string;
+  readonly error?: string;
+  readonly occurredAt: string;
+}
+
 export interface UserData {
   readonly exportedAt: string;
   readonly user: CurrentUser;
   readonly exercises: readonly CustomExercise[];
   readonly settings: Settings;
   readonly attempts: readonly Attempt[];
+  readonly events: readonly StoredEvent[];
 }
 
 export interface AccountStore {

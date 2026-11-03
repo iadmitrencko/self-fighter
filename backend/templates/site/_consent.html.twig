@@ -1,0 +1,20 @@
+{#- §22: every visitor is asked once. The panel stands at the bottom of the window, covers nothing
+    for good and moves nothing on the page. The page is the same for everyone, so
+    src/consent/consent.ts shows it to a visitor who has not decided yet, and again from the footer. #}
+<section class="consent" id="consent" aria-label="{{ 'site.consent.label'|trans }}" tabindex="-1" hidden>
+    <div class="container consent__inner">
+        <div class="consent__text">
+            <p>
+                {{ 'site.consent.text'|trans }}
+                <a href="{{ path('privacy') }}">{{ 'site.consent.more'|trans }}</a>
+            </p>
+            <p class="consent__status" data-consent-status="granted" hidden>{{ 'site.consent.granted'|trans }}</p>
+            <p class="consent__status" data-consent-status="denied" hidden>{{ 'site.consent.denied'|trans }}</p>
+        </div>
+        {#- The two answers look the same, so neither of them is pushed on the visitor. #}
+        <div class="consent__actions">
+            <button type="button" class="button button--outline" data-consent-choice="granted">{{ 'site.consent.allow'|trans }}</button>
+            <button type="button" class="button button--outline" data-consent-choice="denied">{{ 'site.consent.deny'|trans }}</button>
+        </div>
+    </div>
+</section>

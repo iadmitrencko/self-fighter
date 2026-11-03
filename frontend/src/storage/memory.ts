@@ -35,6 +35,8 @@ export function createMemoryStorage(): GameStorage {
                 attempts: [...attempts].sort(
                   (a, b) => a.finishedAt.localeCompare(b.finishedAt) || a.id.localeCompare(b.id),
                 ),
+                // The events of analytics live on the server only.
+                events: [],
               },
         ),
       deleteData() {

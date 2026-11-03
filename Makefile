@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down kill logs ps sh test test-backend test-frontend lint lint-backend lint-frontend lint-infra audit audit-backend audit-frontend bundle e2e fix migrate challenges content
+.PHONY: help up down kill logs ps sh test test-backend test-frontend lint lint-backend lint-frontend lint-infra audit audit-backend audit-frontend bundle e2e fix migrate challenges content metrics
 
 COMPOSE := docker compose
 APP := $(COMPOSE) exec -T app
@@ -98,6 +98,9 @@ challenges: ## Перегенерувати готові виклики з ма�
 
 content: ## Перенести контент із backend/content у базу
 	$(APP) php bin/console app:content:sync
+
+metrics: ## Показати показники §19. SINCE=2026-11-01 лишає гравців, що почали з цього дня
+	$(APP) php bin/console app:metrics:report $(if $(SINCE),--since=$(SINCE))
 
 .env:
 	cp .env.example .env

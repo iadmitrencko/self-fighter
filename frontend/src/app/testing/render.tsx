@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
+import { createMemoryAnalytics } from '../../analytics/memory';
 import { pullUps, pushUps, seededRng, squats, STARTED_AT } from '../../domain/testing/fixtures';
 import type { GameStorage } from '../../storage/contract';
 import { newId } from '../../storage/ids';
@@ -17,14 +18,16 @@ export function testClock(start = STARTED_AT): () => Date {
   return () => new Date((now += 1000));
 }
 
-// Renders the game at a path under /workout, with storage in memory and fixed randomness.
+// Renders the game at a path under /workout, with storage and events in memory and fixed randomness.
 export function renderGame(
   path: string,
   options: { storage?: GameStorage; seed?: number; challenge?: Challenge } = {},
 ) {
   const storage = options.storage ?? createMemoryStorage();
+  const analytics = createMemoryAnalytics();
   const game: Game = {
     storage,
+    analytics,
     exercises: READY_MADE,
     challenge: options.challenge ?? null,
     deps: { rng: seededRng(options.seed ?? 7), now: testClock(), newId },
@@ -36,5 +39,5 @@ export function renderGame(
     </MemoryRouter>,
   );
 
-  return { ...view, storage, user };
+  return { ...view, storage, analytics, user };
 }

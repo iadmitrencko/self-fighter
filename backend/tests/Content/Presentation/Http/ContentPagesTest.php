@@ -145,6 +145,22 @@ final class ContentPagesTest extends WebTestCase
         self::assertSelectorTextSame('h1', 'Про проєкт');
     }
 
+    // §22: the page «Приватність» says which data is kept and why.
+    public function testPrivacyExplainsWhatIsKeptAndWhy(): void
+    {
+        $client = self::createClient();
+        $crawler = $client->request('GET', '/privacy');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextSame('h1', 'Приватність');
+        self::assertSame(
+            ['Що зберігає сервер', 'Cookie пристрою', 'Аналітика', 'Твої дані під твоїм контролем', 'Чого на сайті немає'],
+            self::texts($crawler, '.prose h2'),
+        );
+        self::assertCount(4, $crawler->filter('.prose ul li'));
+        self::assertSame(['/workout/account'], self::links($crawler->filter('.prose')));
+    }
+
     public function testBreadcrumbsLeadBackToTheHub(): void
     {
         $client = self::createClient();

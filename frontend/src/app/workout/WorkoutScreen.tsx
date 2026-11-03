@@ -14,7 +14,7 @@ import { LadderScreen } from './LadderScreen';
  * where it stopped (§12.4); the last one turns the session into an attempt of the history.
  */
 export function WorkoutScreen() {
-  const { storage, deps } = useGame();
+  const { storage, analytics, deps } = useGame();
   const navigate = useNavigate();
   // finish() removes a finished session, so one left here is still in progress.
   const [session, setSession] = useState(() => {
@@ -36,6 +36,7 @@ export function WorkoutScreen() {
 
     storage.attempts.save(attempt).then(
       () => {
+        analytics.track({ name: 'workout_completed', mode: attempt.mode, outcome: attempt.result.outcome });
         storage.activeSession.clear();
         void navigate(paths.result(attempt.id), { replace: true });
       },

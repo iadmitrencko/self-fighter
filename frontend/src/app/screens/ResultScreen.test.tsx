@@ -51,7 +51,7 @@ describe('result of an attempt', () => {
   it('repeats an attempt with new results of the opponent', async () => {
     const attempt = finalize(play(createSession(randomOpponentConfig(), testDeps()), () => 30), new Date());
     const storage = await saved(attempt);
-    const { user } = renderGame(`/result/${attempt.id}`, { storage });
+    const { user, analytics } = renderGame(`/result/${attempt.id}`, { storage });
 
     expect(await screen.findByText('«Повторити» — ті самі налаштування, нові результати суперника.')).toBeTruthy();
 
@@ -62,6 +62,11 @@ describe('result of an attempt', () => {
     expect(session?.id).not.toBe(attempt.id);
     expect(screen.getByRole('heading', { level: 1, name: 'Віджимання' })).toBeTruthy();
     expect((await storage.attempts.get(attempt.id))?.attempt).toEqual(attempt);
+    // §19 counts the repeats apart and the repeated workout among the starts.
+    expect(analytics.events).toEqual([
+      { name: 'workout_repeated', mode: 'random-opponent' },
+      { name: 'workout_started', mode: 'random-opponent' },
+    ]);
   });
 
   // §21.3: a win with the settings of the page passes the challenge; «Повторити» tries it again.

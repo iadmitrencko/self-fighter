@@ -9,6 +9,7 @@ doctrine:
             attempt_id: App\Workout\Infrastructure\Doctrine\AttemptIdType
             exercise_id: App\Workout\Infrastructure\Doctrine\ExerciseIdType
             page_type: App\Content\Infrastructure\Doctrine\PageTypeType
+            event_id: App\Analytics\Infrastructure\Doctrine\EventIdType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
@@ -30,6 +31,11 @@ doctrine:
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Content/Infrastructure/Doctrine/Mapping'
                 prefix: 'App\Content\Domain'
+            Analytics:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Analytics/Infrastructure/Doctrine/Mapping'
+                prefix: 'App\Analytics\Domain'
 
 when@test:
     doctrine:

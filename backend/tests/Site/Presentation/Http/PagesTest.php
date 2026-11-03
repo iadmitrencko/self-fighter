@@ -78,9 +78,42 @@ final class PagesTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         self::assertSame(
-            ['/', '/challenges', '/modes', '/exercises', '/guides', '/about', '/workout', '/workout/history', '/workout/account'],
+            ['/', '/challenges', '/modes', '/exercises', '/guides', '/about', '/workout', '/workout/history', '/workout/account', '/privacy'],
             $crawler->filter('footer nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
+        // §22: the decision changes as easily as it was made.
+        self::assertSame('Згода на аналітику', $crawler->filter('footer button[data-consent-open]')->text());
+    }
+
+    // §22: every page asks the same way, and the browser decides whether to show the question.
+    public function testEveryPageCarriesTheBannerOfConsent(): void
+    {
+        $client = self::createClient();
+        $banners = [];
+
+        foreach (['/', '/challenges/100-push-ups', '/workout', '/privacy'] as $page) {
+            $crawler = $client->request('GET', $page);
+            $banner = $crawler->filter('body > section#consent');
+            $banners[] = $banner->outerHtml();
+
+            self::assertSame('Згода на аналітику', $banner->attr('aria-label'), $page);
+            self::assertNotNull($banner->attr('hidden'), $page);
+            // Right after the skip link, so a screen reader meets the question before the page.
+            self::assertSame('consent', $crawler->filter('body > .skip-link + *')->attr('id'), $page);
+        }
+        self::assertCount(1, array_unique($banners));
+        $crawler = $client->request('GET', '/');
+        self::assertSame(['/privacy'], $crawler->filter('#consent a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+        // Both answers look the same, so neither is pushed on the visitor.
+        self::assertSame(
+            [['granted', 'Дозволити', 'button button--outline'], ['denied', 'Відхилити', 'button button--outline']],
+            $crawler->filter('#consent button')->each(static fn (Crawler $button): array => [
+                (string) $button->attr('data-consent-choice'),
+                $button->text(),
+                (string) $button->attr('class'),
+            ]),
+        );
+        self::assertStringContainsString('ідентифікатором твого користувача, гостя чи облікового запису', $crawler->filter('#consent')->text());
     }
 
     // The game opens inside the same header and footer as every page of the site.

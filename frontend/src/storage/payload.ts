@@ -1,7 +1,7 @@
 import type { Attempt } from '../domain/history/attempt';
 import type { Statistics } from '../domain/history/statistics';
 import { isRecord } from './buffer';
-import type { AttemptPage, CurrentUser, CustomExercise, Settings, UserData } from './contract';
+import type { AttemptPage, CurrentUser, CustomExercise, Settings, StoredEvent, UserData } from './contract';
 import { StorageError } from './errors';
 
 // The shapes the server sends (backend/src/*/Application/*View.php). Any other shape is a server failure.
@@ -92,7 +92,12 @@ export function parseStatistics(body: unknown): Statistics {
 
 // The export joins what every module of the server keeps about the user.
 export function parseUserData(body: unknown): UserData {
-  if (!isRecord(body) || typeof body.exportedAt !== 'string' || !Array.isArray(body.attempts)) {
+  if (
+    !isRecord(body) ||
+    typeof body.exportedAt !== 'string' ||
+    !Array.isArray(body.attempts) ||
+    !Array.isArray(body.events)
+  ) {
     throw unexpected();
   }
 
@@ -102,6 +107,26 @@ export function parseUserData(body: unknown): UserData {
     exercises: parseExercises(body.exercises),
     settings: parseSettings(body.settings),
     attempts: body.attempts.map(parseAttempt),
+    events: body.events.map(parseEvent),
+  };
+}
+
+function parseEvent(value: unknown): StoredEvent {
+  if (
+    !isRecord(value) ||
+    typeof value.name !== 'string' ||
+    typeof value.mode !== 'string' ||
+    typeof value.occurredAt !== 'string'
+  ) {
+    throw unexpected();
+  }
+
+  return {
+    name: value.name,
+    mode: value.mode,
+    ...(typeof value.outcome === 'string' ? { outcome: value.outcome } : {}),
+    ...(typeof value.error === 'string' ? { error: value.error } : {}),
+    occurredAt: value.occurredAt,
   };
 }
 

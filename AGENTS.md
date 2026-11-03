@@ -34,6 +34,7 @@ Self-Fighter — вебзастосунок, який перетворює тр�
 | `make migrate` | Застосувати міграції |
 | `make challenges` | Перегенерувати готові виклики з матриці |
 | `make content` | Перенести контент із `backend/content` у базу. `make up` робить це сам |
+| `make metrics` | Показати показники §19 з подій аналітики. `SINCE=2026-11-01` лишає гравців, що почали з цього дня |
 | `make logs`, `make ps`, `make sh` | Логи, стан контейнерів, shell у застосунку |
 
 Цілі `test`, `lint` і `audit` мають варіанти `-backend` і `-frontend`, а `lint` ще й `-infra`. CI викликає ті самі цілі, тому локальна перевірка відповідає CI.
@@ -54,12 +55,13 @@ docker compose exec node npm install package
 - `domain/` виконується і в браузері, і в Node, тому не використовує браузерних API (`tsconfig.domain.json`). Випадковість, час і генератор id передаються ззовні, а помилки повертаються кодами, тексти до них лежать у `src/i18n`.
 - Екрани гри звертаються до даних лише через контракт сховища `frontend/src/storage/contract.ts` (розділ 3.7 плану). ESLint не пускає в `src/app` інші модулі сховища, `fetch` і `localStorage`.
 - Дані користувачів, зокрема гостей, живуть лише в MySQL. Браузер тримає тільки буфер поточної спроби й черги надсилання і не мігрує його.
-- Бекенд складається з модулів `Account`, `Workout`, `Site` і спільного ядра `Shared`. У кожного модуля є шари `Domain`, `Application`, `Infrastructure` і `Presentation`. `Domain` не залежить від Symfony й Doctrine, мапінг лежить у XML в `Infrastructure`. Модулі звертаються один до одного лише через порти `Shared` і посилаються на чужі дані тільки за id. Межі перевіряє Deptrac (`backend/deptrac.yaml`) у `make lint`.
+- Бекенд складається з модулів `Account`, `Workout`, `Content`, `Analytics`, `Site` і спільного ядра `Shared`. У кожного модуля є шари `Domain`, `Application`, `Infrastructure` і `Presentation`. `Domain` не залежить від Symfony й Doctrine, мапінг лежить у XML в `Infrastructure`. Модулі звертаються один до одного лише через порти `Shared` і посилаються на чужі дані тільки за id. Межі перевіряє Deptrac (`backend/deptrac.yaml`) у `make lint`.
 - Контент сайту живе в Git у `backend/content`, у базу його переносить `app:content:sync`, адмінки немає. Після зміни `challenges/matrix.yaml` або вправ запускаємо `make challenges`: Vitest звіряє `generated.json` із генератором. `make lint` запускає `app:content:lint`, який шукає биті посилання, повтори заголовків і майже однакові тексти.
 - Сторінка потрапляє в індекс лише з `reviewed: true`, яке ставить людина після вичитки. Виклику ще потрібен власний текст у `challenges/notes/{slug}.md` і попит, відмінний від `unverified`. Решта сторінок має `noindex` і не потрапляє в sitemap.
 - Пошуковики бачать сайт лише з `SEO_INDEXING=1`, тобто тільки в production. В інших середовищах `robots.txt` закриває все, а сторінки мають `noindex`. Canonical і sitemap будуються від `DEFAULT_URI`.
 - Формат спроби описує `backend/schema/attempt.schema.json`, його перевіряють і сервер, і тести домену. Зміна формату означає нову `schemaVersion`, оновлену схему й міграцію Doctrine для наявних записів.
-- Публічні сторінки рендерить Twig. Вони не запускають сесію, не читають cookie пристрою й не завантажують React. Рахунок гравця в рамці сторінки й позначки пройдених викликів заповнює `frontend/src/score/score.ts` через API, тож HTML лишається однаковим для всіх.
+- Події аналітики (§19) гра надсилає лише після згоди відвідувача (§22) і лише через контракт `frontend/src/analytics/events.ts`: інших модулів аналітики ESLint у `src/app` не пускає. Дозволені поля задає `backend/schema/event.schema.json`, його перевіряють і сервер, і Vitest. Час і користувача сервер бере сам, а IP-адреси подія не містить.
+- Публічні сторінки рендерить Twig. Вони не запускають сесію, не читають cookie пристрою й не завантажують React. Рахунок гравця в рамці сторінки й позначки пройдених викликів заповнює `frontend/src/score/score.ts` через API, а банер згоди показує `frontend/src/consent/consent.ts`, тож HTML лишається однаковим для всіх.
 - Стилі пишемо звичайним CSS на токенах із `frontend/src/styles`. Ці файли спільні для Twig і React, тож кольори, шрифти й відступи беремо з токенів, а не вписуємо числами. Шрифти віддає наш сервер, Google Fonts не підключаємо.
 - Тексти Twig-сторінок лежать у `backend/translations/messages.uk.yaml` і виводяться через Translator. `make lint` знаходить ключі без перекладу.
 - TypeScript зафіксовано на `~6.0`, бо `typescript-eslint` не підтримує 7.x. Тег MySQL задаємо явно, бо `latest` вказує на іншу гілку.

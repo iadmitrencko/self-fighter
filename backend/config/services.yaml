@@ -40,6 +40,8 @@ services:
     App\Content\Domain\PageRepository: '@App\Content\Infrastructure\Doctrine\DoctrinePageRepository'
     App\Content\Domain\ChallengeRepository: '@App\Content\Infrastructure\Doctrine\DoctrineChallengeRepository'
     App\Content\Application\ContentSource: '@App\Content\Infrastructure\Files\FileContentSource'
+    App\Analytics\Domain\EventRepository: '@App\Analytics\Infrastructure\Doctrine\DoctrineEventRepository'
+    App\Analytics\Application\EventMetrics: '@App\Analytics\Infrastructure\Doctrine\DoctrineEventMetrics'
 
     # The ports of the shared kernel that one module offers to the others.
     App\Shared\Application\GameContent: '@App\Content\Application\ContentForGame'

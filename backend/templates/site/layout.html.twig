@@ -11,6 +11,8 @@
 
 {% block body %}
     <a class="skip-link button button--primary" href="#main">{{ 'site.skip_to_content'|trans }}</a>
+    {#- Right after the skip link, so a screen reader meets the question before the page. #}
+    {{ include('site/_consent.html.twig') }}
     <header class="site-header">
         <div class="container site-header__inner">
             {{ include('site/_logo.html.twig') }}
@@ -54,6 +56,9 @@
                         <li><a class="site-footer__link" href="{{ path('workout') }}">{{ 'site.start'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('workout_history') }}">{{ 'site.nav.history'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('workout_account') }}">{{ 'site.nav.account'|trans }}</a></li>
+                        <li><a class="site-footer__link" href="{{ path('privacy') }}">{{ 'site.nav.privacy'|trans }}</a></li>
+                        {#- §22: changing the decision is as easy as making it. #}
+                        <li><button type="button" class="site-footer__link site-footer__button" data-consent-open>{{ 'site.footer.consent'|trans }}</button></li>
                     </ul>
                 </nav>
                 <p class="site-footer__note">{{ 'site.footer.guest_data'|trans }}</p>

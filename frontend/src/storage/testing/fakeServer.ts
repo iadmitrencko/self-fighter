@@ -85,6 +85,7 @@ export function createFakeServer(): FakeServer {
           exercises: account.exercises,
           settings: account.settings,
           attempts: [...account.attempts].reverse(),
+          events: [],
         });
       case 'GET exercises':
         return reply(200, account.exercises);

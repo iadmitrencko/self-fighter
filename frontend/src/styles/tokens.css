@@ -31,6 +31,8 @@
   --color-stripe-on-accent: rgb(0 0 0 / 6%);
 
   --shadow-raised: 0 30px 80px rgb(0 0 0 / 45%);
+  /* A panel at the bottom of the window lifts off the page upwards. */
+  --shadow-panel: 0 -12px 40px rgb(0 0 0 / 35%);
 
   /* The fallback faces from fonts.css keep the text in place until the fonts arrive. */
   --font-display: Unbounded, 'Unbounded Fallback', 'Unbounded Roboto Fallback', 'Arial Black', sans-serif;

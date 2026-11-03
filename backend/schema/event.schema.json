@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "An analytics event",
+  "description": "The fields an event of §19 may carry, nothing else: no time, no address, no user. The server adds the time and takes the user from the device cookie. Stage 8 of the plan.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "mode"],
+      "properties": {
+        "name": { "enum": ["workout_started", "workout_repeated"] },
+        "mode": { "$ref": "#/definitions/mode" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "mode", "outcome"],
+      "properties": {
+        "name": { "const": "workout_completed" },
+        "mode": { "$ref": "#/definitions/mode" },
+        "outcome": { "enum": ["win", "draw", "loss"] }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "mode", "error"],
+      "properties": {
+        "name": { "const": "setup_error" },
+        "mode": { "$ref": "#/definitions/mode" },
+        "error": {
+          "description": "A code of the setup check in frontend/src/domain/config/validation.ts. The server knows its form, not the list.",
+          "type": "string",
+          "pattern": "^[a-z]+(-[a-z]+)*$",
+          "maxLength": 40
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "mode": { "enum": ["target", "random-opponent", "opponent-levels", "ladder"] }
+  }
+}

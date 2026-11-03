@@ -10,3 +10,8 @@ framework:
             policy: sliding_window
             limit: 300
             interval: '1 hour'
+        # Per user, or per IP address before the first save. A workout sends two or three events.
+        analytics_event:
+            policy: sliding_window
+            limit: 120
+            interval: '1 hour'

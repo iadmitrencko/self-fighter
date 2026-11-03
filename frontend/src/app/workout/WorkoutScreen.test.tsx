@@ -24,7 +24,7 @@ describe('a fight', () => {
   // §12.3: every result is explained before the next stage, a round when it is over.
   it('shows how each exercise and round went and ends with the result', async () => {
     const { storage } = startedWith(targetConfig());
-    const { user } = renderGame('/fight', { storage });
+    const { user, analytics } = renderGame('/fight', { storage });
 
     expect(screen.getByText('Раунд 1 з 2')).toBeTruthy();
     expect(screen.getByText('Щоб виграти — більше 10')).toBeTruthy();
@@ -56,6 +56,7 @@ describe('a fight', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Перемога' })).toBeTruthy();
     expect(storage.activeSession.load()).toBeNull();
     expect((await storage.attempts.stats()).wins).toBe(1);
+    expect(analytics.events).toEqual([{ name: 'workout_completed', mode: 'target', outcome: 'win' }]);
   });
 
   // §12.2: whole numbers from 0, never an empty field.

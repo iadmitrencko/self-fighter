@@ -50,7 +50,8 @@ export default defineConfig([
     },
   },
   {
-    // Screens reach data only through the storage contract (section 3.7 of the plan).
+    // Screens reach data only through the storage contract (section 3.7 of the plan) and send
+    // events only through the analytics contract.
     files: ['src/app/**/*.{ts,tsx}'],
     ignores: ['src/app/main.tsx', 'src/app/**/*.test.{ts,tsx}', 'src/app/testing/**'],
     rules: {
@@ -61,6 +62,10 @@ export default defineConfig([
             {
               group: ['**/storage/*', '!**/storage/contract', '!**/storage/errors', '!**/storage/ids'],
               message: 'Screens use the storage contract, main.tsx chooses its implementation.',
+            },
+            {
+              group: ['**/analytics/*', '!**/analytics/events'],
+              message: 'Screens send events through the Analytics of the game, main.tsx chooses its implementation.',
             },
           ],
         },

@@ -59,6 +59,7 @@ describe.each([
         exercises: [exercise],
         settings: { ladder: ladderConfig() },
         attempts: [earlier, later],
+        events: [],
       });
     });
 

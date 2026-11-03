@@ -47,6 +47,15 @@ deptrac:
     - name: ContentPresentation
       collectors: [{ type: directory, value: src/Content/Presentation/.* }]
 
+    - name: AnalyticsDomain
+      collectors: [{ type: directory, value: src/Analytics/Domain/.* }]
+    - name: AnalyticsApplication
+      collectors: [{ type: directory, value: src/Analytics/Application/.* }]
+    - name: AnalyticsInfrastructure
+      collectors: [{ type: directory, value: src/Analytics/Infrastructure/.* }]
+    - name: AnalyticsPresentation
+      collectors: [{ type: directory, value: src/Analytics/Presentation/.* }]
+
     - name: SitePresentation
       collectors: [{ type: directory, value: src/Site/Presentation/.* }]
 
@@ -76,5 +85,10 @@ deptrac:
     ContentApplication: [ContentDomain, SharedDomain, SharedApplication, Psr]
     ContentInfrastructure: [ContentDomain, ContentApplication, SharedDomain, SharedApplication, SharedInfrastructure, Framework, Psr]
     ContentPresentation: [ContentDomain, ContentApplication, SharedDomain, SharedApplication, SharedPresentation, Framework, Psr]
+
+    AnalyticsDomain: [SharedDomain]
+    AnalyticsApplication: [AnalyticsDomain, SharedDomain, SharedApplication, Psr]
+    AnalyticsInfrastructure: [AnalyticsDomain, AnalyticsApplication, SharedDomain, SharedApplication, SharedInfrastructure, Framework, Psr]
+    AnalyticsPresentation: [AnalyticsDomain, AnalyticsApplication, SharedDomain, SharedApplication, SharedPresentation, Framework, Psr]
 
     SitePresentation: [SharedDomain, SharedApplication, SharedPresentation, Framework]

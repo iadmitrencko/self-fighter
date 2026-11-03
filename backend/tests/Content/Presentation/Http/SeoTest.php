@@ -108,6 +108,7 @@ final class SeoTest extends WebTestCase
             ...array_map(static fn (string $slug): string => '/modes/'.$slug, $database->fetchFirstColumn("SELECT slug FROM content_page WHERE type = 'mode'")),
             ...array_map(static fn (string $slug): string => '/guides/'.$slug, $database->fetchFirstColumn("SELECT slug FROM content_page WHERE type = 'guide'")),
             '/about',
+            '/privacy',
         ];
 
         self::assertGreaterThanOrEqual(43, \count($pages));

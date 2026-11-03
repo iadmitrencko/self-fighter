@@ -1,4 +1,5 @@
 import { createContext, use, type ReactNode } from 'react';
+import type { Analytics } from '../analytics/events';
 import type { ChallengeRef } from '../domain/catalog/challenge';
 import type { ExerciseRef } from '../domain/catalog/exercise';
 import type { WorkoutConfig, WorkoutDraft } from '../domain/config/types';
@@ -11,10 +12,11 @@ export interface Challenge extends ChallengeRef {
   readonly config: WorkoutConfig;
 }
 
-// What every screen may use: the data of the player, the ready-made exercises and the challenge
-// from the page, and the sources of randomness, time and ids that tests replace.
+// What every screen may use: the data of the player, the events of §19, the ready-made exercises
+// and the challenge from the page, and the sources of randomness, time and ids that tests replace.
 export interface Game {
   readonly storage: GameStorage;
+  readonly analytics: Analytics;
   readonly exercises: readonly ExerciseRef[];
   readonly challenge: Challenge | null;
   readonly deps: SessionDeps;
