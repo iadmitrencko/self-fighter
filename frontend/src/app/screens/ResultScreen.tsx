@@ -13,10 +13,12 @@ import {
   resultTexts,
   ruleTexts,
   setupTexts,
+  signInTexts,
 } from '../../i18n/uk';
 import type { StoredAttempt } from '../../storage/contract';
 import { Icon } from '../components/Icon';
 import { BACK, BackLink, Screen, ScreenHead, Title } from '../components/Screen';
+import { SignInPrompt } from '../components/SignIn';
 import { ErrorNotice, Loading, OutcomeBadge, StatusBadge } from '../components/notices';
 import { useGame } from '../game';
 import { paths } from '../paths';
@@ -60,6 +62,13 @@ export function ResultScreen() {
 function Result({ stored: { attempt, status } }: { stored: StoredAttempt }) {
   const { storage, analytics, deps } = useGame();
   const navigate = useNavigate();
+  // §23.2: the offer to sign in comes after the first finished workout of a guest.
+  const loadFirst = useCallback(async () => {
+    const user = await storage.account.current();
+
+    return user?.kind !== 'account' && (await storage.attempts.stats()).total === 1;
+  }, [storage]);
+  const [first] = useLoad(loadFirst);
 
   // §13.4: the same settings, new rolls of the opponent; the old attempt stays as it was.
   const repeat = () => {
@@ -103,6 +112,7 @@ function Result({ stored: { attempt, status } }: { stored: StoredAttempt }) {
             </div>
             <p className="hint result-note">{resultTexts.repeatNote(attempt.mode)}</p>
           </div>
+          {first.status === 'ready' && first.value && <SignInPrompt text={signInTexts.promptResult} />}
         </div>
         {attempt.mode === 'ladder' ? <LadderDetails attempt={attempt} /> : <FightRounds attempt={attempt} />}
       </div>

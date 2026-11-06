@@ -172,7 +172,8 @@ function isOutboxEntry(value: unknown): value is OutboxEntry {
     typeof document.id === 'string' &&
     typeof document.schemaVersion === 'number' &&
     typeof document.finishedAt === 'string' &&
-    (owner === null || (isRecord(owner) && typeof owner.id === 'string' && owner.kind === 'guest')) &&
+    (owner === null ||
+      (isRecord(owner) && typeof owner.id === 'string' && (owner.kind === 'guest' || owner.kind === 'account'))) &&
     (status === 'pending' || status === 'rejected')
   );
 }

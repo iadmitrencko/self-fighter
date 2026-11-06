@@ -129,3 +129,28 @@ describe('history', () => {
     expect(await screen.findByText('Ще немає завершених тренувань.')).toBeTruthy();
   });
 });
+
+// §23.2: the history is where a guest misses it on another device.
+describe('the offer to sign in', () => {
+  it('offers a guest to sign in until the offer is closed', async () => {
+    const { user } = renderGame('/history');
+
+    const offer = await screen.findByRole('region', { name: 'Історія на будь-якому пристрої' });
+    expect(within(offer).getByRole('link', { name: 'Увійти через Google' }).getAttribute('href')).toBe(
+      '/connect/google?to=%2Fworkout%2Fhistory',
+    );
+
+    await user.click(within(offer).getByRole('button', { name: 'Закрити пропозицію увійти' }));
+
+    expect(screen.queryByRole('region', { name: 'Історія на будь-якому пристрої' })).toBeNull();
+  });
+
+  it('tells an account that the history opens on any device', async () => {
+    const storage = createMemoryStorage();
+    storage.signIn({ sub: '1001' });
+    renderGame('/history', { storage });
+
+    expect(await screen.findByText(/^Історія відкривається на будь-якому пристрої/)).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Історія на будь-якому пристрої' })).toBeNull();
+  });
+});

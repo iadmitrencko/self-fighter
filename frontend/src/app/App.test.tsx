@@ -1,8 +1,9 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { createSession } from '../domain/engine/session';
 import { targetConfig, testDeps } from '../domain/testing/fixtures';
-import { createMemoryStorage } from '../storage/memory';
+import { StorageError } from '../storage/errors';
+import { createMemoryStorage, type MemoryStorage } from '../storage/memory';
 import { finishedAttempt } from '../storage/testing/attempts';
 import { renderGame } from './testing/render';
 
@@ -114,5 +115,77 @@ describe('navigation', () => {
     tab.remove();
     expect(clicks).toEqual([false, false]);
     expect(screen.getByRole('heading', { level: 1, name: 'Обери режим' })).toBeTruthy();
+  });
+});
+
+// An account with an attempt from another device, opened here beside a guest with one attempt.
+async function accountWithKeptGuest(): Promise<MemoryStorage> {
+  const storage = createMemoryStorage();
+  storage.signIn({ sub: '1001' });
+  await storage.attempts.save(finishedAttempt('loss', '2026-10-28T10:00:00.000Z'));
+  await storage.account.signOut();
+  await storage.attempts.save(finishedAttempt('win', '2026-10-29T10:00:00.000Z'));
+  storage.signIn({ sub: '1001' });
+
+  return storage;
+}
+
+// §23.2–§23.3: Google sends the browser back to the screen it left, with the outcome in the address.
+describe('coming back from Google', () => {
+  it('offers to join what the browser saved without signing in', async () => {
+    const storage = await accountWithKeptGuest();
+    const { user } = renderGame('/history?sign-in=done', { storage });
+
+    const dialog = await screen.findByRole('dialog', { name: 'Перенести дані цього браузера?' });
+    expect(within(dialog).getByText(/^У цьому браузері є 1 тренування, збережені без входу/)).toBeTruthy();
+    expect(await screen.findAllByRole('listitem')).toHaveLength(1);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Перенести' }));
+
+    expect(await screen.findByText('Дані браузера перенесено в обліковий запис.')).toBeTruthy();
+    // The history under the dialog shows the joined attempts at once.
+    await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(2));
+  });
+
+  // §23.3: the data stays with the guest of the browser and comes back after signing out.
+  it('leaves the data of the browser apart when the person says so', async () => {
+    const storage = await accountWithKeptGuest();
+    const { user } = renderGame('/history?sign-in=done', { storage });
+
+    await user.click(await screen.findByRole('button', { name: 'Не переносити' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(await storage.account.keptGuest()).toMatchObject({ attempts: 1 });
+  });
+
+  // §17.2: a failure is explained, and the account screen still offers to join the data.
+  it('explains why the data was not joined', async () => {
+    const storage = await accountWithKeptGuest();
+    const offline = {
+      ...storage,
+      account: { ...storage.account, joinGuest: () => Promise.reject(new StorageError('offline')) },
+    };
+    const { user } = renderGame('/account?sign-in=done', { storage: offline });
+
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Перенести' }));
+
+    expect(await screen.findByText("Немає зв'язку із сервером. Перевір інтернет і спробуй ще раз.")).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('region', { name: 'Дані без входу' })).toBeTruthy();
+  });
+
+  it.each([
+    ['done', 'Вхід виконано: тренування, вправи й налаштування тепер доступні на будь-якому пристрої.'],
+    ['cancelled', 'Вхід скасовано. Без входу гра працює так само.'],
+    ['failed', 'Не вдалося увійти через Google. Спробуй ще раз трохи згодом.'],
+  ])('tells how the sign-in went: %s', async (outcome, text) => {
+    const { user } = renderGame(`/account?sign-in=${outcome}`);
+
+    const notice = (await screen.findByText(text)).closest('.notice');
+    expect(notice?.getAttribute('role')).toBe(outcome === 'failed' ? 'alert' : 'status');
+
+    await user.click(within(notice as HTMLElement).getByRole('button', { name: 'Закрити' }));
+
+    expect(screen.queryByText(text)).toBeNull();
   });
 });

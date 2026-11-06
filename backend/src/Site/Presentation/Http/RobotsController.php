@@ -27,7 +27,7 @@ final readonly class RobotsController
     public function __invoke(): Response
     {
         $rules = $this->indexing
-            ? "User-agent: *\nDisallow: /api/\nDisallow: /connect/\nDisallow: /logout\n\nSitemap: ".rtrim($this->siteUrl, '/')."/sitemap.xml\n"
+            ? "User-agent: *\nDisallow: /api/\nDisallow: /connect/\n\nSitemap: ".rtrim($this->siteUrl, '/')."/sitemap.xml\n"
             : "User-agent: *\nDisallow: /\n";
 
         return new Response($rules, Response::HTTP_OK, ['Content-Type' => 'text/plain; charset=UTF-8']);

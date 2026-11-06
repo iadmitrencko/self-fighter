@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSession } from '../domain/engine/session';
 import { ladderConfig, targetConfig, testDeps } from '../domain/testing/fixtures';
 import { createApiStorage, createBrowserStorage } from './api';
-import { createBrowserBuffer } from './buffer';
+import { createBrowserBuffer, type BrowserBuffer } from './buffer';
 import type { GameStorage } from './contract';
 import { StorageError } from './errors';
 import { newId } from './ids';
@@ -222,6 +222,182 @@ describe('storage over the API', () => {
     });
   });
 
+  // §15.4, §23.3: an attempt that waits in the browser reaches its own user and nobody else.
+  describe('attempts waiting while signing in and out', () => {
+    const OLENA = { sub: '1001', name: 'Олена' };
+    let buffer: BrowserBuffer;
+
+    // Google sends the browser back, and the page loads again with the same localStorage.
+    async function signIn(): Promise<void> {
+      server.signIn(OLENA);
+      storage = createApiStorage({ fetch: server.fetch, buffer });
+      await storage.account.current();
+    }
+
+    async function finishOffline(): Promise<ReturnType<typeof finishedAttempt>> {
+      const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+      server.online = false;
+      await storage.attempts.save(attempt);
+      await storage.attempts.flush();
+      server.online = true;
+
+      return attempt;
+    }
+
+    beforeEach(() => {
+      buffer = createBrowserBuffer(null);
+      storage = createApiStorage({ fetch: server.fetch, buffer });
+    });
+
+    it('sends the attempts of a guest to the account it became', async () => {
+      await storage.settings.save(targetConfig());
+      const attempt = await finishOffline();
+
+      await signIn();
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([attempt]);
+    });
+
+    // The guest became the account, so its waiting attempts are the account's and wait for it.
+    it('keeps the attempts of a guest that became the account for the account', async () => {
+      vi.useFakeTimers();
+      await storage.settings.save(targetConfig());
+      const attempt = await finishOffline();
+      await signIn();
+      server.failNext(503);
+      await storage.attempts.flush();
+
+      await storage.account.signOut();
+      await storage.settings.save(ladderConfig());
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([]);
+      expect(await storage.attempts.get(attempt.id)).toBeNull();
+    });
+
+    // §15.4: they wait for the account to sign in on this browser again.
+    it('keeps the attempts of the account for the account after signing out', async () => {
+      await signIn();
+      const attempt = await finishOffline();
+
+      expect(await storage.attempts.unsent()).toBe(1);
+
+      await storage.account.signOut();
+      await storage.settings.save(ladderConfig());
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([]);
+      expect(await storage.attempts.get(attempt.id)).toBeNull();
+      expect(await storage.attempts.unsent()).toBe(0);
+
+      await signIn();
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([attempt]);
+    });
+
+    // A guest joined at once at the sign-in leaves its waiting attempts to the account: after
+    // signing out they must not go to the next guest.
+    it('gives the account the attempts of a guest that joined it', async () => {
+      await signIn();
+      await storage.account.signOut();
+      await storage.settings.save(ladderConfig());
+      const attempt = await finishOffline();
+      await signIn();
+
+      await storage.account.signOut();
+      await storage.settings.save(targetConfig());
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([]);
+
+      await signIn();
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([attempt]);
+    });
+
+    it('keeps the attempts of the kept guest for it until it joins the account', async () => {
+      await signIn();
+      await storage.account.signOut();
+      await storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
+      const attempt = await finishOffline();
+
+      await signIn();
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([]);
+      expect(await storage.account.keptGuest()).toMatchObject({ attempts: 1, exercises: 1 });
+      expect((await storage.attempts.list()).items).toEqual([]);
+
+      await storage.account.joinGuest();
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([attempt]);
+      expect((await storage.attempts.list()).items).toEqual([{ attempt, status: 'saved' }]);
+    });
+
+    it('sends the attempts of the kept guest once the browser is its own again', async () => {
+      await signIn();
+      await storage.account.signOut();
+      await storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
+      const attempt = await finishOffline();
+      await signIn();
+
+      await storage.account.signOut();
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([attempt]);
+    });
+
+    // The next person on this browser does not continue the workout of the account.
+    it('forgets the attempt in progress on signing out', async () => {
+      await signIn();
+      storage.activeSession.save(createSession(targetConfig(), testDeps()));
+
+      await storage.account.signOut();
+
+      expect(storage.activeSession.load()).toBeNull();
+    });
+
+    // The account has taken in the exercises of the guest, so the list loads again.
+    it('reloads the exercises after joining the guest', async () => {
+      await signIn();
+      await storage.account.signOut();
+      const plank = await storage.exercises.save({ id: newId(), name: 'Планка', description: '' });
+      await signIn();
+      expect(await storage.exercises.list()).toEqual([]);
+
+      await storage.account.joinGuest();
+
+      expect(await storage.exercises.list()).toEqual([plank]);
+    });
+
+    // The account was deleted on another device, so the cookie of this browser leads nowhere.
+    it('signs out without a user when the account is gone', async () => {
+      await signIn();
+      server.clearCookie();
+
+      await storage.account.signOut();
+
+      expect(await storage.account.current()).toBeNull();
+    });
+
+    it('joins nothing when the account is gone', async () => {
+      await signIn();
+      await storage.account.signOut();
+      await storage.exercises.save({ id: newId(), name: 'Планка', description: '' });
+      await signIn();
+      server.clearCookie();
+
+      await storage.account.joinGuest();
+
+      expect(await storage.account.current()).toBeNull();
+      expect(await storage.account.keptGuest()).toBeNull();
+    });
+  });
+
   describe('failures', () => {
     it.each([
       [
@@ -243,6 +419,20 @@ describe('storage over the API', () => {
     it.each([
       ['a page instead of JSON', '/api/v1/me', '<h1>Bad gateway</h1>', (s: GameStorage) => s.account.current()],
       ['a user without an id', '/api/v1/me', { user: { kind: 'guest' } }, (s: GameStorage) => s.account.current()],
+      ['an account without a name', '/api/v1/me', { user: { id: 'a', kind: 'account', createdAt: '' } }, (s: GameStorage) => s.account.current()],
+      ['a user of another kind', '/api/v1/me', { user: { id: 'a', kind: 'admin', createdAt: '' } }, (s: GameStorage) => s.account.current()],
+      [
+        'a kept guest without counts',
+        '/api/v1/me',
+        { user: { id: 'a', kind: 'account', createdAt: '', name: null, email: null }, guest: { id: 'b', attempts: 1 } },
+        (s: GameStorage) => s.account.keptGuest(),
+      ],
+      [
+        'a way to sign in without a subject',
+        '/api/v1/me/export',
+        { exportedAt: '', user: { id: 'a', kind: 'guest', createdAt: '' }, identities: [{ provider: 'google' }], exercises: [], settings: {}, attempts: [], events: [] },
+        (s: GameStorage) => s.account.exportData(),
+      ],
       ['an exercise without a name', '/api/v1/exercises', [{ id: 'a' }], (s: GameStorage) => s.exercises.list()],
       ['settings as a list', '/api/v1/settings', [], (s: GameStorage) => s.settings.get('target')],
       ['a page without items', '/api/v1/attempts', { nextCursor: null }, (s: GameStorage) => s.attempts.list()],

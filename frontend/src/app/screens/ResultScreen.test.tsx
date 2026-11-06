@@ -109,3 +109,33 @@ describe('result of an attempt', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Спробу не знайдено' })).toBeTruthy();
   });
 });
+
+// §23.2: after the first finished workout a guest is offered to sign in.
+describe('the offer to sign in', () => {
+  it('comes after the first workout only', async () => {
+    const first = finishedAttempt('win', '2026-10-29T17:42:00.000Z');
+    const storage = await saved(first);
+    const view = renderGame(`/result/${first.id}`, { storage });
+
+    expect(await screen.findByText(/^Перше тренування вже в історії/)).toBeTruthy();
+
+    view.unmount();
+    const second = finishedAttempt('loss', '2026-10-29T18:42:00.000Z');
+    await storage.attempts.save(second);
+    renderGame(`/result/${second.id}`, { storage });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Поразка' })).toBeTruthy();
+    expect(screen.queryByText(/^Перше тренування вже в історії/)).toBeNull();
+  });
+
+  it('is not made to an account', async () => {
+    const storage = createMemoryStorage();
+    storage.signIn({ sub: '1001' });
+    const attempt = finishedAttempt('win', '2026-10-29T17:42:00.000Z');
+    await storage.attempts.save(attempt);
+    renderGame(`/result/${attempt.id}`, { storage });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Перемога' })).toBeTruthy();
+    expect(screen.queryByText(/^Перше тренування вже в історії/)).toBeNull();
+  });
+});

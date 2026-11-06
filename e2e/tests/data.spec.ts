@@ -51,5 +51,5 @@ test('a guest downloads the data and deletes it', async ({ page }) => {
   await page.goto('/workout/history');
   await expect(page.getByText('Ще немає завершених тренувань.')).toBeVisible();
   const me = await page.request.get('/api/v1/me');
-  expect(await me.json()).toEqual({ user: null });
+  expect(await me.json()).toEqual({ user: null, guest: null });
 });

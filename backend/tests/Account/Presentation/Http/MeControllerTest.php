@@ -17,14 +17,14 @@ final class MeControllerTest extends ApiTestCase
     use ClockSensitiveTrait;
 
     // The tables of every module that keeps data of users.
-    private const array TABLES = ['user', 'device', 'attempt', 'custom_exercise', 'workout_settings'];
+    private const array TABLES = ['user', 'user_identity', 'device', 'attempt', 'custom_exercise', 'workout_settings'];
 
     public function testVisitorWithoutCookieHasNoUserAndLeavesNothingBehind(): void
     {
         $this->send('GET', '/api/v1/me');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('{"user":null}', $this->browser->getResponse()->getContent());
+        self::assertSame('{"user":null,"guest":null}', $this->browser->getResponse()->getContent());
         self::assertResponseNotHasCookie(self::DEVICE_COOKIE);
         self::assertSame(0, $this->rowCount('user'));
     }
@@ -76,7 +76,7 @@ final class MeControllerTest extends ApiTestCase
         $this->send('GET', '/api/v1/me');
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['user' => null], $this->responseData());
+        self::assertSame(['user' => null, 'guest' => null], $this->responseData());
         self::assertTrue($this->issuedDeviceCookie()->isCleared());
     }
 
@@ -137,14 +137,14 @@ final class MeControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(204);
         self::assertTrue($this->issuedDeviceCookie()->isCleared());
         self::assertSame(
-            ['user' => 1, 'device' => 1, 'attempt' => 1, 'custom_exercise' => 0, 'workout_settings' => 1],
+            ['user' => 1, 'user_identity' => 0, 'device' => 1, 'attempt' => 1, 'custom_exercise' => 0, 'workout_settings' => 1],
             array_map($this->rowCount(...), array_combine(self::TABLES, self::TABLES)),
         );
 
         $this->switchBrowser($mine);
         $this->send('GET', '/api/v1/me');
 
-        self::assertSame(['user' => null], $this->responseData());
+        self::assertSame(['user' => null, 'guest' => null], $this->responseData());
     }
 
     public function testDeletingTwiceFindsNobodyTheSecondTime(): void
@@ -187,6 +187,7 @@ final class MeControllerTest extends ApiTestCase
         self::assertEquals([
             'exportedAt' => '2026-11-02T12:00:00.000Z',
             'user' => ['id' => $userId, 'kind' => 'guest', 'createdAt' => '2026-11-02T12:00:00.000Z'],
+            'identities' => [],
             'exercises' => [['id' => $exerciseId, 'name' => 'Бурпі', 'description' => 'Зі стрибком']],
             'settings' => ['ladder' => Documents::ladderConfig()],
             'attempts' => [$earlier, $later],

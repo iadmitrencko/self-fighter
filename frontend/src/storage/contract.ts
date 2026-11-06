@@ -7,10 +7,36 @@ import type { Outcome } from '../domain/results/results';
 
 // Screens reach data only through these interfaces (section 3.7 of the plan).
 
-export interface CurrentUser {
+// A guest is a user of one browser. An account signs in with Google and opens on any browser (§23.1).
+export type CurrentUser = GuestUser | AccountUser;
+
+export interface GuestUser {
   readonly id: string;
-  // Sign-in comes later (stage 9), until then every user is a guest of one browser.
   readonly kind: 'guest';
+  readonly createdAt: string;
+}
+
+export interface AccountUser {
+  readonly id: string;
+  readonly kind: 'account';
+  readonly createdAt: string;
+  // What Google told about the person, so the screen shows whose account is open.
+  readonly name: string | null;
+  readonly email: string | null;
+}
+
+// The guest of this browser that a signed-in account has not taken in: its data waits until the
+// person joins it to the account or signs out (§23.3).
+export interface KeptGuest {
+  readonly id: string;
+  readonly attempts: number;
+  readonly exercises: number;
+}
+
+// A way to sign in as the export shows it: the id of the Google account is data about the person too.
+export interface SignInIdentity {
+  readonly provider: string;
+  readonly subject: string;
   readonly createdAt: string;
 }
 
@@ -60,6 +86,7 @@ export interface StoredEvent {
 export interface UserData {
   readonly exportedAt: string;
   readonly user: CurrentUser;
+  readonly identities: readonly SignInIdentity[];
   readonly exercises: readonly CustomExercise[];
   readonly settings: Settings;
   readonly attempts: readonly Attempt[];
@@ -69,9 +96,17 @@ export interface UserData {
 export interface AccountStore {
   // Reading never creates a user: a guest appears with the first write (§15.1).
   current(): Promise<CurrentUser | null>;
+  // The guest this browser keeps beside the signed-in account, with what it would bring (§23.3).
+  keptGuest(): Promise<KeptGuest | null>;
+  // §23.3: the kept guest joins the account. Asking again changes nothing.
+  joinGuest(): Promise<void>;
+  // §23.2: the browser goes back to its guest or to no user. Attempts of the account that still
+  // wait here stay until the account signs in on this browser again.
+  signOut(): Promise<void>;
   // null while there is nothing to export.
   exportData(): Promise<UserData | null>;
-  // Removes the data on the server and in this browser (§15.5).
+  // Removes the data on the server and in this browser (§15.5). A browser that kept its guest
+  // beside the account goes back to that guest.
   deleteData(): Promise<void>;
 }
 
@@ -97,6 +132,8 @@ export interface AttemptStore {
   stats(filter?: AttemptFilter): Promise<Statistics>;
   // Sends the attempts that wait in the browser. The game calls it on start and on a retry.
   flush(): Promise<void>;
+  // How many attempts of the user still wait in this browser for the server (§15.4).
+  unsent(): Promise<number>;
 }
 
 // The attempt in progress lives in the browser only, so a workout does not need the network.

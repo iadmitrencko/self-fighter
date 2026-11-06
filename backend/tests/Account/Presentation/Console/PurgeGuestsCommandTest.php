@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Account\Presentation\Console;
 
+use App\Account\Application\ExternalIdentity;
+use App\Account\Application\NewGuest;
+use App\Account\Application\SignIn;
 use App\Account\Application\SignUpGuest;
+use App\Account\Domain\DeviceToken;
+use App\Account\Domain\IdentityProvider;
 use App\Shared\Domain\UserId;
 use App\Tests\Workout\Documents;
 use App\Workout\Application\SaveAttempt;
@@ -48,12 +53,54 @@ final class PurgeGuestsCommandTest extends KernelTestCase
         self::assertSame(1, (int) $this->database()->fetchOne('SELECT COUNT(*) FROM user'));
     }
 
+    // §23.1: an account opens on any browser, so it stays after its browsers are gone.
+    public function testKeepsAccountsWhoseBrowsersAreGone(): void
+    {
+        self::mockTime('2025-09-27 10:00:00');
+        $this->signIn(null);
+
+        self::mockTime('2026-11-01 10:00:00');
+        $output = $this->purge();
+
+        self::assertStringContainsString('Deleted 1 expired devices and 0 unreachable guests.', $output);
+        self::assertSame(1, (int) $this->database()->fetchOne('SELECT COUNT(*) FROM user'));
+    }
+
+    // §23.3: the guest a browser keeps beside the account waits as long as the browser does.
+    public function testKeepsTheGuestABrowserKeepsBesideTheAccount(): void
+    {
+        self::mockTime('2026-11-01 10:00:00');
+        $this->signIn(null);
+        $guest = $this->newGuest();
+        $this->saveAttempt($guest->user->id());
+        $this->signIn($guest->token);
+
+        self::mockTime('2026-11-02 10:00:00');
+        $output = $this->purge();
+
+        self::assertStringContainsString('Deleted 0 expired devices and 0 unreachable guests.', $output);
+        self::assertSame(2, (int) $this->database()->fetchOne('SELECT COUNT(*) FROM user'));
+    }
+
     private function signUpGuest(): UserId
+    {
+        return $this->newGuest()->user->id();
+    }
+
+    private function newGuest(): NewGuest
     {
         $signUpGuest = self::getContainer()->get(SignUpGuest::class);
         self::assertInstanceOf(SignUpGuest::class, $signUpGuest);
 
-        return $signUpGuest()->user->id();
+        return $signUpGuest();
+    }
+
+    private function signIn(?DeviceToken $browser): void
+    {
+        $signIn = self::getContainer()->get(SignIn::class);
+        self::assertInstanceOf(SignIn::class, $signIn);
+
+        $signIn(new ExternalIdentity(IdentityProvider::Google, '1001', 'olena@example.com', 'Олена'), $browser);
     }
 
     private function saveAttempt(UserId $owner): void

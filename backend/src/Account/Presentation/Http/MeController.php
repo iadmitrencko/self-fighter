@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Account\Presentation\Http;
 
 use App\Account\Application\DeleteUser;
+use App\Account\Application\DescribeBrowser;
 use App\Account\Application\ExportUserData;
-use App\Account\Application\FindUser;
+use App\Account\Application\MergeGuest;
+use App\Account\Application\SignOut;
 use App\Account\Application\SignUpGuest;
 use App\Account\Application\UserView;
+use App\Account\Domain\Device;
 use App\Shared\Domain\UserId;
 use App\Shared\Presentation\Http\ApiProblem;
 use App\Shared\Presentation\Http\Json;
@@ -20,13 +23,15 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The user of this browser.
+ * The user of this browser and the guest it keeps while an account is signed in.
  */
 final readonly class MeController
 {
     public function __construct(
-        private FindUser $findUser,
+        private DescribeBrowser $describeBrowser,
         private SignUpGuest $signUpGuest,
+        private SignOut $signOut,
+        private MergeGuest $mergeGuest,
         private DeleteUser $deleteUser,
         private ExportUserData $exportUserData,
         private DeviceCookie $cookie,
@@ -35,19 +40,19 @@ final readonly class MeController
     }
 
     #[Route('/api/v1/me', name: 'api_me', methods: ['GET'])]
-    public function show(?UserId $user): JsonResponse
+    public function show(?Device $device): JsonResponse
     {
-        return Json::response(['user' => $this->describe($user)]);
+        return Json::response(($this->describeBrowser)($device));
     }
 
     // A guest appears with the first write of a browser, so visitors who only look leave nothing behind (§15.1).
     #[Route('/api/v1/me', name: 'api_me_create', methods: ['POST'])]
-    public function create(Request $request, ?UserId $user): JsonResponse
+    public function create(Request $request, ?Device $device): JsonResponse
     {
-        $current = $this->describe($user);
+        $current = ($this->describeBrowser)($device);
 
-        if (null !== $current) {
-            return Json::response(['user' => $current]);
+        if (null !== $current['user']) {
+            return Json::response($current);
         }
 
         $limit = $this->guestCreationLimiter->create($request->getClientIp() ?? 'unknown')->consume();
@@ -57,7 +62,7 @@ final readonly class MeController
         }
 
         $guest = ($this->signUpGuest)();
-        $response = Json::response(['user' => UserView::of($guest->user)], Response::HTTP_CREATED);
+        $response = Json::response(['user' => UserView::of($guest->user, false), 'guest' => null], Response::HTTP_CREATED);
         $this->cookie->issue($response, $guest->token);
 
         return $response;
@@ -65,14 +70,43 @@ final readonly class MeController
 
     // §15.5: the data of every module goes together with the user.
     #[Route('/api/v1/me', name: 'api_me_delete', methods: ['DELETE'])]
-    public function delete(UserId $user): Response
+    public function delete(UserId $user, Device $device): Response
     {
         ($this->deleteUser)($user);
 
         $response = new Response(null, Response::HTTP_NO_CONTENT);
-        $this->cookie->remove($response);
+
+        // A browser that kept its guest goes back to it with the same cookie.
+        if ($device->owner()->equals($user)) {
+            $this->cookie->remove($response);
+        }
 
         return $response;
+    }
+
+    // §23.2: the browser goes back to its guest or to no user, and the data of the account is out of reach.
+    #[Route('/api/v1/me/logout', name: 'api_me_logout', methods: ['POST'])]
+    public function logout(Device $device): JsonResponse
+    {
+        $token = ($this->signOut)($device);
+        $response = Json::response(($this->describeBrowser)(null === $token ? null : $device));
+
+        if (null === $token) {
+            $this->cookie->remove($response);
+        } else {
+            $this->cookie->issue($response, $token);
+        }
+
+        return $response;
+    }
+
+    // §23.3: the guest this browser kept joins the account.
+    #[Route('/api/v1/me/merge', name: 'api_me_merge', methods: ['POST'])]
+    public function merge(Device $device): JsonResponse
+    {
+        ($this->mergeGuest)($device);
+
+        return Json::response(($this->describeBrowser)($device));
     }
 
     #[Route('/api/v1/me/export', name: 'api_me_export', methods: ['GET'])]
@@ -85,15 +119,5 @@ final readonly class MeController
         ));
 
         return $response;
-    }
-
-    /**
-     * @return array{id: string, kind: string, createdAt: string}|null
-     */
-    private function describe(?UserId $id): ?array
-    {
-        $user = null === $id ? null : ($this->findUser)($id);
-
-        return null === $user ? null : UserView::of($user);
     }
 }

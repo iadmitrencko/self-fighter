@@ -15,6 +15,9 @@ services:
       DEFAULT_URI: ${DEFAULT_URI:?}
       # Only production sets 1; staging stays closed from search engines (section 6.3 of the plan).
       SEO_INDEXING: ${SEO_INDEXING:-0}
+      # Signing in with Google (§23); without a client the game hides the button.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     ports:
       - 80:80
       - 443:443

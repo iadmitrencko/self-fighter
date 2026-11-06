@@ -154,7 +154,7 @@ final class ContentPagesTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextSame('h1', 'Приватність');
         self::assertSame(
-            ['Що зберігає сервер', 'Cookie пристрою', 'Аналітика', 'Твої дані під твоїм контролем', 'Чого на сайті немає'],
+            ['Що зберігає сервер', 'Cookie пристрою', 'Вхід через Google', 'Аналітика', 'Твої дані під твоїм контролем', 'Чого на сайті немає'],
             self::texts($crawler, '.prose h2'),
         );
         self::assertCount(4, $crawler->filter('.prose ul li'));

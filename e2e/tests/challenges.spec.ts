@@ -10,7 +10,7 @@ test('a ready-made challenge opens in the game and a win marks it as passed', as
   // §14.2: a new visitor starts from zero, and reading the score creates no guest.
   await expect(score.getByRole('definition')).toHaveText(['0', '0', '0', '0', '0']);
   await expect(page.locator('.catalog-progress__value')).toHaveText('0 / 33');
-  expect(await (await page.request.get('/api/v1/me')).json()).toEqual({ user: null });
+  expect(await (await page.request.get('/api/v1/me')).json()).toEqual({ user: null, guest: null });
   await expectAccessible(page);
 
   await page.getByRole('link', { name: 'Драбина підтягувань до 3' }).click();

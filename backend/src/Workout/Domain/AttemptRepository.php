@@ -35,5 +35,8 @@ interface AttemptRepository
      */
     public function passedChallenges(UserId $owner, AttemptFilter $filter): array;
 
+    // §23.3: the attempts keep their ids, so moving them twice adds nothing.
+    public function transfer(UserId $from, UserId $to): void;
+
     public function removeAllOf(UserId $owner): void;
 }

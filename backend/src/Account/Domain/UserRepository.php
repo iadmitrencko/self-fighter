@@ -15,7 +15,8 @@ interface UserRepository
     public function remove(UserId $id): void;
 
     /**
-     * Users no device leads to any more. Nobody can open their data again.
+     * Guests no browser leads to any more: nobody can open their data again. An account stays,
+     * since it can sign in on another browser.
      *
      * @return list<UserId>
      */

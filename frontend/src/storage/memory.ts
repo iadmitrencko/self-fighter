@@ -2,104 +2,243 @@ import { exerciseNameKey } from '../domain/catalog/exercise';
 import type { Session } from '../domain/engine/session';
 import type { Attempt } from '../domain/history/attempt';
 import { computeStatistics } from '../domain/history/statistics';
-import type { CurrentUser, CustomExercise, GameStorage, Settings, StoredAttempt } from './contract';
+import type {
+  AccountUser,
+  CurrentUser,
+  CustomExercise,
+  GameStorage,
+  Settings,
+  SignInIdentity,
+  StoredAttempt,
+} from './contract';
 import { StorageError } from './errors';
 import { matches, newestFirst, PAGE_SIZE } from './history';
 import { newId } from './ids';
 
+// A Google account as the tests sign in with it.
+export interface TestGoogleAccount {
+  readonly sub: string;
+  readonly name?: string;
+  readonly email?: string;
+}
+
+export interface MemoryStorage extends GameStorage {
+  // For tests only: the person comes back from Google, and the server opens the account (§23.3).
+  signIn(account: TestGoogleAccount): void;
+}
+
+interface Person {
+  user: CurrentUser;
+  identities: SignInIdentity[];
+  exercises: readonly CustomExercise[];
+  settings: Settings;
+  attempts: readonly Attempt[];
+}
+
 // The storage without a server, for tests of the screens. It behaves as the API does (section 3.7 of the plan).
-export function createMemoryStorage(): GameStorage {
-  let user: CurrentUser | null = null;
-  let exercises: readonly CustomExercise[] = [];
-  let settings: Settings = {};
-  let attempts: readonly Attempt[] = [];
+export function createMemoryStorage(): MemoryStorage {
+  const people = new Map<string, Person>();
+  // The user of this browser and the guest it keeps beside a signed-in account.
+  let current: string | null = null;
+  let kept: string | null = null;
   let session: Session | null = null;
 
-  const signUp = (): CurrentUser =>
-    (user ??= { id: newId(), kind: 'guest', createdAt: new Date().toISOString() });
+  const person = (): Person | null => (current === null ? null : (people.get(current) ?? null));
+  const now = () => new Date().toISOString();
+
+  function signUp(): Person {
+    const found = person();
+
+    if (found !== null) {
+      return found;
+    }
+    const created: Person = {
+      user: { id: newId(), kind: 'guest', createdAt: now() },
+      identities: [],
+      exercises: [],
+      settings: {},
+      attempts: [],
+    };
+    people.set(created.user.id, created);
+    current = created.user.id;
+
+    return created;
+  }
+
+  function account(user: CurrentUser, { name, email }: TestGoogleAccount): AccountUser {
+    return { id: user.id, kind: 'account', createdAt: user.createdAt, name: name ?? null, email: email ?? null };
+  }
+
+  // §23.3: attempts move with their ids, an exercise gives way to one with the same name, the
+  // settings of the account stay.
+  function join(guest: Person, into: Person): void {
+    const taken = new Set(into.exercises.map(({ name }) => exerciseNameKey(name)));
+    into.attempts = [...into.attempts, ...guest.attempts];
+    into.exercises = [...into.exercises, ...guest.exercises.filter(({ name }) => !taken.has(exerciseNameKey(name)))];
+    into.settings = { ...guest.settings, ...into.settings };
+    people.delete(guest.user.id);
+  }
+
   const saved = (attempt: Attempt): StoredAttempt => ({ attempt, status: 'saved' });
 
   return {
     persistent: true,
+    signIn(google) {
+      const linked = [...people.values()].find(({ identities }) =>
+        identities.some(({ subject }) => subject === google.sub),
+      );
+      const browser = person();
+      const guest = browser?.user.kind === 'guest' ? browser : null;
+
+      if (linked === undefined && guest !== null) {
+        guest.user = account(guest.user, google);
+        guest.identities = [{ provider: 'google', subject: google.sub, createdAt: now() }];
+      } else if (linked === undefined) {
+        const created: Person = {
+          user: account({ id: newId(), kind: 'guest', createdAt: now() }, google),
+          identities: [{ provider: 'google', subject: google.sub, createdAt: now() }],
+          exercises: [],
+          settings: {},
+          attempts: [],
+        };
+        people.set(created.user.id, created);
+        current = created.user.id;
+      } else {
+        linked.user = account(linked.user, google);
+
+        if (guest !== null && guest.attempts.length + guest.exercises.length > 0) {
+          kept = guest.user.id;
+        } else if (guest !== null) {
+          join(guest, linked);
+        }
+        current = linked.user.id;
+      }
+    },
     account: {
-      current: () => Promise.resolve(user),
-      exportData: () =>
-        Promise.resolve(
-          user === null
+      current: () => Promise.resolve(person()?.user ?? null),
+      keptGuest() {
+        const guest = kept === null ? undefined : people.get(kept);
+
+        return Promise.resolve(
+          guest === undefined
+            ? null
+            : { id: guest.user.id, attempts: guest.attempts.length, exercises: guest.exercises.length },
+        );
+      },
+      joinGuest() {
+        const guest = kept === null ? undefined : people.get(kept);
+        const into = person();
+
+        if (guest !== undefined && into !== null) {
+          join(guest, into);
+        }
+        kept = null;
+
+        return Promise.resolve();
+      },
+      signOut() {
+        if (person()?.user.kind !== 'account') {
+          return Promise.reject(new StorageError('rejected'));
+        }
+        current = kept;
+        kept = null;
+        session = null;
+
+        return Promise.resolve();
+      },
+      exportData() {
+        const found = person();
+
+        return Promise.resolve(
+          found === null
             ? null
             : {
-                exportedAt: new Date().toISOString(),
-                user,
-                exercises,
-                settings,
-                attempts: [...attempts].sort(
+                exportedAt: now(),
+                user: found.user,
+                identities: found.identities,
+                exercises: found.exercises,
+                settings: found.settings,
+                attempts: [...found.attempts].sort(
                   (a, b) => a.finishedAt.localeCompare(b.finishedAt) || a.id.localeCompare(b.id),
                 ),
                 // The events of analytics live on the server only.
                 events: [],
               },
-        ),
+        );
+      },
       deleteData() {
-        user = null;
-        exercises = [];
-        settings = {};
-        attempts = [];
+        if (current !== null) {
+          people.delete(current);
+        }
+        // A browser that kept its guest beside the account goes back to it.
+        current = kept;
+        kept = null;
         session = null;
 
         return Promise.resolve();
       },
     },
     exercises: {
-      list: () => Promise.resolve(exercises),
+      list: () => Promise.resolve(person()?.exercises ?? []),
       save(exercise) {
         const name = exercise.name.trim().normalize('NFC');
         const key = exerciseNameKey(name);
 
-        if (exercises.some(({ id, name }) => id !== exercise.id && exerciseNameKey(name) === key)) {
+        if ((person()?.exercises ?? []).some(({ id, name }) => id !== exercise.id && exerciseNameKey(name) === key)) {
           return Promise.reject(new StorageError('exercise-name-taken'));
         }
-        signUp();
+        const owner = signUp();
         const stored = { id: exercise.id, name, description: exercise.description.trim().normalize('NFC') };
-        const index = exercises.findIndex(({ id }) => id === exercise.id);
-        exercises = index === -1 ? [...exercises, stored] : exercises.with(index, stored);
+        const index = owner.exercises.findIndex(({ id }) => id === exercise.id);
+        owner.exercises = index === -1 ? [...owner.exercises, stored] : owner.exercises.with(index, stored);
 
         return Promise.resolve(stored);
       },
       remove(id) {
-        exercises = exercises.filter((exercise) => exercise.id !== id);
+        const owner = person();
+
+        if (owner !== null) {
+          owner.exercises = owner.exercises.filter((exercise) => exercise.id !== id);
+        }
 
         return Promise.resolve();
       },
     },
     settings: {
-      get: (mode) => Promise.resolve(settings[mode] ?? null),
+      get: (mode) => Promise.resolve(person()?.settings[mode] ?? null),
       save(config) {
-        signUp();
-        settings = { ...settings, [config.mode]: config };
+        const owner = signUp();
+        owner.settings = { ...owner.settings, [config.mode]: config };
 
         return Promise.resolve();
       },
     },
     attempts: {
       save(attempt) {
-        const existing = attempts.find(({ id }) => id === attempt.id);
+        const existing = [...people.values()].flatMap(({ attempts }) => attempts).find(({ id }) => id === attempt.id);
 
         // A finished attempt never changes (§17.2).
         if (existing !== undefined && JSON.stringify(existing) !== JSON.stringify(attempt)) {
           return Promise.reject(new StorageError('rejected'));
         }
-        signUp();
-        attempts = existing === undefined ? [...attempts, structuredClone(attempt)] : attempts;
+        const owner = signUp();
+
+        if (existing === undefined) {
+          owner.attempts = [...owner.attempts, structuredClone(attempt)];
+        }
 
         return Promise.resolve();
       },
       get: (id) => {
-        const attempt = attempts.find((item) => item.id === id);
+        const attempt = person()?.attempts.find((item) => item.id === id);
 
         return Promise.resolve(attempt === undefined ? null : saved(attempt));
       },
       list(query = {}) {
-        const found = attempts.filter((attempt) => matches(attempt, query)).map(saved).sort(newestFirst);
+        const found = (person()?.attempts ?? [])
+          .filter((attempt) => matches(attempt, query))
+          .map(saved)
+          .sort(newestFirst);
         const start = query.cursor === undefined ? 0 : found.findIndex(({ attempt }) => attempt.id === query.cursor) + 1;
         const items = found.slice(start, start + (query.limit ?? PAGE_SIZE));
         const last = items.at(-1);
@@ -110,8 +249,10 @@ export function createMemoryStorage(): GameStorage {
         });
       },
       stats: (filter = {}) =>
-        Promise.resolve(computeStatistics(attempts.filter((attempt) => matches(attempt, filter)))),
+        Promise.resolve(computeStatistics((person()?.attempts ?? []).filter((attempt) => matches(attempt, filter)))),
       flush: () => Promise.resolve(),
+      // Nothing waits: the memory is the server.
+      unsent: () => Promise.resolve(0),
     },
     activeSession: {
       load: () => session,

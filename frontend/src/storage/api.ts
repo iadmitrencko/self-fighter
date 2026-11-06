@@ -34,6 +34,7 @@ import {
   parseSettings,
   parseStatistics,
   parseUserData,
+  type BrowserState,
 } from './payload';
 
 // Attempts that could not be sent are retried from a few seconds up to every five minutes.
@@ -41,6 +42,7 @@ const RETRY_FIRST_MS = 5_000;
 const RETRY_MAX_MS = 300_000;
 
 const EMPTY_PAGE: AttemptPage = { items: [], nextCursor: null };
+const NOBODY: BrowserState = { user: null, guest: null };
 
 export interface ApiStorageOptions {
   readonly fetch: Fetch;
@@ -63,8 +65,8 @@ export function createBrowserStorage(): GameStorage {
 export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStorage {
   const outbox = createOutbox(buffer);
   const activeSession = createActiveSessionStore(buffer);
-  // The user of the last answer, so an attempt finished without a connection still has an owner.
-  let knownUser: CurrentUser | null = null;
+  // Who used the browser at the last answer, so an attempt finished without a connection still has an owner.
+  let known: BrowserState = NOBODY;
   let newGuest: Promise<CurrentUser> | null = null;
   let flushing: Promise<void> | null = null;
   let retryDelay = RETRY_FIRST_MS;
@@ -73,27 +75,52 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   const request = (method: string, path: string, body?: unknown): Promise<Reply> =>
     send(fetch, method, path, body);
 
-  const me = cached(async () => parseMe(expectStatus(await request('GET', '/api/v1/me'), 200)));
+  const me = cached(async () => settle(parseMe(expectStatus(await request('GET', '/api/v1/me'), 200))));
   // Every module of the server answers for its own data, and the screens ask for it once.
   const exerciseList = cached(() =>
     ofUser([] as readonly CustomExercise[], '/api/v1/exercises', parseExercises),
   );
   const settingsMap = cached(() => ofUser<Settings>({}, '/api/v1/settings', parseSettings));
 
-  function remember(user: CurrentUser | null): CurrentUser | null {
-    if (user?.id !== knownUser?.id) {
+  // Takes in an answer about who uses the browser.
+  function settle(browser: BrowserState): BrowserState {
+    if (browser.user?.id !== known.user?.id) {
       exerciseList.clear();
       settingsMap.clear();
     }
-    knownUser = user;
-    me.set(user);
+    known = browser;
+    adoptWaiting(browser);
 
-    return user;
+    return browser;
+  }
+
+  function remember(browser: BrowserState): BrowserState {
+    me.set(settle(browser));
+
+    return browser;
+  }
+
+  /**
+   * The attempts of a guest the browser no longer has, because it lost its cookie or joined the
+   * account, belong to the user of the browser now, and the outbox says so: after signing out they
+   * must not go to the next guest (§23.2).
+   */
+  function adoptWaiting(browser: BrowserState): void {
+    const { user } = browser;
+
+    if (user === null) {
+      return;
+    }
+    for (const entry of outbox.entries()) {
+      if (belongsTo(entry.owner, browser) && (entry.owner?.id !== user.id || entry.owner.kind !== user.kind)) {
+        outbox.put({ ...entry, owner: ownerOf(user) });
+      }
+    }
   }
 
   // A browser without a user has no data yet, so it asks for none.
   async function ofUser<T>(empty: T, path: string, parse: (body: unknown) => T): Promise<T> {
-    if ((await me.get()) === null) {
+    if ((await me.get()).user === null) {
       return empty;
     }
     const reply = await request('GET', path);
@@ -103,7 +130,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
 
   // The cookie is gone, for example after the data was deleted in another tab.
   function forgotten<T>(empty: T): T {
-    remember(null);
+    remember(NOBODY);
 
     return empty;
   }
@@ -111,7 +138,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   // A guest appears with the first write of the browser (§15.1). The lock keeps two tabs
   // from creating two guests at the same moment.
   async function ensureUser(): Promise<CurrentUser> {
-    const current = await me.get();
+    const current = (await me.get()).user;
 
     if (current !== null) {
       return current;
@@ -119,11 +146,11 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     newGuest ??= withLock('self-fighter:new-guest', async () => {
       // Another tab may have created the guest while this one waited for the lock.
       me.clear();
-      const created = await me.get();
+      const created = (await me.get()).user;
 
       return (
         created ??
-        userOf(remember(parseMe(expectStatus(await request('POST', '/api/v1/me'), 200, 201))))
+        userOf(remember(parseMe(expectStatus(await request('POST', '/api/v1/me'), 200, 201))).user)
       );
     }).finally(() => {
       newGuest = null;
@@ -146,11 +173,11 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     return request(method, path, body);
   }
 
-  function waiting(user: CurrentUser | null, filter: AttemptFilter): StoredAttempt[] {
+  function waiting(browser: BrowserState, filter: AttemptFilter): StoredAttempt[] {
     return outbox.entries().flatMap(({ document, owner, status }) => {
       const attempt = asAttempt(document);
 
-      return attempt !== null && belongsTo(owner, user) && matches(attempt, filter)
+      return attempt !== null && belongsTo(owner, browser) && matches(attempt, filter)
         ? [{ attempt, status }]
         : [];
     });
@@ -161,10 +188,8 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
 
     try {
       for (const entry of queued) {
-        const user = await ensureUser();
-
         // An attempt of another user waits until that user is back in this browser.
-        if (!belongsTo(entry.owner, user)) {
+        if (!belongsTo(entry.owner, await me.get())) {
           continue;
         }
         const reply = await write('PUT', `/api/v1/attempts/${entry.document.id}`, entry.document);
@@ -193,9 +218,46 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   }
 
   const account: AccountStore = {
-    current: () => me.get(),
+    current: async () => (await me.get()).user,
+    async keptGuest() {
+      const { guest } = await me.get();
+
+      if (guest === null) {
+        return null;
+      }
+      // Attempts the guest finished without a connection move with it as well.
+      const queued = outbox.entries().filter(({ owner }) => owner?.id === guest.id).length;
+
+      return { ...guest, attempts: guest.attempts + queued };
+    },
+    async joinGuest() {
+      if ((await me.get()).guest === null) {
+        return;
+      }
+      const reply = await request('POST', '/api/v1/me/merge');
+
+      if (reply.status === 401) {
+        forgotten(undefined);
+
+        return;
+      }
+      // The account has taken in the exercises and the settings of the guest.
+      const browser = parseMe(expectStatus(reply, 200));
+      exerciseList.clear();
+      settingsMap.clear();
+      remember(browser);
+      // The attempts of the guest that wait in the browser go to the account now.
+      void attempts.flush();
+    },
+    async signOut() {
+      const reply = await request('POST', '/api/v1/me/logout');
+      const browser = reply.status === 401 ? NOBODY : parseMe(expectStatus(reply, 200));
+      // The next person on this browser does not continue the workout of the account.
+      activeSession.clear();
+      remember(browser);
+    },
     async exportData() {
-      if ((await me.get()) === null) {
+      if ((await me.get()).user === null) {
         return null;
       }
       const reply = await request('GET', '/api/v1/me/export');
@@ -203,9 +265,9 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       return reply.status === 401 ? forgotten(null) : parseUserData(expectStatus(reply, 200));
     },
     async deleteData() {
-      const user = await me.get();
+      const browser = await me.get();
 
-      if (user !== null) {
+      if (browser.user !== null) {
         const reply = await request('DELETE', '/api/v1/me');
 
         if (reply.status !== 401) {
@@ -213,11 +275,13 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
         }
       }
       // The attempts that wait in this browser are data of the user as well.
-      for (const { attempt } of waiting(user, {})) {
+      for (const { attempt } of waiting(browser, {})) {
         outbox.remove(attempt.id);
       }
       activeSession.clear();
-      forgotten(undefined);
+      // A browser that kept its guest beside the account goes back to it, so it asks who it is now.
+      settle(NOBODY);
+      me.clear();
     },
   };
 
@@ -236,7 +300,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     },
     async remove(id) {
       // A browser without a user has nothing to delete, and deleting must not create a guest.
-      if ((await me.get()) === null) {
+      if ((await me.get()).user === null) {
         return;
       }
       expectStatus(await write('DELETE', `/api/v1/exercises/${id}`), 204);
@@ -256,16 +320,16 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
 
   const attempts: AttemptStore = {
     save(attempt) {
-      outbox.put({ document: attempt, owner: ownerOf(knownUser), status: 'pending' });
+      outbox.put({ document: attempt, owner: ownerOf(known.user), status: 'pending' });
       void attempts.flush();
 
       return Promise.resolve();
     },
     async get(id) {
       // An attempt that waits for the network is found without it.
-      const queued = waiting(knownUser, {}).find(({ attempt }) => attempt.id === id);
+      const queued = waiting(known, {}).find(({ attempt }) => attempt.id === id);
 
-      if (queued !== undefined || (await me.get()) === null) {
+      if (queued !== undefined || (await me.get()).user === null) {
         return queued ?? null;
       }
       const reply = await request('GET', `/api/v1/attempts/${encodeURIComponent(id)}`);
@@ -275,28 +339,28 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
         : { attempt: parseAttempt(expectStatus(reply, 200)), status: 'saved' };
     },
     async list(query = {}) {
-      const user = await me.get();
-      const page = user === null ? EMPTY_PAGE : await savedPage(query);
+      const browser = await me.get();
+      const page = browser.user === null ? EMPTY_PAGE : await savedPage(query);
 
       // Waiting attempts are newer than anything saved, so they belong to the first page only.
       if (query.cursor !== undefined) {
         return page;
       }
       const saved = new Set(page.items.map(({ attempt }) => attempt.id));
-      const queued = waiting(user, query).filter(({ attempt }) => !saved.has(attempt.id));
+      const queued = waiting(browser, query).filter(({ attempt }) => !saved.has(attempt.id));
 
       return { items: [...queued, ...page.items].sort(newestFirst), nextCursor: page.nextCursor };
     },
     async stats(filter = {}) {
-      const user = await me.get();
+      const browser = await me.get();
       let saved = NO_STATISTICS;
 
-      if (user !== null) {
+      if (browser.user !== null) {
         const reply = await request('GET', `/api/v1/stats${search(filter)}`);
         saved =
           reply.status === 401 ? forgotten(NO_STATISTICS) : parseStatistics(expectStatus(reply, 200));
       }
-      const queued = computeStatistics(waiting(user, filter).map(({ attempt }) => attempt));
+      const queued = computeStatistics(waiting(browser, filter).map(({ attempt }) => attempt));
 
       return addStatistics(saved, queued);
     },
@@ -311,6 +375,9 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       });
 
       return run;
+    },
+    async unsent() {
+      return waiting(await me.get(), {}).filter(({ status }) => status === 'pending').length;
     },
   };
 
@@ -365,13 +432,13 @@ function cached<T>(load: () => Promise<T>): Cached<T> {
   };
 }
 
-// A browser has one guest at a time, so the attempts of a guest it lost belong to the next one.
-function belongsTo(owner: Owner, user: CurrentUser | null): boolean {
-  return (
-    owner === null ||
-    owner.id === user?.id ||
-    (owner.kind === 'guest' && (user === null || user.kind === 'guest'))
-  );
+/**
+ * A browser has one guest at a time, so the attempts of a guest it lost, or of one that joined the
+ * account, belong to its current user. The attempts of an account and of the guest the browser
+ * keeps beside it wait for them (§23.3).
+ */
+function belongsTo(owner: Owner, { user, guest }: BrowserState): boolean {
+  return owner === null || owner.id === user?.id || (owner.kind === 'guest' && owner.id !== guest?.id);
 }
 
 function ownerOf(user: CurrentUser | null): Owner {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Site\Presentation\Http;
 
 use App\Shared\Application\GameContent;
+use App\Shared\Application\SignInMethods;
 use App\Shared\Domain\GameModes;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,8 +18,10 @@ use Symfony\Component\Routing\Requirement\Requirement;
  */
 final class GameShellController extends AbstractController
 {
-    public function __construct(private readonly GameContent $content)
-    {
+    public function __construct(
+        private readonly GameContent $content,
+        private readonly SignInMethods $signIn,
+    ) {
     }
 
     #[Route('/workout', name: 'workout', methods: ['GET'])]
@@ -29,7 +32,10 @@ final class GameShellController extends AbstractController
     #[Route('/workout/account', name: 'workout_account', methods: ['GET'])]
     public function __invoke(): Response
     {
-        return $this->render('workout/shell.html.twig', ['game' => ['exercises' => $this->content->exercises()]]);
+        return $this->render('workout/shell.html.twig', ['game' => [
+            'exercises' => $this->content->exercises(),
+            'signIn' => $this->signIn->available(),
+        ]]);
     }
 
     // §21.3: the settings of the challenge open filled in, and the player may change them.
@@ -40,6 +46,7 @@ final class GameShellController extends AbstractController
 
         return $this->render('workout/shell.html.twig', ['game' => [
             'exercises' => $this->content->exercises(),
+            'signIn' => $this->signIn->available(),
             'challenge' => $challenge,
         ]]);
     }

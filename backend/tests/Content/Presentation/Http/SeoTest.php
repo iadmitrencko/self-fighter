@@ -158,7 +158,7 @@ final class SeoTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Content-Type', 'text/plain; charset=UTF-8');
         self::assertSame(
-            "User-agent: *\nDisallow: /api/\nDisallow: /connect/\nDisallow: /logout\n\nSitemap: http://localhost/sitemap.xml\n",
+            "User-agent: *\nDisallow: /api/\nDisallow: /connect/\n\nSitemap: http://localhost/sitemap.xml\n",
             $client->getResponse()->getContent(),
         );
     }

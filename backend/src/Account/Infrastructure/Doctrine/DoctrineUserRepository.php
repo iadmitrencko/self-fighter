@@ -39,7 +39,8 @@ final readonly class DoctrineUserRepository implements UserRepository
         $users = $this->entityManager
             ->createQuery(
                 'SELECT u FROM App\Account\Domain\User u
-                WHERE NOT EXISTS (SELECT d.id FROM App\Account\Domain\Device d WHERE d.owner = u.id)',
+                WHERE NOT EXISTS (SELECT d.id FROM App\Account\Domain\Device d WHERE d.owner = u.id OR d.guest = u.id)
+                AND NOT EXISTS (SELECT i.subject FROM App\Account\Domain\Identity i WHERE i.user = u.id)',
             )
             ->getResult();
 

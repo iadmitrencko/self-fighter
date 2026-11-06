@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { StorageError, type StorageErrorCode } from '../storage/errors';
+import { useDataVersion } from './data';
 
 export type Load<T> =
   | { readonly status: 'loading' }
@@ -12,12 +13,14 @@ interface Done<T> {
 }
 
 /**
- * Loads data for a screen. `load` must be stable (useCallback): a new function loads again.
- * A repeated load keeps showing the previous value until the new one arrives.
+ * Loads data for a screen. `load` must be stable (useCallback): a new function loads again, and
+ * so does a change of the data (useDataVersion). A repeated load keeps showing the previous value
+ * until the new one arrives.
  */
 export function useLoad<T>(load: () => Promise<T>): [Load<T>, reload: () => void] {
   const [run, setRun] = useState(0);
   const [done, setDone] = useState<Done<T> | null>(null);
+  const { version } = useDataVersion();
 
   useEffect(() => {
     let active = true;
@@ -38,7 +41,7 @@ export function useLoad<T>(load: () => Promise<T>): [Load<T>, reload: () => void
     return () => {
       active = false;
     };
-  }, [load, run]);
+  }, [load, run, version]);
 
   const reload = useCallback(() => setRun((value) => value + 1), []);
 

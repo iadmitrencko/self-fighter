@@ -1,17 +1,35 @@
 import type { Attempt } from '../domain/history/attempt';
 import type { Statistics } from '../domain/history/statistics';
 import { isRecord } from './buffer';
-import type { AttemptPage, CurrentUser, CustomExercise, Settings, StoredEvent, UserData } from './contract';
+import type {
+  AttemptPage,
+  CurrentUser,
+  CustomExercise,
+  KeptGuest,
+  Settings,
+  SignInIdentity,
+  StoredEvent,
+  UserData,
+} from './contract';
 import { StorageError } from './errors';
 
 // The shapes the server sends (backend/src/*/Application/*View.php). Any other shape is a server failure.
 
-export function parseMe(body: unknown): CurrentUser | null {
+// Who uses this browser: its user and the guest it keeps beside a signed-in account (§23.3).
+export interface BrowserState {
+  readonly user: CurrentUser | null;
+  readonly guest: KeptGuest | null;
+}
+
+export function parseMe(body: unknown): BrowserState {
   if (!isRecord(body)) {
     throw unexpected();
   }
 
-  return body.user === null ? null : parseUser(body.user);
+  return {
+    user: body.user === null ? null : parseUser(body.user),
+    guest: body.guest === null || body.guest === undefined ? null : parseKeptGuest(body.guest),
+  };
 }
 
 export function parseExercises(body: unknown): CustomExercise[] {
@@ -104,6 +122,7 @@ export function parseUserData(body: unknown): UserData {
   return {
     exportedAt: body.exportedAt,
     user: parseUser(body.user),
+    identities: Array.isArray(body.identities) ? body.identities.map(parseIdentity) : [],
     exercises: parseExercises(body.exercises),
     settings: parseSettings(body.settings),
     attempts: body.attempts.map(parseAttempt),
@@ -131,16 +150,51 @@ function parseEvent(value: unknown): StoredEvent {
 }
 
 function parseUser(value: unknown): CurrentUser {
+  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.createdAt !== 'string') {
+    throw unexpected();
+  }
+  if (value.kind === 'guest') {
+    return { id: value.id, kind: 'guest', createdAt: value.createdAt };
+  }
+  if (value.kind !== 'account' || !isOptionalText(value.name) || !isOptionalText(value.email)) {
+    throw unexpected();
+  }
+
+  return { id: value.id, kind: 'account', createdAt: value.createdAt, name: value.name, email: value.email };
+}
+
+function parseKeptGuest(value: unknown): KeptGuest {
   if (
     !isRecord(value) ||
     typeof value.id !== 'string' ||
-    value.kind !== 'guest' ||
+    !isCount(value.attempts) ||
+    !isCount(value.exercises)
+  ) {
+    throw unexpected();
+  }
+
+  return { id: value.id, attempts: value.attempts, exercises: value.exercises };
+}
+
+function parseIdentity(value: unknown): SignInIdentity {
+  if (
+    !isRecord(value) ||
+    typeof value.provider !== 'string' ||
+    typeof value.subject !== 'string' ||
     typeof value.createdAt !== 'string'
   ) {
     throw unexpected();
   }
 
-  return { id: value.id, kind: value.kind, createdAt: value.createdAt };
+  return { provider: value.provider, subject: value.subject, createdAt: value.createdAt };
+}
+
+function isOptionalText(value: unknown): value is string | null {
+  return value === null || typeof value === 'string';
+}
+
+function isCount(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 0;
 }
 
 function unexpected(): StorageError {

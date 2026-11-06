@@ -18,10 +18,11 @@ export function testClock(start = STARTED_AT): () => Date {
   return () => new Date((now += 1000));
 }
 
-// Renders the game at a path under /workout, with storage and events in memory and fixed randomness.
+// Renders the game at a path under /workout, with storage and events in memory and fixed
+// randomness. The server offers signing in with Google unless `signIn` says otherwise.
 export function renderGame(
   path: string,
-  options: { storage?: GameStorage; seed?: number; challenge?: Challenge } = {},
+  options: { storage?: GameStorage; seed?: number; challenge?: Challenge; signIn?: readonly string[] } = {},
 ) {
   const storage = options.storage ?? createMemoryStorage();
   const analytics = createMemoryAnalytics();
@@ -29,6 +30,7 @@ export function renderGame(
     storage,
     analytics,
     exercises: READY_MADE,
+    signIn: options.signIn ?? ['google'],
     challenge: options.challenge ?? null,
     deps: { rng: seededRng(options.seed ?? 7), now: testClock(), newId },
   };

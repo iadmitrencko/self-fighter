@@ -6,7 +6,7 @@ import { createBrowserBuffer } from './buffer';
 import type { GameStorage } from './contract';
 import { StorageError } from './errors';
 import { newId } from './ids';
-import { createMemoryStorage } from './memory';
+import { createMemoryStorage, type TestGoogleAccount } from './memory';
 import { finishedAttempt } from './testing/attempts';
 import { createFakeServer } from './testing/fakeServer';
 
@@ -232,5 +232,195 @@ describe.each([
 
       expect(storage.activeSession.load()).toBeNull();
     });
+  });
+});
+
+// The browser as the tests see it: signing in leaves for Google, and the page loads again.
+interface Browser {
+  readonly storage: GameStorage;
+  signIn(account: TestGoogleAccount): void;
+}
+
+const OLENA = { sub: '1001', name: 'Олена', email: 'olena@example.com' };
+
+// §23: guests and accounts follow the same contract (R14).
+describe.each([
+  [
+    'in memory',
+    (): Browser => {
+      const storage = createMemoryStorage();
+
+      return { storage, signIn: (account) => storage.signIn(account) };
+    },
+  ],
+  [
+    'over the API',
+    (): Browser => {
+      const server = createFakeServer();
+      const buffer = createBrowserBuffer(null);
+      let storage = createApiStorage({ fetch: server.fetch, buffer });
+
+      return {
+        get storage() {
+          return storage;
+        },
+        signIn(account) {
+          server.signIn(account);
+          storage = createApiStorage({ fetch: server.fetch, buffer });
+        },
+      };
+    },
+  ],
+])('accounts %s', (_, create) => {
+  let browser: Browser;
+
+  beforeEach(() => {
+    browser = create();
+  });
+
+  // An account with a workout that is no longer open in this browser.
+  async function accountElsewhere(): Promise<string> {
+    browser.signIn(OLENA);
+    const attempt = finishedAttempt('win', '2026-11-01T10:00:00.000Z');
+    await browser.storage.attempts.save(attempt);
+    await browser.storage.attempts.flush();
+    await browser.storage.account.signOut();
+
+    return attempt.id;
+  }
+
+  // §23.3: the first sign-in moves nothing, the guest becomes the account.
+  it('turns the guest into the account on the first sign-in', async () => {
+    const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+    await browser.storage.attempts.save(attempt);
+    await browser.storage.attempts.flush();
+    const guest = await browser.storage.account.current();
+
+    browser.signIn(OLENA);
+
+    expect(await browser.storage.account.current()).toEqual({
+      id: guest?.id,
+      kind: 'account',
+      createdAt: guest?.createdAt,
+      name: 'Олена',
+      email: 'olena@example.com',
+    });
+    expect((await browser.storage.attempts.list()).items.map(({ attempt }) => attempt.id)).toEqual([attempt.id]);
+    expect(await browser.storage.account.keptGuest()).toBeNull();
+  });
+
+  // §23.2: after signing out the data of the account is out of reach in this browser.
+  it('keeps nothing of the account in the browser after signing out', async () => {
+    await accountElsewhere();
+
+    expect(await browser.storage.account.current()).toBeNull();
+    expect(await browser.storage.attempts.list()).toEqual({ items: [], nextCursor: null });
+    expect(await browser.storage.attempts.stats()).toMatchObject({ total: 0 });
+    expect(await browser.storage.account.exportData()).toBeNull();
+  });
+
+  it('opens the account again with its data', async () => {
+    const attempt = await accountElsewhere();
+
+    browser.signIn(OLENA);
+
+    expect((await browser.storage.attempts.list()).items.map((stored) => stored.attempt.id)).toEqual([attempt]);
+  });
+
+  // A guest has no other way to its data.
+  it('refuses to sign out a guest', async () => {
+    await browser.storage.settings.save(targetConfig());
+
+    await expect(browser.storage.account.signOut()).rejects.toEqual(new StorageError('rejected'));
+    expect(await browser.storage.account.current()).toMatchObject({ kind: 'guest' });
+  });
+
+  // §23.3: a guest with attempts or custom exercises waits for the person to decide.
+  it('keeps the guest of the browser beside a known account', async () => {
+    const accountAttempt = await accountElsewhere();
+    await browser.storage.attempts.save(finishedAttempt('loss', '2026-11-02T10:00:00.000Z'));
+    await browser.storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
+    await browser.storage.attempts.flush();
+    const guest = await browser.storage.account.current();
+
+    browser.signIn(OLENA);
+
+    expect(await browser.storage.account.keptGuest()).toEqual({ id: guest?.id, attempts: 1, exercises: 1 });
+    expect((await browser.storage.attempts.list()).items.map(({ attempt }) => attempt.id)).toEqual([accountAttempt]);
+    expect(await browser.storage.exercises.list()).toEqual([]);
+  });
+
+  // §23.3: attempts are not duplicated, exercises with one name merge, the account keeps its settings.
+  it('joins the kept guest once', async () => {
+    browser.signIn(OLENA);
+    const burpees = await browser.storage.exercises.save({ id: newId(), name: 'Бурпі', description: 'Як у залі' });
+    await browser.storage.settings.save(targetConfig({ rounds: 3 }));
+    await browser.storage.account.signOut();
+    const guestAttempt = finishedAttempt('loss', '2026-11-02T10:00:00.000Z');
+    await browser.storage.attempts.save(guestAttempt);
+    await browser.storage.attempts.flush();
+    await browser.storage.exercises.save({ id: newId(), name: 'бурпі', description: 'Вдома' });
+    const plank = await browser.storage.exercises.save({ id: newId(), name: 'Планка', description: '' });
+    await browser.storage.settings.save(targetConfig({ rounds: 7 }));
+    await browser.storage.settings.save(ladderConfig());
+    browser.signIn(OLENA);
+
+    await browser.storage.account.joinGuest();
+    await browser.storage.account.joinGuest();
+
+    expect(await browser.storage.account.keptGuest()).toBeNull();
+    expect((await browser.storage.attempts.list()).items.map(({ attempt }) => attempt.id)).toEqual([guestAttempt.id]);
+    expect(await browser.storage.exercises.list()).toEqual([burpees, plank]);
+    expect(await browser.storage.settings.get('target')).toEqual(targetConfig({ rounds: 3 }));
+    expect(await browser.storage.settings.get('ladder')).toEqual(ladderConfig());
+  });
+
+  // §23.3: a person who did not join the guest finds it after signing out.
+  it('brings the kept guest back after signing out', async () => {
+    await accountElsewhere();
+    const guestAttempt = finishedAttempt('loss', '2026-11-02T10:00:00.000Z');
+    await browser.storage.attempts.save(guestAttempt);
+    await browser.storage.attempts.flush();
+    browser.signIn(OLENA);
+
+    await browser.storage.account.signOut();
+
+    expect(await browser.storage.account.current()).toMatchObject({ kind: 'guest' });
+    expect((await browser.storage.attempts.list()).items.map(({ attempt }) => attempt.id)).toEqual([guestAttempt.id]);
+  });
+
+  // §23.3: nothing to miss, nothing to ask.
+  it('joins a guest with nothing to miss at once', async () => {
+    await accountElsewhere();
+    await browser.storage.settings.save(ladderConfig());
+
+    browser.signIn(OLENA);
+
+    expect(await browser.storage.account.keptGuest()).toBeNull();
+    expect(await browser.storage.settings.get('ladder')).toEqual(ladderConfig());
+  });
+
+  // §15.5: the file names the way to sign in as well.
+  it('names the way to sign in in the export', async () => {
+    browser.signIn(OLENA);
+
+    expect(await browser.storage.account.exportData()).toMatchObject({
+      user: { kind: 'account', name: 'Олена' },
+      identities: [{ provider: 'google', subject: '1001' }],
+    });
+  });
+
+  // §15.5: deleting the account brings back the guest the browser kept beside it.
+  it('goes back to the kept guest when the account is deleted', async () => {
+    await accountElsewhere();
+    await browser.storage.attempts.save(finishedAttempt('loss', '2026-11-02T10:00:00.000Z'));
+    await browser.storage.attempts.flush();
+    const guest = await browser.storage.account.current();
+    browser.signIn(OLENA);
+
+    await browser.storage.account.deleteData();
+
+    expect(await browser.storage.account.current()).toEqual(guest);
+    expect((await browser.storage.attempts.stats()).total).toBe(1);
   });
 });

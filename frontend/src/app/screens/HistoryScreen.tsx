@@ -5,11 +5,12 @@ import type { Attempt } from '../../domain/history/attempt';
 import type { Statistics } from '../../domain/history/statistics';
 import type { Outcome } from '../../domain/results/results';
 import { formatShortDateTime } from '../../i18n/format';
-import { commonTexts, historyTexts, modeNames, outcomeTexts } from '../../i18n/uk';
+import { commonTexts, historyTexts, modeNames, outcomeTexts, signInTexts } from '../../i18n/uk';
 import type { AttemptFilter, StoredAttempt } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
 import { Icon } from '../components/Icon';
 import { BACK, Screen, ScreenHead } from '../components/Screen';
+import { SignInPrompt } from '../components/SignIn';
 import { ErrorNotice, Loading, OutcomeBadge, StatusBadge } from '../components/notices';
 import { useGame } from '../game';
 import { MODES, paths } from '../paths';
@@ -37,6 +38,9 @@ export function HistoryScreen() {
   const [stats, reloadStats] = useLoad(loadStats);
   const loadPage = useCallback(() => storage.attempts.list(filter), [storage, filter]);
   const [page, reloadPage] = useLoad(loadPage);
+  const loadUser = useCallback(() => storage.account.current(), [storage]);
+  const [user] = useLoad(loadUser);
+  const signedIn = user.status === 'ready' && user.value?.kind === 'account';
   const [more, setMore] = useState<MorePages | null>(null);
   const [moreError, setMoreError] = useState<StorageErrorCode | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -91,9 +95,11 @@ export function HistoryScreen() {
           <p className="note">
             <Icon name="info" className="note__icon" />
             <span>
-              {historyTexts.note} <Link to={paths.account}>{commonTexts.account}</Link>
+              {signedIn ? historyTexts.accountNote : historyTexts.note} <Link to={paths.account}>{commonTexts.account}</Link>
             </span>
           </p>
+          {/* §23.2: the history is where a guest misses it on another device. */}
+          {user.status === 'ready' && !signedIn && <SignInPrompt text={signInTexts.promptHistory} />}
         </div>
         <div className="split__column">
           {page.status === 'loading' && <Loading />}

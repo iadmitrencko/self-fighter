@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Shared\Presentation\Http;
 
+use App\Tests\Account\FakeGoogle;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -22,6 +23,7 @@ abstract class ApiTestCase extends WebTestCase
 
     protected function setUp(): void
     {
+        FakeGoogle::reset();
         $this->address = \sprintf('10.%d.%d.%d', random_int(0, 255), random_int(0, 255), random_int(1, 254));
         // The device cookie is secure, so the browser talks to the site over HTTPS as in production.
         $this->browser = self::createClient([], [
@@ -71,6 +73,37 @@ abstract class ApiTestCase extends WebTestCase
         self::assertIsString($user['id']);
 
         return $user['id'];
+    }
+
+    /**
+     * Goes the way of signing in with Google as the person of the claims, from the screen
+     * `$returnTo` and back. Returns the address the browser comes back to.
+     *
+     * @param array<string, mixed> $claims
+     */
+    protected function signInWithGoogle(array $claims = [], string $returnTo = '/workout/history'): string
+    {
+        FakeGoogle::willIdentify($claims);
+        $this->browser->request('GET', '/connect/google?'.http_build_query(['to' => $returnTo]));
+        $this->browser->request('GET', '/connect/google/check?'.http_build_query([
+            'state' => $this->authorizationParameters()['state'] ?? '',
+            'code' => 'code-'.bin2hex(random_bytes(8)),
+            'scope' => 'email profile openid',
+        ]));
+
+        return (string) $this->browser->getResponse()->headers->get('Location');
+    }
+
+    /**
+     * The parameters of the last redirect, such as the one to the page of Google.
+     *
+     * @return array<int|string, string>
+     */
+    protected function authorizationParameters(): array
+    {
+        parse_str((string) parse_url((string) $this->browser->getResponse()->headers->get('Location'), \PHP_URL_QUERY), $parameters);
+
+        return array_filter($parameters, 'is_string');
     }
 
     protected function deviceCookie(): Cookie

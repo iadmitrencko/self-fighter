@@ -3,3 +3,9 @@
 services:
   app:
     ports: !reset []
+    # e2e/fake-google.mjs plays Google: Playwright starts it in the network of this container.
+    environment:
+      GOOGLE_CLIENT_ID: e2e-client
+      GOOGLE_CLIENT_SECRET: e2e-secret
+      GOOGLE_AUTHORIZATION_URL: http://localhost:9100/authorize
+      GOOGLE_TOKEN_URL: http://localhost:9100/token

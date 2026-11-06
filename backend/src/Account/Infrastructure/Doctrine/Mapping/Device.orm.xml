@@ -6,6 +6,7 @@
     <entity name="App\Account\Domain\Device" table="device">
         <indexes>
             <index name="idx_device_user_id" columns="user_id"/>
+            <index name="idx_device_guest_id" columns="guest_id"/>
             <index name="idx_device_last_seen_at" columns="last_seen_at"/>
         </indexes>
         <unique-constraints>
@@ -14,6 +15,7 @@
 
         <id name="id" type="device_id"/>
         <field name="owner" column="user_id" type="user_id"/>
+        <field name="guest" column="guest_id" type="user_id" nullable="true"/>
         <field name="tokenHash" length="64">
             <options>
                 <option name="fixed">true</option>

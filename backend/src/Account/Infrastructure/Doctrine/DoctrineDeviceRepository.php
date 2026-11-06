@@ -27,6 +27,14 @@ final readonly class DoctrineDeviceRepository implements DeviceRepository
         return $this->entityManager->getRepository(Device::class)->findOneBy(['tokenHash' => $token->hash()]);
     }
 
+    public function findUsedBy(UserId $user): array
+    {
+        return $this->entityManager
+            ->createQuery('SELECT d FROM App\Account\Domain\Device d WHERE d.owner = :user OR d.guest = :user ORDER BY d.createdAt, d.id')
+            ->setParameter('user', $user, UserIdType::NAME)
+            ->getResult();
+    }
+
     // A query rather than a flush: it runs at the end of a request, after a failed write may have closed the entity manager.
     public function saveLastSeen(Device $device): void
     {
@@ -37,12 +45,9 @@ final readonly class DoctrineDeviceRepository implements DeviceRepository
             ->execute();
     }
 
-    public function removeOwnedBy(UserId $owner): void
+    public function remove(Device $device): void
     {
-        $this->entityManager
-            ->createQuery('DELETE FROM App\Account\Domain\Device d WHERE d.owner = :owner')
-            ->setParameter('owner', $owner, UserIdType::NAME)
-            ->execute();
+        $this->entityManager->remove($device);
     }
 
     // The cookie of a device last seen at the cutoff has just expired as well.

@@ -19,3 +19,6 @@ when@test:
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+        # Tests never call Google: a fake answers for its token endpoint (section 8 of the plan).
+        http_client:
+            mock_response_factory: App\Tests\Account\FakeGoogle

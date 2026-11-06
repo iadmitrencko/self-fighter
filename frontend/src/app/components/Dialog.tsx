@@ -33,12 +33,14 @@ export function Dialog({
   );
 }
 
-// The safe answer comes first, so it is the one a stray tap or Enter picks.
+// The safe answer comes first, so it is the one a stray tap or Enter picks. A confirmation that
+// loses nothing looks like the main action instead of a warning.
 export function ConfirmDialog({
   title,
   text,
   confirm,
   cancel = commonTexts.cancel,
+  tone = 'danger',
   busy = false,
   onConfirm,
   onCancel,
@@ -47,6 +49,7 @@ export function ConfirmDialog({
   text: string;
   confirm: string;
   cancel?: string;
+  tone?: 'danger' | 'primary';
   busy?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -60,7 +63,7 @@ export function ConfirmDialog({
         </button>
         <button
           type="button"
-          className="button button--danger button--large"
+          className={`button button--${tone} button--large`}
           disabled={busy}
           onClick={onConfirm}
         >

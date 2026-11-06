@@ -6,6 +6,8 @@
     <entity name="App\Account\Domain\User" table="user">
         <id name="id" type="user_id"/>
         <field name="createdAt" type="datetime_immutable"/>
+        <field name="email" length="254" nullable="true"/>
+        <field name="name" length="100" nullable="true"/>
     </entity>
 
 </doctrine-mapping>

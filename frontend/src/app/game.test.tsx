@@ -25,7 +25,13 @@ describe('data of the page', () => {
 
     expect(readPage(root(data)).exercises).toEqual([{ id: 'push-ups', name: 'Віджимання' }]);
     expect(readPage(root({ exercises: {} })).exercises).toEqual([]);
-    expect(readPage(root())).toEqual({ exercises: [], challenge: null });
+    expect(readPage(root())).toEqual({ exercises: [], signIn: [], challenge: null });
+  });
+
+  // §23.2: the page names the ways to sign in this server offers.
+  it('reads the ways to sign in', () => {
+    expect(readPage(root({ exercises: [], signIn: ['google', 7] })).signIn).toEqual(['google']);
+    expect(readPage(root({ exercises: [], signIn: 'google' })).signIn).toEqual([]);
   });
 
   // §21.3: the page of /workout/challenge/{slug} carries the configuration of the challenge.

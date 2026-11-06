@@ -34,6 +34,15 @@ final readonly class DoctrineEventRepository implements EventRepository
             ->execute();
     }
 
+    public function transfer(UserId $from, UserId $to): void
+    {
+        $this->entityManager
+            ->createQuery('UPDATE App\Analytics\Domain\Event e SET e.user = :to WHERE e.user = :from')
+            ->setParameter('to', $to, UserIdType::NAME)
+            ->setParameter('from', $from, UserIdType::NAME)
+            ->execute();
+    }
+
     public function removeOlderThan(\DateTimeImmutable $cutoff): int
     {
         return $this->entityManager

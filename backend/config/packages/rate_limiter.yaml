@@ -1,5 +1,10 @@
 framework:
     rate_limiter:
+        # Per IP address. A person signs in a few times a day at most, so a flood of starts is a script.
+        sign_in:
+            policy: sliding_window
+            limit: 30
+            interval: '1 hour'
         # Per IP address. A browser needs a guest once, so a flood of them is a script.
         guest_creation:
             policy: sliding_window

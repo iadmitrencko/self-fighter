@@ -8,7 +8,8 @@
 {% endblock %}
 
 {% block main %}
-    {#- The data the game needs before its first request: the ready-made exercises. #}
+    {#- The data the game needs before its first request: the ready-made exercises, the ways to sign
+        in that work on this server and the challenge of the address. #}
     <div id="root" data-game="{{ game|json_encode }}"></div>
     <noscript><p class="container app-noscript">{{ 'workout.noscript'|trans }}</p></noscript>
 {% endblock %}

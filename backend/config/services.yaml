@@ -33,6 +33,8 @@ services:
     # The repositories the domain declares and the adapters that implement them.
     App\Account\Domain\UserRepository: '@App\Account\Infrastructure\Doctrine\DoctrineUserRepository'
     App\Account\Domain\DeviceRepository: '@App\Account\Infrastructure\Doctrine\DoctrineDeviceRepository'
+    App\Account\Domain\IdentityRepository: '@App\Account\Infrastructure\Doctrine\DoctrineIdentityRepository'
+    App\Account\Application\GoogleAccounts: '@App\Account\Infrastructure\Google\GoogleOAuth'
     App\Workout\Domain\AttemptRepository: '@App\Workout\Infrastructure\Doctrine\DoctrineAttemptRepository'
     App\Workout\Domain\CustomExerciseRepository: '@App\Workout\Infrastructure\Doctrine\DoctrineCustomExerciseRepository'
     App\Workout\Domain\SettingsRepository: '@App\Workout\Infrastructure\Doctrine\DoctrineSettingsRepository'
@@ -45,6 +47,7 @@ services:
 
     # The ports of the shared kernel that one module offers to the others.
     App\Shared\Application\GameContent: '@App\Content\Application\ContentForGame'
+    App\Shared\Application\SignInMethods: '@App\Account\Application\AvailableSignInMethods'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -53,3 +56,7 @@ when@dev:
     parameters:
         # The development server listens on plain HTTP.
         app.device_cookie_secure: false
+
+when@test:
+    services:
+        App\Tests\Account\FakeGoogle: ~

@@ -17,6 +17,9 @@
         <!-- The SEO tests check the pages as production serves them, at the address of the test client. -->
         <server name="DEFAULT_URI" value="http://localhost" force="true" />
         <server name="SEO_INDEXING" value="1" force="true" />
+        <!-- A client of Google, so the game offers signing in. Tests/Account/FakeGoogle answers for Google. -->
+        <server name="GOOGLE_CLIENT_ID" value="test-client" force="true" />
+        <server name="GOOGLE_CLIENT_SECRET" value="test-secret" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
 

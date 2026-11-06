@@ -11,14 +11,18 @@ use App\Shared\Domain\Instant;
 final class UserView
 {
     /**
-     * @return array{id: string, kind: string, createdAt: string}
+     * An account also shows the name and the email Google gave, so the person sees whose account is open.
+     *
+     * @return array<string, string|null>
      */
-    public static function of(User $user): array
+    public static function of(User $user, bool $account): array
     {
-        return [
+        $view = [
             'id' => $user->id()->value,
-            'kind' => 'guest',
+            'kind' => $account ? 'account' : 'guest',
             'createdAt' => Instant::format($user->createdAt()),
         ];
+
+        return $account ? [...$view, 'name' => $user->name(), 'email' => $user->email()] : $view;
     }
 }

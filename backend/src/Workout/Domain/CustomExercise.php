@@ -13,7 +13,7 @@ final class CustomExercise
 {
     private function __construct(
         private readonly ExerciseId $id,
-        private readonly UserId $owner,
+        private UserId $owner,
         private string $name,
         // The name compared regardless of case, so the catalog has no two exercises with one name.
         private string $nameKey,
@@ -46,6 +46,11 @@ final class CustomExercise
         return $this->name;
     }
 
+    public function nameKey(): string
+    {
+        return $this->nameKey;
+    }
+
     public function description(): string
     {
         return $this->description;
@@ -54,5 +59,11 @@ final class CustomExercise
     public function belongsTo(UserId $user): bool
     {
         return $this->owner->equals($user);
+    }
+
+    // §23.3: the exercise of a guest joins the catalog of the account under the same id.
+    public function moveTo(UserId $owner): void
+    {
+        $this->owner = $owner;
     }
 }

@@ -201,18 +201,21 @@ final class PagesTest extends WebTestCase
         self::assertResponseRedirects('/workout', 301);
     }
 
-    // §5.1: the game gets the ready-made exercises with the page, before its first request.
+    // §5.1, §23.2: the game gets the ready-made exercises and the ways to sign in with the page, before its first request.
     public function testShellCarriesTheReadyMadeExercises(): void
     {
         $client = self::createClient();
         $crawler = $client->request('GET', '/workout');
 
         self::assertSame(
-            ['exercises' => [
-                ['id' => 'push-ups', 'name' => 'Віджимання'],
-                ['id' => 'squats', 'name' => 'Присідання'],
-                ['id' => 'pull-ups', 'name' => 'Підтягування'],
-            ]],
+            [
+                'exercises' => [
+                    ['id' => 'push-ups', 'name' => 'Віджимання'],
+                    ['id' => 'squats', 'name' => 'Присідання'],
+                    ['id' => 'pull-ups', 'name' => 'Підтягування'],
+                ],
+                'signIn' => ['google'],
+            ],
             json_decode((string) $crawler->filter('#root')->attr('data-game'), true, 512, \JSON_THROW_ON_ERROR),
         );
     }

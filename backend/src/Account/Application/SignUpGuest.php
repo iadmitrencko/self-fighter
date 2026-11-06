@@ -29,7 +29,7 @@ final readonly class SignUpGuest
     public function __invoke(): NewGuest
     {
         $now = $this->clock->now();
-        $user = User::signUpGuest(UserId::generate(), $now);
+        $user = User::signUp(UserId::generate(), $now);
         $token = DeviceToken::generate();
 
         $this->transaction->run(function () use ($user, $token, $now): void {

@@ -15,6 +15,12 @@ export default defineConfig({
     timezoneId: 'Europe/Kyiv',
     trace: 'retain-on-failure',
   },
+  // A fake Google for signing in (§23): the app container finds it at the same address.
+  webServer: {
+    command: 'node fake-google.mjs',
+    url: 'http://localhost:9100/health',
+    reuseExistingServer: false,
+  },
   // §18: phones with Chrome and Safari (WebKit) and a desktop.
   projects: [
     { name: 'Mobile Chrome', use: { ...devices['Pixel 7'] } },

@@ -39,6 +39,14 @@ final readonly class DeviceCookieRenewal
         $request->attributes->set(self::FORGET, true);
     }
 
+    // The browser of the request, as the device cookie found it.
+    public static function deviceOf(Request $request): ?Device
+    {
+        $device = $request->attributes->get(self::DEVICE);
+
+        return $device instanceof Device ? $device : null;
+    }
+
     public function __invoke(ResponseEvent $event): void
     {
         $request = $event->getRequest();

@@ -8,6 +8,9 @@ services:
       APP_ENV: dev
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
       DEFAULT_URI: http://localhost:${HTTP_PORT:-8080}
+      # A client of the development project of Google Cloud from .env (section 11 of the plan).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     ports:
       - ${HTTP_PORT:-8080}:80
     volumes:

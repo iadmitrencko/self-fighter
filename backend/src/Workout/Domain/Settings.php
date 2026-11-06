@@ -35,6 +35,17 @@ final class Settings
         $this->updatedAt = $now;
     }
 
+    // §23.3: a guest brings the modes the account has not set up yet; the rest stay as the account had them.
+    public function takeMissingFrom(self $other, \DateTimeImmutable $now): void
+    {
+        $missing = array_diff_key($other->configurations, $this->configurations);
+
+        if ([] !== $missing) {
+            $this->configurations += $missing;
+            $this->updatedAt = $now;
+        }
+    }
+
     /**
      * @return array<string, array<mixed>>
      */
