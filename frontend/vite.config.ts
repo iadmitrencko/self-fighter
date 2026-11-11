@@ -19,6 +19,8 @@ export default defineConfig({
     rolldownOptions: {
       input: {
         app: './src/app/main.tsx',
+        // §24: the cossack game under /game.
+        kozak: './src/app/kozak/main.tsx',
         site: './src/site/main.ts',
       },
     },

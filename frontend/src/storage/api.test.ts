@@ -6,7 +6,7 @@ import { createBrowserBuffer, type BrowserBuffer } from './buffer';
 import type { GameStorage } from './contract';
 import { StorageError } from './errors';
 import { newId } from './ids';
-import { finishedAttempt } from './testing/attempts';
+import { finishedAttempt, levelAttempt } from './testing/attempts';
 import { createFakeServer, type FakeServer } from './testing/fakeServer';
 
 describe('storage over the API', () => {
@@ -219,6 +219,67 @@ describe('storage over the API', () => {
       expect(await storage.attempts.get(attempt.id)).toBeNull();
       expect(storage.activeSession.load()).toBeNull();
       expect(server.guests).toBe(0);
+    });
+  });
+
+  // §24, §15.4: a battle of the game starts and ends without the network.
+  describe('the record of the game without the network', () => {
+    const won = (level: string, finishedAt: string, energyFullAt: string) =>
+      levelAttempt(level, 'win', finishedAt, energyFullAt);
+
+    it('counts a battle that waits for the network with what the server said last', async () => {
+      await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
+      await storage.attempts.flush();
+      expect((await storage.attempts.game()).passed).toEqual(['forest-ravens/1/1']);
+
+      server.online = false;
+      await storage.attempts.save(won('forest-ravens/1/2', '2026-11-02T11:00:00.000Z', '2026-11-02T20:00:00.000Z'));
+      await storage.attempts.flush();
+
+      expect(await storage.attempts.game()).toMatchObject({
+        campaign: { wins: 2, draws: 0, losses: 0 },
+        passed: ['forest-ravens/1/1', 'forest-ravens/1/2'],
+        energy: { fight: null, campaign: '2026-11-02T20:00:00.000Z' },
+      });
+    });
+
+    it('needs the server once before it can count without it', async () => {
+      await storage.settings.save(targetConfig());
+      server.online = false;
+
+      await expect(storage.attempts.game()).rejects.toEqual(new StorageError('offline'));
+    });
+
+    it('does not take a failure of the server for a missing network', async () => {
+      await storage.settings.save(targetConfig());
+      await storage.attempts.game();
+      server.failNext(500);
+
+      await expect(storage.attempts.game()).rejects.toEqual(new StorageError('server'));
+    });
+
+    it('asks nothing while the browser has no user', async () => {
+      expect((await storage.attempts.game()).passed).toEqual([]);
+      expect(server.requests).not.toContain('GET /api/v1/game');
+    });
+
+    it('starts over when the server no longer knows the browser', async () => {
+      await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
+      await storage.attempts.flush();
+      server.clearCookie();
+
+      expect((await storage.attempts.game()).passed).toEqual([]);
+    });
+
+    it('forgets the record of the previous user', async () => {
+      await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
+      await storage.attempts.flush();
+      await storage.attempts.game();
+      await storage.account.deleteData();
+      await storage.settings.save(targetConfig());
+      server.online = false;
+
+      await expect(storage.attempts.game()).rejects.toEqual(new StorageError('offline'));
     });
   });
 

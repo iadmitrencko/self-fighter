@@ -3,8 +3,10 @@ import { Link } from 'react-router';
 import type { Mode } from '../../domain/config/types';
 import type { Attempt } from '../../domain/history/attempt';
 import type { Statistics } from '../../domain/history/statistics';
+import { levelPlace } from '../../domain/kozak/place';
 import type { Outcome } from '../../domain/results/results';
 import { formatShortDateTime } from '../../i18n/format';
+import { campaignName, journeyHistoryTexts, levelName } from '../../i18n/kozak-names';
 import { commonTexts, historyTexts, modeNames, outcomeTexts, signInTexts } from '../../i18n/uk';
 import type { AttemptFilter, StoredAttempt } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
@@ -225,6 +227,18 @@ function FilterGroup<TValue extends string>({
 }
 
 function details(attempt: Attempt): string {
+  if (attempt.mode === 'campaign') {
+    const place = levelPlace(attempt.config.level);
+    const { sets } = attempt.result;
+
+    return journeyHistoryTexts.level(
+      campaignName(place?.campaign ?? '') ?? '',
+      place?.stage ?? 0,
+      levelName(attempt.config.level),
+      sets.filter(({ done }) => done).length,
+      sets.length,
+    );
+  }
   if (attempt.mode === 'ladder') {
     const { config, result } = attempt;
 
@@ -249,7 +263,9 @@ function HistoryItem({ stored: { attempt, status } }: { stored: StoredAttempt })
   return (
     <li className="history__item">
       <Link className="history__link" to={paths.result(attempt.id)}>
-        <span className="history__mode">{modeNames[attempt.mode]}</span>
+        <span className="history__mode">
+          {attempt.mode === 'campaign' ? journeyHistoryTexts.journey : modeNames[attempt.mode]}
+        </span>
         <span className="history__details">{details(attempt)}</span>
         {attempt.challenge !== null && (
           <span className={`history__challenge${attempt.result.outcome === 'win' ? ' history__challenge--passed' : ''}`}>

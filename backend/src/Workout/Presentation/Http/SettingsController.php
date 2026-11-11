@@ -36,7 +36,8 @@ final readonly class SettingsController
         return Json::response((object) ($this->findSettings)($user));
     }
 
-    #[Route('/api/v1/settings/{mode}', name: 'api_settings_save', methods: ['PUT'], requirements: ['mode' => new EnumRequirement(Mode::class)])]
+    // The levels of the journey have no settings, so the address knows the modes of the site only.
+    #[Route('/api/v1/settings/{mode}', name: 'api_settings_save', methods: ['PUT'], requirements: ['mode' => new EnumRequirement([Mode::Target, Mode::RandomOpponent, Mode::OpponentLevels, Mode::Ladder])])]
     public function save(Mode $mode, Request $request, UserId $user): Response
     {
         ($this->saveSettings)($user, $mode, JsonBody::read($request, self::MAX_BYTES));

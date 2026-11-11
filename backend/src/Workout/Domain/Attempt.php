@@ -22,6 +22,9 @@ final class Attempt
         private readonly Mode $mode,
         private readonly Outcome $outcome,
         private readonly ?string $challenge,
+        private readonly ?GamePool $pool,
+        private readonly ?string $level,
+        private readonly ?\DateTimeImmutable $energyFullAt,
         private readonly int $schemaVersion,
         private readonly \DateTimeImmutable $finishedAt,
         private readonly array $document,
@@ -44,12 +47,34 @@ final class Attempt
         $schemaVersion = $document['schemaVersion'] ?? null;
         // The slug of a ready-made challenge, so the statistics can count the ones passed (§21.3).
         $challenge = \is_array($document['challenge'] ?? null) ? self::text($document['challenge']['slug'] ?? null) : '';
+        // §24: a battle of the game names its pool of energy and the moment that pool is full again,
+        // and a level of the journey names its level, so the record of the game is counted in SQL.
+        $game = $document['game'] ?? null;
+        $pool = \is_array($game) ? GamePool::tryFrom(self::text($game['pool'] ?? null)) : null;
+        $energyFullAt = \is_array($game) ? Instant::parse(self::text($game['energyFullAt'] ?? null)) : null;
+        $config = \is_array($document['config'] ?? null) ? $document['config'] : [];
+        $level = Mode::Campaign === $mode ? self::text($config['level'] ?? null) : '';
 
         if (null === $id || null === $mode || null === $outcome || null === $finishedAt || !\is_int($schemaVersion)) {
             return null;
         }
+        if ((\is_array($game) && (null === $pool || null === $energyFullAt)) || (Mode::Campaign === $mode && (GamePool::Campaign !== $pool || '' === $level))) {
+            return null;
+        }
 
-        return new self($id, $owner, $mode, $outcome, '' === $challenge ? null : $challenge, $schemaVersion, $finishedAt, $document);
+        return new self(
+            $id,
+            $owner,
+            $mode,
+            $outcome,
+            '' === $challenge ? null : $challenge,
+            $pool,
+            '' === $level ? null : $level,
+            $energyFullAt,
+            $schemaVersion,
+            $finishedAt,
+            $document,
+        );
     }
 
     public function id(): AttemptId
@@ -65,6 +90,21 @@ final class Attempt
     public function challenge(): ?string
     {
         return $this->challenge;
+    }
+
+    public function pool(): ?GamePool
+    {
+        return $this->pool;
+    }
+
+    public function level(): ?string
+    {
+        return $this->level;
+    }
+
+    public function energyFullAt(): ?\DateTimeImmutable
+    {
+        return $this->energyFullAt;
     }
 
     /**

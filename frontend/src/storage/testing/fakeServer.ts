@@ -2,6 +2,7 @@ import { exerciseNameKey } from '../../domain/catalog/exercise';
 import type { Mode } from '../../domain/config/types';
 import type { Attempt } from '../../domain/history/attempt';
 import { computeStatistics } from '../../domain/history/statistics';
+import { computeGameRecord } from '../../domain/kozak/record';
 import type { Outcome } from '../../domain/results/results';
 import { isRecord } from '../buffer';
 import type { AttemptFilter, CustomExercise, Settings } from '../contract';
@@ -189,6 +190,8 @@ export function createFakeServer(): FakeServer {
           200,
           computeStatistics(user.attempts.filter((attempt) => matches(attempt, filterOf(url.searchParams)))),
         );
+      case 'GET game':
+        return reply(200, computeGameRecord(user.attempts));
       default:
         return reply(404, { error: 'not-found' });
     }

@@ -16,6 +16,7 @@ site:
   og_image_alt: Self-Fighter — тренування у форматі гри
   nav:
     label: Головна навігація
+    game: Гра
     challenges: Виклики
     modes: Режими
     exercises: Вправи
@@ -212,6 +213,9 @@ guide_page:
 
 workout:
   noscript: Гра працює в браузері з увімкненим JavaScript.
+
+kozak:
+  title: Гра
 
 error:
   code: Помилка %code%

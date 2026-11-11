@@ -22,12 +22,13 @@ final class Documents
         $pushUps = ['id' => 'push-ups', 'name' => 'Віджимання'];
 
         return array_replace([
-            'schemaVersion' => 2,
+            'schemaVersion' => 3,
             'id' => AttemptId::generate()->value,
             'startedAt' => '2026-11-02T10:00:00.000Z',
             'finishedAt' => $finishedAt,
             'durationMs' => 1_104_000,
             'challenge' => null,
+            'game' => null,
             'mode' => 'target',
             'config' => self::targetConfig(),
             'result' => [
@@ -53,12 +54,13 @@ final class Documents
     public static function ladder(string $outcome = 'win', string $finishedAt = '2026-11-02T10:05:00.000Z', array $overrides = []): array
     {
         return array_replace([
-            'schemaVersion' => 2,
+            'schemaVersion' => 3,
             'id' => AttemptId::generate()->value,
             'startedAt' => '2026-11-02T10:00:00.000Z',
             'finishedAt' => $finishedAt,
             'durationMs' => 300_000,
             'challenge' => null,
+            'game' => null,
             'mode' => 'ladder',
             'config' => self::ladderConfig(),
             'result' => [
@@ -71,6 +73,55 @@ final class Documents
                 'outcome' => $outcome,
             ],
         ], $overrides);
+    }
+
+    /**
+     * §24.5: a level of the journey. Every set but the last is done unless the level is won.
+     *
+     * @param list<int>            $sets
+     * @param array<string, mixed> $overrides
+     *
+     * @return array<string, mixed>
+     */
+    public static function level(
+        string $level = 'forest-ravens/1/1',
+        string $outcome = 'win',
+        string $energyFullAt = '2026-11-02T15:00:00.000Z',
+        array $sets = [1, 1, 1],
+        array $overrides = [],
+    ): array {
+        $last = \count($sets) - 1;
+
+        return array_replace([
+            'schemaVersion' => 3,
+            'id' => AttemptId::generate()->value,
+            'startedAt' => '2026-11-02T10:00:00.000Z',
+            'finishedAt' => '2026-11-02T10:06:00.000Z',
+            'durationMs' => 360_000,
+            'challenge' => null,
+            'game' => self::game('campaign', $energyFullAt),
+            'mode' => 'campaign',
+            'config' => [
+                'mode' => 'campaign',
+                'level' => $level,
+                'exercise' => ['id' => 'pull-ups', 'name' => 'Підтягування'],
+                'sets' => $sets,
+            ],
+            'result' => [
+                'sets' => array_map(static fn (int $reps, int $index): array => ['target' => $reps, 'done' => 'win' === $outcome || $index < $last], $sets, array_keys($sets)),
+                'outcome' => $outcome,
+            ],
+        ], $overrides);
+    }
+
+    /**
+     * §24.4: the pool of energy a battle of the game took and the moment it is full again.
+     *
+     * @return array{pool: string, energyFullAt: string}
+     */
+    public static function game(string $pool = 'fight', string $energyFullAt = '2026-11-02T12:00:00.000Z'): array
+    {
+        return ['pool' => $pool, 'energyFullAt' => $energyFullAt];
     }
 
     /**

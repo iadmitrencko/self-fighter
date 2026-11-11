@@ -7,6 +7,7 @@ export type RoundOutcome = Outcome;
 export type FightOutcome = Outcome;
 export type ExerciseOutcome = Exclude<Outcome, 'draw'>;
 export type LadderOutcome = Exclude<Outcome, 'draw'>;
+export type CampaignOutcome = Exclude<Outcome, 'draw'>;
 
 export interface ExerciseResult {
   readonly exercise: ExerciseRef;
@@ -84,6 +85,23 @@ export function computeFightResult(stages: readonly FightStage[]): FightResult {
   const lost = count('loss');
 
   return { rounds, won, drawn: count('draw'), lost, outcome: decide(won, lost) };
+}
+
+export interface CampaignSetResult {
+  readonly target: number;
+  readonly done: boolean;
+}
+
+// §24.5: a level of the journey is won when every set is done.
+export interface CampaignResult {
+  readonly sets: readonly CampaignSetResult[];
+  readonly outcome: CampaignOutcome;
+}
+
+export function computeCampaignResult(stages: readonly Stage[]): CampaignResult {
+  const sets = stages.map((stage) => ({ target: stage.target, done: stagePassed(stage) }));
+
+  return { sets, outcome: sets.every(({ done }) => done) ? 'win' : 'loss' };
 }
 
 export function computeLadderResult(stages: readonly Stage[]): LadderResult {

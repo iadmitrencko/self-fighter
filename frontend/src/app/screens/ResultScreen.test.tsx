@@ -6,11 +6,11 @@ import { play, randomOpponentConfig, testDeps } from '../../domain/testing/fixtu
 import { createApiStorage } from '../../storage/api';
 import { createBrowserBuffer } from '../../storage/buffer';
 import { createMemoryStorage } from '../../storage/memory';
-import { finishedAttempt } from '../../storage/testing/attempts';
+import { finishedAttempt, levelAttempt } from '../../storage/testing/attempts';
 import { createFakeServer } from '../../storage/testing/fakeServer';
 import { renderGame } from '../testing/render';
 
-async function saved(attempt: ReturnType<typeof finishedAttempt>) {
+async function saved(attempt: Parameters<ReturnType<typeof createMemoryStorage>['attempts']['save']>[0]) {
   const storage = createMemoryStorage();
   await storage.attempts.save(attempt);
 
@@ -18,6 +18,19 @@ async function saved(attempt: ReturnType<typeof finishedAttempt>) {
 }
 
 describe('result of an attempt', () => {
+  // §24.5: the game tells the story of a level; the site shows how it went and leads there.
+  it('leads to the game for a level of the journey', async () => {
+    const attempt = levelAttempt('forest-ravens/1/1', 'win', '2026-10-29T17:42:00.000Z', '2026-10-29T22:00:00.000Z');
+    renderGame(`/result/${attempt.id}`, { storage: await saved(attempt) });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Перемога' })).toBeTruthy();
+    expect(screen.getByText('Лісові круки')).toBeTruthy();
+    expect(screen.getByText('Перше випробування')).toBeTruthy();
+    expect(screen.getByText('3 / 3')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Відкрити в грі' }).getAttribute('href')).toBe(`/game/journey/result/${attempt.id}`);
+    expect(screen.queryByRole('button', { name: 'Повторити' })).toBeNull();
+  });
+
   // §13.2: rounds, exercises and the counts of won, drawn and lost rounds.
   it('shows every round of a fight', async () => {
     const attempt = finishedAttempt('draw', '2026-10-29T17:42:00.000Z');

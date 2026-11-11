@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
-import { nextStageIndex, submitResult, type Session } from '../../domain/engine/session';
+import { nextStageIndex, submitResult, type WorkoutSession } from '../../domain/engine/session';
 import { finalize } from '../../domain/history/attempt';
+import { retreat } from '../../domain/kozak/battle';
 import { commonTexts, fightTexts } from '../../i18n/uk';
+import { useArena } from '../arena';
 import { ConfirmDialog, Dialog } from '../components/Dialog';
 import { useGame } from '../game';
-import { paths } from '../paths';
 import { FightScreen } from './FightScreen';
 import { LadderScreen } from './LadderScreen';
 
@@ -15,30 +16,32 @@ import { LadderScreen } from './LadderScreen';
  */
 export function WorkoutScreen() {
   const { storage, analytics, deps } = useGame();
+  const arena = useArena();
   const navigate = useNavigate();
   // finish() removes a finished session, so one left here is still in progress.
   const [session, setSession] = useState(() => {
-    const loaded = storage.activeSession.load();
+    const loaded = arena.session.load();
 
     return loaded !== null && nextStageIndex(loaded) !== null ? loaded : null;
   });
   const [interrupting, setInterrupting] = useState(false);
-  const [unsaved, setUnsaved] = useState<Session | null>(null);
+  const [unsaved, setUnsaved] = useState<WorkoutSession | null>(null);
   const finishing = useRef(false);
 
   if (session === null) {
-    return <Navigate to={paths.modes} replace />;
+    return <Navigate to={arena.paths.modes} replace />;
   }
 
   // The attempt waits in the browser before the result shows, so nothing is lost offline (§15.4).
-  const finish = (finished: Session) => {
+  const finish = (finished: WorkoutSession) => {
     const attempt = finalize(finished, deps.now());
 
     storage.attempts.save(attempt).then(
       () => {
         analytics.track({ name: 'workout_completed', mode: attempt.mode, outcome: attempt.result.outcome });
-        storage.activeSession.clear();
-        void navigate(paths.result(attempt.id), { replace: true });
+        arena.session.clear();
+        // The result knows it follows the attempt, so it may tell what the attempt has just changed.
+        void navigate(arena.paths.result(attempt.id), { replace: true, state: { fresh: true } });
       },
       () => {
         finishing.current = false;
@@ -57,7 +60,7 @@ export function WorkoutScreen() {
     const next = submitResult(session, index, reps);
 
     if (nextStageIndex(next) !== null) {
-      storage.activeSession.save(next);
+      arena.session.save(next);
       setSession(next);
 
       return true;
@@ -69,8 +72,15 @@ export function WorkoutScreen() {
   };
 
   const interrupt = () => {
-    storage.activeSession.clear();
-    void navigate(paths.modes, { replace: true });
+    if (arena.leaving.kind === 'retreat') {
+      setInterrupting(false);
+      finishing.current = true;
+      finish(retreat(session));
+
+      return;
+    }
+    arena.session.clear();
+    void navigate(arena.paths.modes, { replace: true });
   };
 
   return (
@@ -82,10 +92,10 @@ export function WorkoutScreen() {
       )}
       {interrupting && (
         <ConfirmDialog
-          title={fightTexts.interruptTitle}
-          text={fightTexts.interruptText}
-          cancel={fightTexts.keepGoing}
-          confirm={fightTexts.interrupt}
+          title={arena.leaving.title}
+          text={arena.leaving.text}
+          cancel={arena.leaving.cancel}
+          confirm={arena.leaving.confirm}
           onConfirm={interrupt}
           onCancel={() => setInterrupting(false)}
         />

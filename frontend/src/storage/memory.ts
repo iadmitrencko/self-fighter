@@ -1,8 +1,10 @@
 import { exerciseNameKey } from '../domain/catalog/exercise';
-import type { Session } from '../domain/engine/session';
+import { isCampaignSession, isWorkoutSession, type Session } from '../domain/engine/session';
 import type { Attempt } from '../domain/history/attempt';
 import { computeStatistics } from '../domain/history/statistics';
+import { computeGameRecord } from '../domain/kozak/record';
 import type {
+  ActiveSessionStore,
   AccountUser,
   CurrentUser,
   CustomExercise,
@@ -41,7 +43,24 @@ export function createMemoryStorage(): MemoryStorage {
   // The user of this browser and the guest it keeps beside a signed-in account.
   let current: string | null = null;
   let kept: string | null = null;
-  let session: Session | null = null;
+  // The workout of the site and the battles of the game in progress.
+  const sessions = new Map<string, Session>();
+  const sessionStore = <TSession extends Session>(
+    key: string,
+    kind: (session: Session) => session is TSession,
+  ): ActiveSessionStore<TSession> => ({
+    load() {
+      const session = sessions.get(key);
+
+      return session !== undefined && kind(session) ? session : null;
+    },
+    save(value) {
+      sessions.set(key, structuredClone(value));
+    },
+    clear() {
+      sessions.delete(key);
+    },
+  });
 
   const person = (): Person | null => (current === null ? null : (people.get(current) ?? null));
   const now = () => new Date().toISOString();
@@ -142,7 +161,7 @@ export function createMemoryStorage(): MemoryStorage {
         }
         current = kept;
         kept = null;
-        session = null;
+        sessions.clear();
 
         return Promise.resolve();
       },
@@ -173,7 +192,7 @@ export function createMemoryStorage(): MemoryStorage {
         // A browser that kept its guest beside the account goes back to it.
         current = kept;
         kept = null;
-        session = null;
+        sessions.clear();
 
         return Promise.resolve();
       },
@@ -250,18 +269,15 @@ export function createMemoryStorage(): MemoryStorage {
       },
       stats: (filter = {}) =>
         Promise.resolve(computeStatistics((person()?.attempts ?? []).filter((attempt) => matches(attempt, filter)))),
+      game: () => Promise.resolve(computeGameRecord(person()?.attempts ?? [])),
       flush: () => Promise.resolve(),
       // Nothing waits: the memory is the server.
       unsent: () => Promise.resolve(0),
     },
-    activeSession: {
-      load: () => session,
-      save(current) {
-        session = structuredClone(current);
-      },
-      clear() {
-        session = null;
-      },
+    activeSession: sessionStore('workout', isWorkoutSession),
+    gameSessions: {
+      fight: sessionStore('fight', isWorkoutSession),
+      campaign: sessionStore('campaign', isCampaignSession),
     },
   };
 }

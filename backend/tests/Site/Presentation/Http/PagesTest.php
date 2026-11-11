@@ -78,7 +78,7 @@ final class PagesTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         self::assertSame(
-            ['/', '/challenges', '/modes', '/exercises', '/guides', '/about', '/workout', '/workout/history', '/workout/account', '/privacy'],
+            ['/', '/game', '/challenges', '/modes', '/exercises', '/guides', '/about', '/workout', '/workout/history', '/workout/account', '/privacy'],
             $crawler->filter('footer nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
         // §22: the decision changes as easily as it was made.
@@ -129,9 +129,74 @@ final class PagesTest extends WebTestCase
         self::assertSame($footer, $game->filter('footer')->html());
         self::assertSelectorExists('main #root');
         self::assertSame(
-            ['/challenges', '/modes', '/exercises', '/workout/history', '/workout/account', '/workout'],
+            ['/game', '/challenges', '/modes', '/exercises', '/workout/history', '/workout/account', '/workout'],
             $game->filter('header nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
+    }
+
+    // §24: the cossack game has the frame of the site, its own colors and its own record instead of the score.
+    public function testCossackGameLivesInTheFrameOfTheSite(): void
+    {
+        $client = self::createClient();
+        $site = $client->request('GET', '/');
+        $header = $site->filter('header')->html();
+        $game = $client->request('GET', '/game');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame($header, $game->filter('header')->html());
+        self::assertSame('kozak-page', $game->filter('body')->attr('class'));
+        self::assertSelectorExists('main #root');
+        self::assertSelectorNotExists('.score');
+        self::assertSelectorTextSame('title', 'Гра — Self-Fighter');
+        self::assertSame('noindex, follow', $game->filter('meta[name="robots"]')->attr('content'));
+        self::assertSame(
+            ['exercises' => [['id' => 'push-ups', 'name' => 'Віджимання'], ['id' => 'squats', 'name' => 'Присідання'], ['id' => 'pull-ups', 'name' => 'Підтягування']], 'signIn' => ['google']],
+            json_decode((string) $game->filter('#root')->attr('data-game'), true, 512, \JSON_THROW_ON_ERROR),
+        );
+    }
+
+    // §24: Symfony knows every screen of the cossack game as well.
+    public function testEveryScreenOfTheCossackGameHasItsAddress(): void
+    {
+        $client = self::createClient();
+        $screens = [
+            '/game',
+            '/game/fight',
+            '/game/fight/setup/target',
+            '/game/fight/setup/ladder',
+            '/game/fight/battle',
+            '/game/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
+            '/game/journey',
+            '/game/journey/forest-ravens',
+            '/game/journey/black-flag',
+            '/game/journey/forest-ravens/1',
+            '/game/journey/forest-ravens/10/7',
+            '/game/journey/battle',
+            '/game/journey/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
+        ];
+
+        foreach ($screens as $screen) {
+            $client->request('GET', $screen);
+
+            self::assertResponseIsSuccessful($screen);
+            self::assertSelectorExists('#root');
+        }
+
+        $unknown = [
+            '/game/fight/setup/boxing',
+            '/game/fight/result/42',
+            '/game/journey/white-swans',
+            '/game/journey/forest-ravens/0',
+            '/game/journey/forest-ravens/1/first',
+            '/game/journey/forest-ravens/1/1/1',
+            '/game/unknown',
+        ];
+
+        foreach ($unknown as $address) {
+            $client->request('GET', $address);
+
+            self::assertResponseStatusCodeSame(404, $address);
+        }
     }
 
     // §14.2: the score of the player stands on every page; the browser fills in its numbers.

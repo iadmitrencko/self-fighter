@@ -1,10 +1,10 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { createMemoryStorage } from '../../storage/memory';
-import { finishedAttempt } from '../../storage/testing/attempts';
+import { finishedAttempt, levelAttempt } from '../../storage/testing/attempts';
 import { renderGame } from '../testing/render';
 
-async function storageWith(...attempts: ReturnType<typeof finishedAttempt>[]) {
+async function storageWith(...attempts: Parameters<ReturnType<typeof createMemoryStorage>['attempts']['save']>[0][]) {
   const storage = createMemoryStorage();
 
   for (const attempt of attempts) {
@@ -26,6 +26,18 @@ function counts() {
 }
 
 describe('history', () => {
+  // §24.5: the levels of the journey are workouts as well; the history names them.
+  it('names a level of the journey of the game', async () => {
+    const storage = await storageWith(
+      levelAttempt('forest-ravens/1/2', 'loss', '2026-10-29T10:00:00.000Z', '2026-10-29T15:00:00.000Z'),
+    );
+    renderGame('/history', { storage });
+
+    const [item] = await screen.findAllByRole('listitem');
+    expect(within(item as HTMLElement).getByText('Похід')).toBeTruthy();
+    expect(within(item as HTMLElement).getByText('Лісові круки · етап 1 · «Лісова варта» · 0 з 4 підходів')).toBeTruthy();
+  });
+
   // §14.2: the total is always the sum of wins, draws and losses.
   it('lists every mode with the statistics of the whole history', async () => {
     const storage = await storageWith(

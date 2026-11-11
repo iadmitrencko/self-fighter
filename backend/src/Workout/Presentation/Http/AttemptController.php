@@ -11,6 +11,7 @@ use App\Shared\Presentation\Http\Json;
 use App\Shared\Presentation\Http\JsonBody;
 use App\Workout\Application\AttemptHistory;
 use App\Workout\Application\SaveAttempt;
+use App\Workout\Application\Tally;
 use App\Workout\Domain\Attempt;
 use App\Workout\Domain\AttemptFilter;
 use App\Workout\Domain\AttemptId;
@@ -24,7 +25,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 
 /**
- * The history (§14) and its statistics.
+ * The history (§14), its statistics and the record of the game (§24).
  */
 final readonly class AttemptController
 {
@@ -89,6 +90,20 @@ final readonly class AttemptController
             'draws' => $statistics->draws,
             'losses' => $statistics->losses,
             'challenges' => $statistics->challenges,
+        ]);
+    }
+
+    #[Route('/api/v1/game', name: 'api_game', methods: ['GET'])]
+    public function game(UserId $user): JsonResponse
+    {
+        $record = $this->history->game($user);
+        $tally = static fn (Tally $tally): array => ['wins' => $tally->wins, 'draws' => $tally->draws, 'losses' => $tally->losses];
+
+        return Json::response([
+            'fights' => $tally($record->fights),
+            'campaign' => $tally($record->campaign),
+            'passed' => $record->passed,
+            'energy' => array_map(static fn (?\DateTimeImmutable $time): ?string => null === $time ? null : Instant::format($time), $record->energy),
         ]);
     }
 

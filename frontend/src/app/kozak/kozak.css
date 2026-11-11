@@ -1,0 +1,2400 @@
+/*
+ * §24: the screens of the cossack game, from kozak_design/screens. Mobile first; the sections of
+ * the game stand on the left of a wide screen and as tabs above the screen of a phone. The
+ * fights reuse the screens of /workout in the colors of the game.
+ */
+@import '../app.css';
+@import '../../styles/kozak.css';
+
+/* Layout: the sections of the game and the screen */
+
+.kozak {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+  width: 100%;
+  max-width: calc(var(--page-width) + 2 * var(--page-gutter));
+  margin-inline: auto;
+  padding: 0 var(--page-gutter) var(--space-3xl);
+}
+
+.kozak__aside {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding: var(--space-xs) var(--page-gutter);
+  border-bottom: 1px solid var(--k-line);
+  background: var(--k-bg);
+}
+
+.kozak-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+
+.kozak-nav__link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: var(--k-hit);
+  padding: 0 var(--space-s);
+  border-radius: var(--k-r-btn);
+  color: var(--k-ash);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.kozak-nav__link:hover {
+  background: var(--k-line-soft);
+  color: var(--k-parchment);
+}
+
+.kozak-nav__link[aria-current='page'] {
+  background: var(--k-badge-open-bg);
+  color: var(--k-gold-light);
+}
+
+.kozak-nav__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+}
+
+.kozak-status {
+  display: none;
+}
+
+.kozak__main {
+  min-width: 0;
+}
+
+/* The screens of /workout keep their own width inside the column of the game. */
+.kozak .screen {
+  max-width: none;
+  padding: 0;
+}
+
+@media (min-width: 64rem) {
+  .kozak {
+    display: grid;
+    grid-template-columns: 13.5rem minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-2xl);
+    padding-top: var(--space-xl);
+  }
+
+  .kozak__aside {
+    top: var(--space-l);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-l);
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .kozak-nav {
+    grid-template-columns: none;
+  }
+
+  .kozak-nav__link {
+    justify-content: flex-start;
+    gap: var(--space-s);
+    padding: 0 var(--space-m);
+    font-size: var(--text-base);
+  }
+
+  .kozak-status {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
+    padding: var(--space-m);
+    border: 1px solid var(--k-line);
+    border-radius: var(--k-r-card);
+    background: var(--k-surface-2);
+  }
+
+  .kozak-status__rank,
+  .kozak-status__glory {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .kozak-status__rank b {
+    font-family: var(--k-font-display);
+    font-size: 1.5rem;
+    line-height: 1.1;
+  }
+
+  .kozak-status__glory b {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--k-gold-light);
+    font-size: 1.25rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kozak-status__icon {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+}
+
+/* Text */
+
+.k-screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+.k-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.k-eyebrow {
+  color: var(--k-ash);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: var(--k-tracking-label);
+  text-transform: uppercase;
+}
+
+.k-eyebrow--gold {
+  color: var(--k-gold);
+}
+
+.k-eyebrow--ember {
+  color: var(--k-ember);
+}
+
+.k-eyebrow--pine {
+  color: var(--k-pine-text);
+}
+
+.k-title {
+  font-family: var(--k-font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.02;
+}
+
+.k-title--display {
+  font-size: 2.625rem;
+}
+
+.k-lead {
+  max-width: 40rem;
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  line-height: 1.55;
+}
+
+.k-loading {
+  color: var(--k-ash);
+}
+
+@media (min-width: 48rem) {
+  .k-eyebrow {
+    font-size: 0.75rem;
+  }
+
+  .k-title {
+    font-size: 2.75rem;
+  }
+
+  .k-title--display {
+    font-size: 3.5rem;
+  }
+
+  .k-lead {
+    font-size: var(--text-m);
+  }
+
+  .k-head--wide {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-2xl);
+  }
+
+  .k-head__titles {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+}
+
+/* Buttons: gold for the main action, red for a boss, grey for what is locked */
+
+.k-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: var(--k-hit);
+  padding: 0 var(--space-l);
+  border: 1px solid transparent;
+  border-radius: var(--k-r-btn);
+  font-family: var(--font-text);
+  font-size: var(--text-m);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.k-button--large {
+  min-height: var(--k-btn-h);
+  font-size: var(--text-base);
+}
+
+.k-button--primary {
+  background: var(--k-gold);
+  color: var(--k-text-on-gold);
+}
+
+.k-button--primary:hover {
+  background: var(--k-gold-light);
+  color: var(--k-text-on-gold);
+}
+
+.k-button--secondary {
+  border-color: var(--k-line-strong);
+  background: transparent;
+  color: var(--k-parchment);
+  font-weight: 600;
+}
+
+.k-button--secondary:hover {
+  border-color: var(--k-parchment);
+  color: var(--k-parchment);
+}
+
+.k-button--boss {
+  background: var(--k-blood);
+  color: var(--k-boss-text);
+}
+
+.k-button--boss:hover {
+  background: var(--k-ember);
+  color: var(--k-text-on-gold);
+}
+
+.k-button--locked,
+.k-button:disabled {
+  background: var(--k-surface-raised);
+  color: var(--k-disabled-text);
+  font-weight: 600;
+  cursor: not-allowed;
+}
+
+.k-button--text {
+  background: transparent;
+  color: var(--k-parchment);
+  font-weight: 600;
+}
+
+.k-button--text:hover {
+  color: var(--k-gold-light);
+}
+
+.k-button__icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+}
+
+.k-button__icon--forward {
+  transform: rotate(180deg);
+}
+
+.k-back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding: 0 var(--space-m) 0 0.625rem;
+  border-radius: var(--radius-s);
+  background: var(--k-line-soft);
+  color: var(--k-parchment);
+  font-size: var(--text-m);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.k-back:hover {
+  color: var(--k-gold-light);
+}
+
+.k-back__icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.k-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-s);
+}
+
+.k-actions--stack {
+  flex-direction: column;
+}
+
+.k-refusal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.k-refusal__text {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+.k-refusal__text--done {
+  color: var(--k-badge-done-fg);
+}
+
+/* Cards, badges, bars */
+
+.k-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  padding: var(--space-l);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-card);
+  background: var(--k-surface);
+}
+
+.k-card--active {
+  border-color: var(--k-line-active);
+}
+
+.k-card--locked {
+  align-items: flex-start;
+}
+
+.k-card__title {
+  font-family: var(--k-font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.k-card__text,
+.k-card__note {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+.k-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 1.75rem;
+  padding: 0 var(--space-s);
+  border-radius: var(--k-r-pill);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.k-badge__icon {
+  width: 0.8125rem;
+  height: 0.8125rem;
+}
+
+.k-badge--done {
+  background: var(--k-badge-done-bg);
+  color: var(--k-badge-done-fg);
+}
+
+.k-badge--open {
+  background: var(--k-badge-open-bg);
+  color: var(--k-badge-open-fg);
+}
+
+.k-badge--locked {
+  background: var(--k-badge-lock-bg);
+  color: var(--k-badge-lock-fg);
+}
+
+.k-badge--boss {
+  background: var(--k-badge-boss-bg);
+  color: var(--k-badge-boss-fg);
+}
+
+.k-bar {
+  height: 0.375rem;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--k-surface-raised);
+}
+
+.k-bar--thin {
+  height: 0.3125rem;
+}
+
+.k-bar__fill {
+  display: block;
+  width: max(var(--share), 2%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--k-gold);
+}
+
+/* Energy */
+
+.k-energy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-m);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-card);
+  background: var(--k-surface-2);
+}
+
+.k-energy--compact {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.k-energy__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-s);
+}
+
+.k-energy__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--text-s);
+  font-weight: 700;
+}
+
+.k-energy__icon {
+  width: 0.9375rem;
+  height: 0.9375rem;
+  color: var(--k-gold);
+}
+
+.k-energy__value {
+  font-size: var(--text-m);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-energy__cells {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0.25rem;
+}
+
+.k-energy__cell {
+  height: 0.5rem;
+  border-radius: 4px;
+  background: var(--k-surface-raised);
+}
+
+.k-energy__cell--full {
+  background: var(--k-gold);
+}
+
+.k-energy__note {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-energy--empty .k-energy__value {
+  color: var(--k-ember-soft);
+}
+
+.k-energies {
+  display: grid;
+  gap: var(--space-s);
+}
+
+@media (min-width: 48rem) {
+  .k-energies {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The cossack */
+
+.k-cossack__body,
+.k-cossack__more {
+  display: grid;
+  gap: var(--space-l);
+  align-items: start;
+}
+
+.k-cossack__portrait {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--k-line-active);
+  border-radius: var(--k-r-card);
+  background: var(--k-surface);
+  box-shadow: var(--k-glow-card);
+}
+
+.k-figure {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+}
+
+.k-cossack__look {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--space-m) var(--space-l) var(--space-l);
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-cossack__look b {
+  color: var(--k-parchment);
+  font-family: var(--k-font-display);
+  font-size: 1.375rem;
+}
+
+.k-cossack__facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+  min-width: 0;
+}
+
+.k-glory__label {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  font-weight: 700;
+  letter-spacing: var(--k-tracking-label);
+  text-transform: uppercase;
+}
+
+.k-glory__value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  color: var(--k-gold-light);
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-glory__icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--k-gold);
+}
+
+.k-glory__next {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-tally {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+
+.k-tally__item {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.125rem;
+  padding: var(--space-s);
+  border-radius: var(--k-r-tile);
+  background: var(--k-tile);
+  text-align: center;
+}
+
+.k-tally__item dt {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-tally__item dd {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-tally__item--wins dd {
+  color: var(--k-gold-light);
+}
+
+.k-tally__item--losses dd {
+  color: var(--k-ember-soft);
+}
+
+.k-ranks {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.k-ranks__item {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-s);
+  min-height: 2.5rem;
+  padding: 0 var(--space-s);
+  border-radius: var(--k-r-tile);
+  color: var(--k-ash);
+}
+
+.k-ranks__item--look {
+  margin-top: var(--space-xs);
+  border-top: 1px solid var(--k-line);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.k-ranks__item--look:first-child {
+  margin-top: 0;
+  border-top: 0;
+}
+
+.k-ranks__item--done {
+  color: var(--k-parchment);
+}
+
+.k-ranks__item--current {
+  background: var(--k-badge-open-bg);
+  color: var(--k-gold-light);
+  font-weight: 700;
+}
+
+.k-ranks__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--k-surface-raised);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.k-ranks__item--done .k-ranks__mark {
+  background: var(--k-gold);
+  color: var(--k-text-on-gold);
+}
+
+.k-ranks__item--current .k-ranks__mark {
+  background: var(--k-forest);
+  color: var(--k-parchment);
+  box-shadow: 0 0 0 2px var(--k-gold);
+}
+
+.k-ranks__check {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.k-ranks__name {
+  font-family: var(--k-font-display);
+  font-size: 1.1875rem;
+  font-weight: 700;
+}
+
+.k-ranks__glory {
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.k-how {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.k-how__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-m);
+  min-height: 2.5rem;
+  padding: 0 var(--space-s);
+  border-radius: var(--k-r-tile);
+  background: var(--k-tile);
+}
+
+.k-how__item dd {
+  margin: 0;
+  color: var(--k-gold-light);
+  font-weight: 800;
+}
+
+@media (min-width: 48rem) {
+  .k-cossack__body {
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+  }
+
+  .k-cossack__more {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* The fights */
+
+.k-hall__body {
+  display: grid;
+  gap: var(--space-l);
+  align-items: start;
+}
+
+.k-hall__side,
+.k-hall__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+  min-width: 0;
+}
+
+@media (min-width: 64rem) {
+  .k-hall__body {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  }
+
+  .k-hall__side {
+    order: 2;
+  }
+}
+
+.k-glory-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--space-m);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-card);
+  background: var(--k-surface-2);
+}
+
+.k-glory-note--won {
+  border-color: var(--k-line-active);
+  background: var(--k-badge-open-bg);
+}
+
+.k-glory-note__value {
+  color: var(--k-gold-light);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.k-glory-note__text {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-glory-note__rank {
+  color: var(--k-parchment);
+}
+
+.k-glory-note__rank b {
+  color: var(--k-gold-light);
+  font-family: var(--k-font-display);
+  font-size: 1.375rem;
+}
+
+/* The journey: the cards of the campaigns */
+
+.k-campaigns {
+  display: grid;
+  gap: var(--space-s);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.k-campaign {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--k-line-soft);
+  border-radius: var(--k-r-card);
+  background: var(--k-surface-locked);
+}
+
+.k-campaign--open {
+  flex-direction: column;
+  border-color: var(--k-line-active);
+  background: var(--k-surface);
+  box-shadow: var(--k-glow-card);
+}
+
+.k-campaign__art {
+  position: relative;
+  flex: none;
+}
+
+.k-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.k-campaign--open .k-campaign__art {
+  height: 10.625rem;
+}
+
+/* A locked campaign is a row on a phone: a small picture under a veil, its name and a lock. */
+.k-campaign--locked {
+  align-items: center;
+  gap: var(--space-m);
+  padding: var(--space-s);
+}
+
+.k-campaign--locked .k-campaign__art {
+  width: 5.25rem;
+  height: 5.25rem;
+  overflow: hidden;
+  border-radius: var(--k-r-tile);
+}
+
+.k-campaign--locked .k-campaign__art::after {
+  position: absolute;
+  inset: 0;
+  background: var(--k-veil-art);
+  content: '';
+}
+
+.k-campaign__badge {
+  position: absolute;
+  top: var(--space-s);
+  left: var(--space-s);
+  z-index: 1;
+}
+
+.k-campaign--open .k-campaign__badge .k-badge {
+  border: 1px solid var(--k-gold-line);
+  background: var(--k-veil);
+}
+
+.k-campaign--locked .k-campaign__badge {
+  display: none;
+}
+
+.k-campaign__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-m) var(--space-m) var(--space-l);
+}
+
+.k-campaign--locked .k-campaign__body {
+  padding: 0;
+}
+
+.k-campaign__name {
+  font-family: var(--k-font-display);
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.k-campaign--locked .k-campaign__name {
+  color: var(--k-parchment-dim);
+  font-size: 1.375rem;
+}
+
+.k-campaign__exercise {
+  color: var(--k-gold);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.k-campaign--locked .k-campaign__exercise {
+  color: var(--k-ash);
+}
+
+.k-campaign__lead {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+.k-campaign__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.k-campaign__progress-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-campaign__progress-head b {
+  color: var(--k-parchment);
+}
+
+.k-campaign__go {
+  margin-top: var(--space-xs);
+  min-height: 3.25rem;
+}
+
+.k-campaign--locked .k-campaign__closed button {
+  display: none;
+}
+
+.k-campaign__hint {
+  display: inline-flex;
+  align-items: center;
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+@media (min-width: 48rem) {
+  .k-campaigns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-l);
+  }
+
+  .k-campaigns--final {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .k-campaign--open,
+  .k-campaign--locked {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+  }
+
+  .k-campaigns:not(.k-campaigns--final) .k-campaign__art {
+    width: auto;
+    height: 15rem;
+    border-radius: 0;
+  }
+
+  .k-campaigns:not(.k-campaigns--final) .k-campaign--locked .k-campaign__badge {
+    display: block;
+  }
+
+  .k-campaigns:not(.k-campaigns--final) .k-campaign--locked .k-campaign__body {
+    padding: var(--space-l) var(--space-l) var(--space-l);
+  }
+
+  .k-campaigns:not(.k-campaigns--final) .k-campaign--locked .k-campaign__name {
+    font-size: 2.125rem;
+  }
+
+  .k-campaigns:not(.k-campaigns--final) .k-campaign__closed button {
+    display: inline-flex;
+    width: 100%;
+    margin-top: auto;
+  }
+
+  .k-campaign__body {
+    padding: var(--space-l) var(--space-l) var(--space-l);
+  }
+
+  .k-campaign--open .k-campaign__name {
+    font-size: 2.125rem;
+  }
+
+  .k-campaign__lead {
+    font-size: var(--text-m);
+  }
+
+  /* The final battle stays a row: it waits for the three campaigns. */
+  .k-campaigns--final .k-campaign {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-l);
+    padding: var(--space-s);
+  }
+
+  .k-campaigns--final .k-campaign__art {
+    width: 6.5rem;
+    height: 6.5rem;
+  }
+}
+
+@media (min-width: 75rem) {
+  .k-campaigns:not(.k-campaigns--final) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .k-campaigns:not(.k-campaigns--final) .k-campaign__art {
+    height: 18.75rem;
+  }
+}
+
+/* Maps: the routes, the points and their labels */
+
+.k-map {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--k-r-card);
+  background: var(--k-map-ground);
+}
+
+.k-map__art {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.k-route {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.k-route--passed {
+  stroke: var(--k-gold);
+  stroke-width: 5;
+}
+
+.k-route--ahead {
+  stroke: var(--k-parchment);
+  stroke-dasharray: 2 10;
+  stroke-opacity: 0.45;
+  stroke-width: 3;
+}
+
+.k-map--tall .k-route--passed {
+  stroke-width: 4;
+}
+
+.k-pin {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.k-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--k-marker-locked);
+  height: var(--k-marker-locked);
+  padding: 0;
+  border: 2px solid var(--k-locked-ring);
+  border-radius: 50%;
+  background: var(--k-surface-raised);
+  color: var(--k-locked-number);
+  font-family: var(--font-text);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  text-decoration: none;
+  transform: translate(-50%, -50%);
+}
+
+a.k-marker,
+button.k-marker {
+  cursor: pointer;
+}
+
+/* A point is easy to hit: the area around it takes the tap too. */
+a.k-marker::before,
+button.k-marker::before {
+  position: absolute;
+  inset: -0.375rem;
+  content: '';
+}
+
+.k-marker--done {
+  width: var(--k-marker-done);
+  height: var(--k-marker-done);
+  border: 3px solid var(--k-gold-rim);
+  background: var(--k-gold);
+  color: var(--k-text-on-gold);
+  box-shadow: var(--k-shadow-marker);
+}
+
+.k-marker--current {
+  width: var(--k-marker-current);
+  height: var(--k-marker-current);
+  border: 3px solid var(--k-gold);
+  background: var(--k-forest);
+  color: var(--k-parchment);
+  font-size: 1.375rem;
+  box-shadow: var(--k-glow-current);
+}
+
+.k-marker--boss {
+  width: var(--k-marker-boss);
+  height: var(--k-marker-boss);
+  border-radius: 16px;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.k-marker--boss > * {
+  transform: rotate(-45deg);
+}
+
+.k-marker--boss.k-marker--locked {
+  border-color: var(--k-boss-locked-line);
+  background: var(--k-boss-locked);
+  color: var(--k-boss-locked-text);
+  opacity: 0.85;
+}
+
+.k-marker--boss.k-marker--current {
+  border-color: var(--k-ember);
+  background: var(--k-boss-current);
+  box-shadow: var(--k-glow-boss);
+}
+
+.k-marker--selected {
+  outline: 3px solid var(--k-parchment);
+  outline-offset: 5px;
+}
+
+.k-marker:focus-visible {
+  outline: 3px solid var(--k-parchment);
+  outline-offset: 5px;
+}
+
+.k-marker__check {
+  width: 1.375rem;
+  height: 1.375rem;
+  stroke-width: 3;
+}
+
+.k-marker__lock {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.k-marker__raven {
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--k-parchment);
+}
+
+.k-tag {
+  position: absolute;
+  padding: 0.25rem 0.5rem;
+  border-radius: 7px;
+  background: var(--k-veil);
+  color: var(--k-parchment);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.k-tag--below {
+  top: calc(var(--k-marker-current) / 2 + 0.5rem);
+  left: 0;
+  transform: translateX(-50%);
+}
+
+.k-tag--above {
+  bottom: calc(var(--k-marker-current) / 2 + 0.75rem);
+  left: 0;
+  transform: translateX(-50%);
+}
+
+.k-tag--right {
+  top: 0;
+  left: calc(var(--k-marker-current) / 2 + 0.5rem);
+  transform: translateY(-50%);
+}
+
+.k-tag--left {
+  top: 0;
+  right: calc(var(--k-marker-current) / 2 + 0.5rem);
+  transform: translateY(-50%);
+}
+
+.k-tag--locked {
+  color: var(--k-ash);
+}
+
+.k-tag--boss {
+  color: var(--k-boss-locked-text);
+}
+
+.k-tag--current {
+  background: var(--k-gold);
+  color: var(--k-text-on-gold);
+  font-weight: 800;
+}
+
+.k-tag--selected {
+  background: var(--k-parchment);
+  color: var(--k-text-on-gold);
+  font-weight: 800;
+}
+
+.k-tag__full {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  .k-tag {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8125rem;
+  }
+
+  .k-tag__full {
+    display: inline;
+  }
+
+  .k-tag__short {
+    display: none;
+  }
+}
+
+.k-maphead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.k-maphead__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.k-maphead__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.k-maphead__story {
+  max-width: 41rem;
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+.k-maphead__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.k-maphead__count {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-maphead__count b {
+  color: var(--k-parchment);
+  font-size: 1.25rem;
+}
+
+.k-maphead__count b span {
+  color: var(--k-ash);
+  font-size: var(--text-m);
+  font-weight: 600;
+}
+
+@media (min-width: 75rem) {
+  .k-maphead {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) 13rem;
+    align-items: center;
+    gap: var(--space-xl);
+    padding-bottom: var(--space-l);
+    border-bottom: 1px solid var(--k-line);
+  }
+
+  .k-maphead__story {
+    max-width: 46rem;
+  }
+}
+
+/* The map of a campaign: wide on a tablet and a desktop, tall on a phone */
+
+.k-campaign-screen__wide {
+  position: relative;
+  display: none;
+  flex-direction: column;
+  gap: var(--space-m);
+  container: wide-map / inline-size;
+}
+
+.k-campaign-screen__tall {
+  max-height: 70vh;
+  overflow-y: auto;
+  border-radius: var(--k-r-card);
+}
+
+.k-legend {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  display: flex;
+  gap: var(--space-m);
+  margin: 0;
+  padding: 0.625rem var(--space-m);
+  border-radius: var(--k-r-btn);
+  background: var(--k-veil);
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  list-style: none;
+}
+
+.k-legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.k-legend__item::before {
+  width: 0.875rem;
+  height: 0.875rem;
+  box-sizing: border-box;
+  border-radius: 50%;
+  content: '';
+}
+
+.k-legend__item--done::before {
+  background: var(--k-gold);
+}
+
+.k-legend__item--current::before {
+  border: 2px solid var(--k-gold);
+  background: var(--k-forest);
+}
+
+.k-legend__item--locked::before {
+  border: 2px solid var(--k-locked-ring);
+  background: var(--k-surface-raised);
+}
+
+/* Under a map narrower than the mockup the next stage is a row; on a map of its width it floats
+   in the corner the route leaves free. */
+.k-next {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-xs) var(--space-l);
+  padding: var(--space-m) var(--space-l);
+  border: 1px solid var(--k-gold-line-mid);
+  border-radius: var(--k-r-card);
+  background: var(--k-panel);
+}
+
+.k-next__eyebrow,
+.k-next__name,
+.k-next__levels {
+  grid-column: 1;
+}
+
+.k-next__open {
+  grid-row: 1 / span 3;
+  grid-column: 2;
+  min-width: 12rem;
+}
+
+@container wide-map (min-width: 75rem) {
+  .k-next {
+    position: absolute;
+    right: 1.75rem;
+    bottom: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    width: 22.5rem;
+    box-shadow: var(--k-shadow-card);
+  }
+}
+
+.k-next__name {
+  font-family: var(--k-font-display);
+  font-size: 1.75rem;
+  line-height: 1.05;
+}
+
+.k-next__levels {
+  display: flex;
+  justify-content: space-between;
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-next__levels b {
+  color: var(--k-parchment);
+}
+
+.k-next__text {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+.k-nextbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding: var(--space-m) var(--page-gutter) var(--space-l);
+  border-top: 1px solid var(--k-gold-line-soft);
+  background: var(--k-surface-2);
+}
+
+.k-nextbar__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.k-nextbar__name {
+  font-family: var(--k-font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+
+.k-nextbar__levels {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+@media (min-width: 48rem) {
+  .k-campaign-screen__wide {
+    display: flex;
+  }
+
+  .k-campaign-screen__tall,
+  .k-nextbar {
+    display: none;
+  }
+}
+
+/* The map of a stage and the card of its level */
+
+/* The picture of a stage covers its box, which may be taller than the picture on a desktop: the
+   points take the same scale and the same center. */
+.k-map--stage {
+  container-type: size;
+}
+
+.k-map--stage .k-pin {
+  --scale: max(100cqw / 1040, 100cqh / 768);
+
+  top: calc(50% + (var(--y) - 384) * var(--scale));
+  left: calc(50% + (var(--x) - 520) * var(--scale));
+}
+
+.k-stage {
+  display: grid;
+  gap: 0;
+}
+
+.k-stage__map .k-map {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.k-stage__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+}
+
+.k-stage__panel-label,
+.k-stage__hint {
+  display: none;
+}
+
+.k-level {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  padding: var(--space-m) var(--space-l) var(--space-l);
+  border-top: 1px solid var(--k-sheet-line);
+  border-radius: 20px 20px var(--k-r-card) var(--k-r-card);
+  background: var(--k-surface);
+}
+
+.k-level--boss {
+  border-top-color: var(--k-boss-sheet-line);
+  background: var(--k-boss-surface);
+  box-shadow: var(--k-boss-sheet-glow);
+}
+
+.k-level__portrait {
+  display: block;
+  width: 100%;
+  height: 8rem;
+  border: 2px solid var(--k-ember);
+  border-radius: 14px;
+}
+
+.k-level__name {
+  font-family: var(--k-font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.k-level__story {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+.k-level__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-level__locked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.k-level__hint {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  text-align: center;
+}
+
+.k-tiles {
+  display: grid;
+  /* The name of the exercise is the longest of the three. */
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.k-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  padding: var(--space-xs) 0.625rem;
+  border-radius: var(--k-r-tile);
+  background: var(--k-tile);
+}
+
+.k-tile dt {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-tile dd {
+  margin: 0;
+  overflow-wrap: break-word;
+  font-size: var(--text-s);
+  font-weight: 700;
+}
+
+@media (min-width: 75rem) {
+  /* The card stands beside the map and never covers it; the map stays in view beside a long card. */
+  .k-stage {
+    grid-template-columns: minmax(0, 1fr) 25rem;
+    align-items: start;
+    gap: var(--space-l);
+  }
+
+  .k-stage__map {
+    position: sticky;
+    top: var(--space-l);
+  }
+
+  .k-stage__map .k-map {
+    border-radius: var(--k-r-card);
+  }
+
+  .k-stage__panel {
+    padding: var(--space-l);
+    border: 1px solid var(--k-line);
+    border-radius: var(--k-r-card);
+    background: var(--k-surface-2);
+  }
+
+  .k-stage__panel-label,
+  .k-stage__hint {
+    display: block;
+  }
+
+  .k-stage__hint {
+    margin-top: auto;
+    color: var(--k-ash);
+    font-size: var(--text-s);
+  }
+
+  .k-level {
+    padding: var(--space-l);
+    border: 1px solid var(--k-line);
+    border-radius: var(--k-r-card);
+  }
+
+  .k-level--boss {
+    border-color: var(--k-line-boss);
+    box-shadow: var(--k-glow-boss-inset);
+  }
+
+  .k-level__portrait {
+    height: 11.875rem;
+    border: 0;
+  }
+
+  .k-level__name {
+    font-size: 2rem;
+  }
+
+  .k-level__story {
+    font-size: var(--text-m);
+  }
+
+  .k-tile {
+    padding: 0.625rem 0.75rem;
+  }
+}
+
+/* The task before the battle */
+
+.k-prep__layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+}
+
+.k-prep__scene {
+  position: relative;
+  height: 15.625rem;
+  margin-inline: calc(-1 * var(--page-gutter));
+  overflow: hidden;
+}
+
+.k-scene,
+.k-prep__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.k-prep__back {
+  position: absolute;
+  top: var(--space-s);
+  left: var(--space-s);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--k-scene-veil);
+  color: var(--k-parchment);
+}
+
+.k-prep__back-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.k-prep__crumbs {
+  position: absolute;
+  top: 1.375rem;
+  left: 4.125rem;
+  padding: 0.3125rem 0.625rem;
+  border-radius: var(--radius-s);
+  background: var(--k-scene-veil);
+  color: var(--k-parchment);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.k-prep__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.k-task {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  padding: var(--space-m);
+  border: 1px solid var(--k-line-soft);
+  border-radius: var(--k-r-card);
+  background: var(--k-surface);
+}
+
+.k-task__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-m);
+}
+
+.k-task__fact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-task__fact b {
+  color: var(--k-parchment);
+  font-size: 1.25rem;
+}
+
+.k-task__fact--total {
+  text-align: right;
+}
+
+.k-task__fact--total b {
+  color: var(--k-gold);
+}
+
+.k-task__sets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.k-task__set {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: var(--space-s) var(--space-xs);
+  border-radius: var(--k-r-btn);
+  background: var(--k-bg);
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-task__set b {
+  color: var(--k-parchment);
+  font-size: 1.625rem;
+  line-height: 1.1;
+}
+
+.k-task__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-prep__glory {
+  color: var(--k-gold-light);
+  font-weight: 700;
+}
+
+.k-prep__action {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding: var(--space-m) var(--page-gutter) var(--space-l);
+  background: linear-gradient(to bottom, transparent, var(--k-bg) 1rem);
+}
+
+.k-prep__action .k-button--large {
+  width: 100%;
+  min-height: 3.75rem;
+  border-radius: 14px;
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+@media (min-width: 64rem) {
+  .k-prep__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    gap: var(--space-l) var(--space-2xl);
+  }
+
+  .k-prep__scene {
+    grid-row: span 2;
+    height: auto;
+    min-height: 26rem;
+    margin: 0;
+    border-radius: var(--k-r-card);
+  }
+
+  .k-prep__action {
+    position: static;
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+}
+
+/* The battle: one column on any screen, the main button where the thumb rests */
+
+.k-battle {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: var(--space-m) var(--page-gutter) var(--space-l);
+  border: 0;
+  background: var(--k-bg-training);
+  color: var(--k-parchment-bright);
+}
+
+.k-battle[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.k-battle::backdrop {
+  background: var(--k-bg-training);
+}
+
+.k-battle > * {
+  width: 100%;
+  max-width: 36rem;
+  margin-inline: auto;
+}
+
+.k-battle__top {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.k-battle__title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.k-battle__name {
+  font-size: var(--text-s);
+  font-weight: 700;
+}
+
+.k-battle__exercise {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-battle__round {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--k-battle-line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--k-parchment-bright);
+  cursor: pointer;
+}
+
+.k-battle__round-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.k-battle__retreat {
+  flex: none;
+  min-height: 3rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--k-battle-line);
+  border-radius: 24px;
+  background: transparent;
+  color: var(--k-parchment-bright);
+  font: inherit;
+  font-size: var(--text-m);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.k-battle__segments {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+  gap: 0.375rem;
+  margin-top: 1.125rem;
+}
+
+.k-battle__segment {
+  height: 0.625rem;
+  border-radius: 5px;
+  background: var(--k-segment);
+}
+
+.k-battle__segment--done {
+  background: var(--k-gold);
+}
+
+.k-battle__segment--current {
+  background: var(--k-stripes-current);
+}
+
+.k-battle__count {
+  display: flex;
+  flex: none;
+  justify-content: space-between;
+  margin-top: var(--space-xs);
+  color: var(--k-ash);
+  font-size: var(--text-m);
+}
+
+.k-battle__count b {
+  color: var(--k-parchment-bright);
+}
+
+.k-battle__paused {
+  flex: none;
+  margin-top: 0.875rem;
+  padding: var(--space-s) var(--space-m);
+  border-radius: var(--k-r-btn);
+  background: var(--k-surface-raised);
+  font-weight: 700;
+  text-align: center;
+}
+
+.k-battle__center {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 0;
+  text-align: center;
+}
+
+.k-battle__label {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.k-battle__label--gold {
+  color: var(--k-gold);
+}
+
+.k-battle__set {
+  font-size: 4.5rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-battle__set span {
+  color: var(--k-set-of);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.k-battle__divider {
+  width: 4rem;
+  height: 1px;
+  margin: 1.125rem 0;
+  background: var(--k-battle-divider);
+}
+
+.k-battle__reps {
+  color: var(--k-gold);
+  font-size: clamp(7rem, 30vh, 12.5rem);
+  font-weight: 800;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-battle__rest {
+  max-width: 18rem;
+  margin-top: 1.125rem;
+  color: var(--k-ash);
+  font-size: var(--text-m);
+  line-height: 1.5;
+}
+
+.k-battle__main {
+  flex: none;
+  min-height: var(--k-btn-h-training);
+  border: 0;
+  border-radius: var(--k-r-btn-training);
+  background: var(--k-gold);
+  color: var(--k-bg);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* A tap leaves no hover on a touch screen, so the button looks the same after every set. */
+@media (hover: hover) {
+  .k-battle__main:hover {
+    background: var(--k-gold-light);
+  }
+}
+
+.k-battle__main:disabled {
+  background: var(--k-surface-raised);
+  color: var(--k-disabled-text);
+  cursor: progress;
+}
+
+.k-battle__check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  background: var(--k-gold);
+  color: var(--k-bg);
+}
+
+.k-battle__check-icon {
+  width: 3rem;
+  height: 3rem;
+  stroke-width: 3;
+}
+
+.k-battle__done {
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.k-battle__done-reps {
+  color: var(--k-ash);
+  font-size: var(--text-base);
+}
+
+/* The end of a level */
+
+.k-outcome__scene {
+  position: relative;
+  height: 18.75rem;
+  margin-inline: calc(-1 * var(--page-gutter));
+  overflow: hidden;
+}
+
+.k-outcome__badge {
+  position: absolute;
+  top: 1.25rem;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.875rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--k-gold-line);
+  border-radius: var(--k-r-pill);
+  background: var(--k-badge-veil);
+  color: var(--k-gold-light);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: var(--k-tracking-label);
+  text-transform: uppercase;
+  transform: translateX(-50%);
+}
+
+.k-outcome__badge--boss {
+  position: static;
+  align-self: center;
+  border-color: var(--k-ember-line);
+  background: var(--k-night-veil);
+  color: var(--k-ember-soft);
+  transform: none;
+}
+
+.k-outcome__badge--muted {
+  border-color: var(--k-line-strong);
+  color: var(--k-ash);
+}
+
+.k-outcome__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  width: 100%;
+  max-width: 34rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.k-outcome__title {
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.k-outcome__sub {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-tiles--result .k-tile {
+  align-items: center;
+  padding: var(--space-s) 0.375rem;
+  background: var(--k-surface);
+}
+
+.k-tile dd.k-tile__big {
+  font-size: 1.25rem;
+}
+
+.k-tiles--result .k-tile--glory {
+  border: 1px solid var(--k-gold-line-mid);
+  background: var(--k-gold-wash);
+}
+
+.k-tile--glory dt,
+.k-tile--glory dd {
+  color: var(--k-gold-light);
+}
+
+.k-outcome__bonus {
+  color: var(--k-gold-light);
+  font-weight: 700;
+}
+
+.k-outcome__rank {
+  padding: var(--space-s) var(--space-m);
+  border: 1px solid var(--k-line-active);
+  border-radius: var(--k-r-btn);
+  background: var(--k-badge-open-bg);
+}
+
+.k-outcome__rank b {
+  color: var(--k-gold-light);
+  font-family: var(--k-font-display);
+  font-size: 1.5rem;
+}
+
+.k-unlocked {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  padding: var(--space-s) 0.875rem;
+  border-radius: 14px;
+  background: var(--k-surface);
+  text-align: left;
+}
+
+.k-unlocked__marker {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  box-sizing: border-box;
+  border: 3px solid var(--k-gold);
+  border-radius: 50%;
+  background: var(--k-forest);
+  font-weight: 800;
+}
+
+.k-unlocked__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+/* The banner over the taken fort fills the top of the card; the text starts under the fort, at a
+   depth that follows the width of the card. */
+.k-outcome--boss {
+  position: relative;
+  margin-inline: calc(-1 * var(--page-gutter));
+  overflow: hidden;
+  background: var(--k-night);
+  container: boss-scene / inline-size;
+}
+
+.k-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 390 / 844;
+}
+
+.k-outcome__boss {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  padding: calc(100cqw * 1.02) var(--page-gutter) var(--space-xl);
+  background: linear-gradient(180deg, transparent calc(100cqw * 0.82), var(--k-night) calc(100cqw * 1.1));
+}
+
+.k-outcome__boss .k-outcome__badge--boss {
+  position: absolute;
+  top: var(--space-l);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.k-outcome__boss .k-outcome__title {
+  color: var(--k-boss-title);
+  font-size: 2.625rem;
+  text-shadow: var(--k-title-shadow);
+}
+
+.k-outcome__boss .k-outcome__sub {
+  color: var(--k-boss-sub);
+}
+
+.k-outcome__boss .k-tile {
+  background: var(--k-boss-tile);
+}
+
+.k-outcome__boss .k-tile--glory {
+  box-shadow: var(--k-gold-glow);
+}
+
+.k-stagedone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.875rem;
+  border-radius: 14px;
+  background: var(--k-boss-tile);
+  text-align: left;
+}
+
+.k-stagedone__head {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.k-stagedone__head b {
+  color: var(--k-gold-light);
+}
+
+.k-stagedone__segments {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0.375rem;
+}
+
+.k-stagedone__segment {
+  height: 0.5rem;
+  border-radius: 4px;
+  background: var(--k-gold);
+}
+
+.k-stagedone__segment--boss {
+  background: var(--k-ember);
+}
+
+.k-stagedone__next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--k-battle-rule);
+}
+
+@media (min-width: 48rem) {
+  /* The scene keeps the proportions of the mockup above the column of the text. */
+  .k-outcome__scene {
+    width: 100%;
+    max-width: 34rem;
+    height: auto;
+    margin: 0 auto;
+    aspect-ratio: 390 / 300;
+    border-radius: var(--k-r-card);
+  }
+
+  .k-outcome--boss {
+    width: 100%;
+    max-width: 30rem;
+    margin: 0 auto;
+    border-radius: var(--k-r-card);
+  }
+}
+
+/* The screens of /workout in the colors of the game: names in Cormorant, numbers in Manrope. */
+
+.kozak .screen-head__title,
+.kozak .fight-head__title,
+.kozak .result-hero__title,
+.kozak .mode-guide__title,
+.kozak .ladder-result__title,
+.kozak .round-card__title {
+  font-family: var(--k-font-display);
+  font-weight: 700;
+}
+
+.kozak .screen-head__title,
+.kozak .fight-head__title {
+  font-size: 2.25rem;
+}
+
+.kozak {
+  --font-display: var(--font-text);
+}
+
+.kozak .choices,
+.kozak .mode-guide,
+.kozak .k-card {
+  border-radius: var(--k-r-card);
+}

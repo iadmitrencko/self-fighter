@@ -42,6 +42,19 @@ export const BACK = {
   history: { to: paths.history, text: commonTexts.toHistory },
 } satisfies Record<string, Back>;
 
+// A link to a screen of this game or to a page of the site, which opens as a page.
+export function PlaceLink({ place, className, children }: { place: Back; className: string; children: ReactNode }) {
+  return place.site === true ? (
+    <a className={className} href={place.to}>
+      {children}
+    </a>
+  ) : (
+    <Link className={className} to={place.to}>
+      {children}
+    </Link>
+  );
+}
+
 export function BackLink({ back }: { back: Back }) {
   const content = (
     <>

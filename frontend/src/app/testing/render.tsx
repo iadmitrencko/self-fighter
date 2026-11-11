@@ -7,6 +7,7 @@ import type { GameStorage } from '../../storage/contract';
 import { newId } from '../../storage/ids';
 import { createMemoryStorage } from '../../storage/memory';
 import { App } from '../App';
+import { KozakApp } from '../kozak/KozakApp';
 import type { Challenge, Game } from '../game';
 
 export const READY_MADE = [pushUps, squats, pullUps];
@@ -38,6 +39,28 @@ export function renderGame(
   const view = render(
     <MemoryRouter initialEntries={[path]}>
       <App game={game} />
+    </MemoryRouter>,
+  );
+
+  return { ...view, storage, analytics, user };
+}
+
+// Renders the cossack game at a path under /game (§24), with the same storage, events and clock.
+export function renderKozak(path: string, options: { storage?: GameStorage; now?: () => Date } = {}) {
+  const storage = options.storage ?? createMemoryStorage();
+  const analytics = createMemoryAnalytics();
+  const game: Game = {
+    storage,
+    analytics,
+    exercises: READY_MADE,
+    signIn: ['google'],
+    challenge: null,
+    deps: { rng: seededRng(7), now: options.now ?? testClock(), newId },
+  };
+  const user = userEvent.setup();
+  const view = render(
+    <MemoryRouter initialEntries={[path]}>
+      <KozakApp game={game} />
     </MemoryRouter>,
   );
 

@@ -46,6 +46,16 @@ export interface LadderConfig {
 export type FightConfig = TargetConfig | RandomOpponentConfig | OpponentLevelsConfig;
 export type WorkoutConfig = FightConfig | LadderConfig;
 
+// §24.5: a level of the journey, the sets of one exercise in their order. It is not a mode of
+// the site: the journey sets it, and the player never edits it.
+export interface CampaignConfig {
+  readonly mode: 'campaign';
+  // The level of the journey, such as forest-ravens/1/4.
+  readonly level: string;
+  readonly exercise: ExerciseRef;
+  readonly sets: readonly number[];
+}
+
 // A form may hold empty fields: an empty value is not zero (§4.3).
 type Draft<T> = T extends number
   ? number | null

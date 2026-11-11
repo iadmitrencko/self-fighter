@@ -27,9 +27,11 @@ describe('createSession', () => {
 
     expect(session.id).toBe('attempt-1');
     expect(session.startedAt).toBe(STARTED_AT.toISOString());
-    expect(session.schemaVersion).toBe(2);
+    expect(session.schemaVersion).toBe(3);
     expect(session.mode).toBe('target');
     expect(session.challenge).toBeNull();
+    // §24.4: only the game marks its battles.
+    expect(session.game).toBeNull();
   });
 
   // §21.3: the session remembers the ready-made challenge it takes.

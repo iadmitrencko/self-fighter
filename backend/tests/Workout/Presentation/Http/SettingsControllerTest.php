@@ -80,4 +80,14 @@ final class SettingsControllerTest extends ApiTestCase
 
         $this->assertError(404, 'not-found');
     }
+
+    // §24.5: the journey sets its levels, so the player keeps no settings for them.
+    public function testLevelsOfTheJourneyHaveNoSettings(): void
+    {
+        $this->signUp();
+
+        $this->send('PUT', '/api/v1/settings/campaign', Documents::level()['config']);
+
+        $this->assertError(404, 'not-found');
+    }
 }

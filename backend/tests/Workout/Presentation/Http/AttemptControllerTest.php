@@ -97,6 +97,7 @@ final class AttemptControllerTest extends ApiTestCase
     {
         $fight = Documents::fight();
         $config = Documents::targetConfig();
+        $level = Documents::level();
 
         yield 'unknown field' => [[...$fight, 'rating' => 5]];
         yield 'missing result' => [array_diff_key($fight, ['result' => true])];
@@ -104,9 +105,21 @@ final class AttemptControllerTest extends ApiTestCase
         yield 'too many rounds' => [[...$fight, 'config' => [...$config, 'rounds' => 21]]];
         yield 'too many repetitions' => [[...$fight, 'config' => [...$config, 'exercises' => [['id' => 'push-ups', 'name' => 'Віджимання', 'targets' => [10_000]]]]]];
         yield 'empty exercise name' => [[...$fight, 'config' => [...$config, 'exercises' => [['id' => 'push-ups', 'name' => '', 'targets' => [10]]]]]];
-        yield 'unknown format version' => [[...$fight, 'schemaVersion' => 3]];
-        yield 'version 2 without a challenge' => [array_diff_key($fight, ['challenge' => true])];
-        yield 'version 1 with a challenge' => [[...$fight, 'schemaVersion' => 1]];
+        yield 'unknown format version' => [[...$fight, 'schemaVersion' => 4]];
+        yield 'version 1 the API no longer takes' => [[...array_diff_key($fight, ['challenge' => true, 'game' => true]), 'schemaVersion' => 1]];
+        yield 'no challenge' => [array_diff_key($fight, ['challenge' => true])];
+        yield 'version 3 without a game' => [array_diff_key($fight, ['game' => true])];
+        yield 'version 2 with a game' => [[...$fight, 'schemaVersion' => 2, 'game' => Documents::game()]];
+        yield 'fight that took the energy of the journey' => [[...$fight, 'game' => Documents::game('campaign')]];
+        yield 'game without the time its energy is full' => [[...$fight, 'game' => ['pool' => 'fight']]];
+        yield 'level of the journey outside the game' => [[...$level, 'game' => null]];
+        yield 'level that took the energy of fights' => [[...$level, 'game' => Documents::game('fight')]];
+        yield 'level with a challenge' => [[...$level, 'challenge' => Documents::challenge('100-pull-ups')]];
+        yield 'level of version 2' => [[...array_diff_key($level, ['game' => true]), 'schemaVersion' => 2]];
+        yield 'level with a strange address' => [[...$level, 'config' => [...$level['config'], 'level' => 'Forest ravens/1/1']]];
+        yield 'level without sets' => [[...$level, 'config' => [...$level['config'], 'sets' => []]]];
+        yield 'set without repetitions' => [[...$level, 'config' => [...$level['config'], 'sets' => [0]]]];
+        yield 'level with a draw' => [[...$level, 'result' => [...$level['result'], 'outcome' => 'draw']]];
         yield 'challenge with a strange address' => [[...$fight, 'challenge' => ['slug' => '100 Push-Ups', 'title' => '100 віджимань']]];
         yield 'challenge without a title' => [[...$fight, 'challenge' => ['slug' => '100-push-ups', 'title' => '']]];
         yield 'id that is not UUID v7' => [[...$fight, 'id' => '6f9619ff-8b86-4011-b42d-00cf4fc964ff']];
@@ -114,12 +127,12 @@ final class AttemptControllerTest extends ApiTestCase
         yield 'date that does not exist' => [[...$fight, 'finishedAt' => '2026-02-30T10:00:00.000Z']];
     }
 
-    // Section 3.7 of the plan: a tab opened before the release still sends version 1, and the
-    // history keeps it as version 2 with no challenge.
+    // Section 3.7 of the plan: a tab opened before the release still sends version 2, and the
+    // history keeps it as version 3 of a workout of the site.
     public function testAttemptOfThePreviousVersionIsUpgraded(): void
     {
         $this->signUp();
-        $previous = [...array_diff_key(Documents::fight(), ['challenge' => true]), 'schemaVersion' => 1];
+        $previous = [...array_diff_key(Documents::fight(), ['game' => true]), 'schemaVersion' => 2];
 
         $this->send('PUT', '/api/v1/attempts/'.$previous['id'], $previous);
 
@@ -131,7 +144,84 @@ final class AttemptControllerTest extends ApiTestCase
 
         $this->send('GET', '/api/v1/attempts/'.$previous['id']);
 
-        self::assertEquals([...$previous, 'schemaVersion' => 2, 'challenge' => null], $this->responseData());
+        self::assertEquals([...$previous, 'schemaVersion' => 3, 'game' => null], $this->responseData());
+    }
+
+    // §24: a fight of the game and a level of the journey are attempts of the history as well.
+    public function testBattlesOfTheGameAreSaved(): void
+    {
+        $this->signUp();
+        $fight = Documents::fight(overrides: ['game' => Documents::game()]);
+        $level = Documents::level('forest-ravens/10/7', 'loss', sets: [1, 2, 3, 2, 1]);
+
+        foreach ([$fight, $level] as $attempt) {
+            $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
+            self::assertResponseStatusCodeSame(201);
+
+            $this->send('GET', '/api/v1/attempts/'.$attempt['id']);
+            self::assertEquals($attempt, $this->responseData());
+        }
+
+        $this->send('GET', '/api/v1/attempts?mode=campaign');
+        self::assertSame([$level['id']], array_column($this->listedItems(), 'id'));
+    }
+
+    // §24: the game counts its own battles only, and the levels won once each.
+    public function testGameRecordCountsTheBattlesOfTheGame(): void
+    {
+        $this->signUp();
+        $attempts = [
+            Documents::fight('win'),
+            Documents::fight('win', overrides: ['game' => Documents::game('fight', '2026-11-02T14:00:00.000Z')]),
+            Documents::fight('draw', overrides: ['game' => Documents::game('fight', '2026-11-02T16:00:00.000Z')]),
+            Documents::ladder('loss', overrides: ['game' => Documents::game('fight', '2026-11-02T12:00:00.000Z')]),
+            Documents::level('forest-ravens/1/2', 'loss', '2026-11-02T15:00:00.000Z'),
+            Documents::level('forest-ravens/1/2', 'win', '2026-11-02T20:00:00.000Z'),
+            Documents::level('forest-ravens/1/1', 'win', '2026-11-02T10:05:00.000Z'),
+            Documents::level('forest-ravens/1/1', 'win', '2026-11-02T13:00:00.000Z'),
+        ];
+
+        foreach ($attempts as $attempt) {
+            $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
+        }
+
+        $this->send('GET', '/api/v1/game');
+        self::assertSame([
+            'fights' => ['wins' => 1, 'draws' => 1, 'losses' => 1],
+            'campaign' => ['wins' => 3, 'draws' => 0, 'losses' => 1],
+            'passed' => ['forest-ravens/1/1', 'forest-ravens/1/2'],
+            'energy' => ['fight' => '2026-11-02T16:00:00.000Z', 'campaign' => '2026-11-02T20:00:00.000Z'],
+        ], $this->responseData());
+
+        // The history still counts every attempt, the workouts of the site included.
+        $this->send('GET', '/api/v1/stats');
+        self::assertSame(['total' => 8, 'wins' => 5, 'draws' => 1, 'losses' => 2, 'challenges' => []], $this->responseData());
+    }
+
+    public function testGameRecordStartsEmpty(): void
+    {
+        $this->signUp();
+        $this->send('PUT', '/api/v1/attempts/'.($fight = Documents::fight())['id'], $fight);
+
+        $this->send('GET', '/api/v1/game');
+
+        self::assertSame([
+            'fights' => ['wins' => 0, 'draws' => 0, 'losses' => 0],
+            'campaign' => ['wins' => 0, 'draws' => 0, 'losses' => 0],
+            'passed' => [],
+            'energy' => ['fight' => null, 'campaign' => null],
+        ], $this->responseData());
+    }
+
+    /**
+     * @return list<array<mixed>>
+     */
+    private function listedItems(): array
+    {
+        $items = $this->responseData()['items'];
+        self::assertIsArray($items);
+
+        return array_values(array_filter($items, 'is_array'));
     }
 
     public function testIdInPathMustMatchTheAttempt(): void

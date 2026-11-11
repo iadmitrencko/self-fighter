@@ -8,10 +8,10 @@ import { createSession } from '../../domain/engine/session';
 import { commonTexts, setupTexts, validationMessages } from '../../i18n/uk';
 import type { CustomExercise } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
-import { BACK, Screen, ScreenHead, type Back } from '../components/Screen';
+import { useArena } from '../arena';
+import { Screen, ScreenHead, type Back } from '../components/Screen';
 import { Loading, MemoryWarning } from '../components/notices';
 import { useGame, type Challenge } from '../game';
-import { paths } from '../paths';
 import { useLoad } from '../useLoad';
 import { ExerciseFormDialog, ManageExercisesDialog } from './ExerciseDialogs';
 import { ExercisePicker } from './ExercisePicker';
@@ -76,9 +76,10 @@ export function SetupScreen({ mode, challenge }: { mode: Mode; challenge?: Chall
 
 // A challenge came from its page on the site, so «back» returns there.
 function SetupHead({ mode, challenge }: { mode: Mode; challenge: Challenge | undefined }) {
+  const arena = useArena();
   const back: Back =
     challenge === undefined
-      ? BACK.modes
+      ? arena.back.modes
       : { to: `/challenges/${challenge.slug}`, text: setupTexts.toChallenge, site: true };
 
   return (
@@ -111,10 +112,12 @@ function SetupForm({
   onCustomChanged: () => void;
 }) {
   const { storage, analytics, exercises: readyMade, deps } = useGame();
+  const arena = useArena();
   const navigate = useNavigate();
   const catalog: readonly ExerciseRef[] = [...readyMade, ...custom];
   const [setup, setSetup] = useState(() => restoreSetup(mode, saved, catalog));
   const [attempts, setAttempts] = useState(0);
+  const [refused, setRefused] = useState(false);
   const [dialog, setDialog] = useState<ExerciseDialog | null>(null);
   const summary = useRef<HTMLDivElement>(null);
   const validation = validateConfig(toDraft(setup));
@@ -144,14 +147,21 @@ function SetupForm({
       return;
     }
     // §11.6: the configuration is fixed here; later changes of the catalog cannot touch it.
-    storage.activeSession.save(createSession(validation.config, deps, taken));
+    const session = arena.begin(createSession(validation.config, deps, taken));
+
+    if (session === null) {
+      setRefused(true);
+
+      return;
+    }
+    arena.session.save(session);
     // The next workout of this mode starts from here. It is not worth stopping a workout for.
     // These settings make a new player a guest, so the event that follows them names the user (§19).
     void storage.settings
       .save(validation.config)
       .catch(() => undefined)
       .then(() => analytics.track({ name: 'workout_started', mode }));
-    void navigate(paths.fight);
+    void navigate(arena.paths.fight);
   }
 
   return (
@@ -236,6 +246,7 @@ function SetupForm({
             />
           )}
           <div className="screen__actions">
+            {refused && arena.refusal}
             {errors.length > 0 && (
               <div ref={summary} className="notice notice--error" role="alert" tabIndex={-1}>
                 <p className="notice__title">{setupTexts.errors}</p>

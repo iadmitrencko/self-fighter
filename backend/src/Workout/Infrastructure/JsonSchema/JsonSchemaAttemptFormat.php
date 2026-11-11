@@ -32,9 +32,9 @@ final readonly class JsonSchemaAttemptFormat implements AttemptFormat
         $attempt = $this->read($json, self::URI);
 
         // A tab opened before the release or an attempt that waited for the network still speaks
-        // version 1. It took no challenge, and the history keeps every attempt in one format.
-        return null !== $attempt && 1 === $attempt['schemaVersion']
-            ? ['schemaVersion' => self::VERSION, 'challenge' => null] + $attempt
+        // version 2. It was a workout of the site, and the history keeps every attempt in one format.
+        return null !== $attempt && 2 === $attempt['schemaVersion']
+            ? ['schemaVersion' => self::VERSION, 'game' => null] + $attempt
             : $attempt;
     }
 
@@ -45,9 +45,11 @@ final readonly class JsonSchemaAttemptFormat implements AttemptFormat
             Mode::RandomOpponent => 'randomOpponentConfig',
             Mode::OpponentLevels => 'opponentLevelsConfig',
             Mode::Ladder => 'ladderConfig',
+            // The journey sets its levels: the player keeps no settings for them (§24.5).
+            Mode::Campaign => null,
         };
 
-        return $this->read($json, self::URI.'#/definitions/'.$definition);
+        return null === $definition ? null : $this->read($json, self::URI.'#/definitions/'.$definition);
     }
 
     /**

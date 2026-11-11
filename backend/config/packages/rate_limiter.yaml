@@ -1,3 +1,7 @@
+parameters:
+    # make e2e creates a guest in nearly every scenario of three browsers from one address.
+    env(GUEST_CREATION_LIMIT): '60'
+
 framework:
     rate_limiter:
         # Per IP address. A person signs in a few times a day at most, so a flood of starts is a script.
@@ -8,7 +12,7 @@ framework:
         # Per IP address. A browser needs a guest once, so a flood of them is a script.
         guest_creation:
             policy: sliding_window
-            limit: 60
+            limit: '%env(int:GUEST_CREATION_LIMIT)%'
             interval: '1 hour'
         # Per user. Far above a real workout pace, it keeps a script from filling the database.
         api_write:

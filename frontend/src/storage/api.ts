@@ -1,10 +1,14 @@
+import { isCampaignSession, isWorkoutSession } from '../domain/engine/session';
 import { computeStatistics } from '../domain/history/statistics';
+import { addGameRecords, computeGameRecord, EMPTY_RECORD, type GameRecord } from '../domain/kozak/record';
 import {
+  ACTIVE_SESSION,
   asAttempt,
   browserLocalStorage,
   createActiveSessionStore,
   createBrowserBuffer,
   createOutbox,
+  GAME_SESSION,
   type BrowserBuffer,
   type Owner,
 } from './buffer';
@@ -29,6 +33,7 @@ import {
   parseAttempt,
   parseExercise,
   parseExercises,
+  parseGameRecord,
   parseMe,
   parsePage,
   parseSettings,
@@ -64,11 +69,23 @@ export function createBrowserStorage(): GameStorage {
 
 export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStorage {
   const outbox = createOutbox(buffer);
-  const activeSession = createActiveSessionStore(buffer);
+  const activeSession = createActiveSessionStore(buffer, ACTIVE_SESSION, isWorkoutSession);
+  const gameSessions = {
+    fight: createActiveSessionStore(buffer, `${GAME_SESSION}fight`, isWorkoutSession),
+    campaign: createActiveSessionStore(buffer, `${GAME_SESSION}campaign`, isCampaignSession),
+  };
+  // Nothing in progress goes on with the next person on this browser.
+  const clearSessions = () => {
+    activeSession.clear();
+    gameSessions.fight.clear();
+    gameSessions.campaign.clear();
+  };
   // Who used the browser at the last answer, so an attempt finished without a connection still has an owner.
   let known: BrowserState = NOBODY;
   let newGuest: Promise<CurrentUser> | null = null;
   let flushing: Promise<void> | null = null;
+  // What the server last said about the game of this user: a battle starts without the network (§15.4).
+  let lastGame: GameRecord | null = null;
   let retryDelay = RETRY_FIRST_MS;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -87,6 +104,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     if (browser.user?.id !== known.user?.id) {
       exerciseList.clear();
       settingsMap.clear();
+      lastGame = null;
     }
     known = browser;
     adoptWaiting(browser);
@@ -253,7 +271,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       const reply = await request('POST', '/api/v1/me/logout');
       const browser = reply.status === 401 ? NOBODY : parseMe(expectStatus(reply, 200));
       // The next person on this browser does not continue the workout of the account.
-      activeSession.clear();
+      clearSessions();
       remember(browser);
     },
     async exportData() {
@@ -278,7 +296,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       for (const { attempt } of waiting(browser, {})) {
         outbox.remove(attempt.id);
       }
-      activeSession.clear();
+      clearSessions();
       // A browser that kept its guest beside the account goes back to it, so it asks who it is now.
       settle(NOBODY);
       me.clear();
@@ -364,6 +382,27 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
 
       return addStatistics(saved, queued);
     },
+    async game() {
+      const browser = await me.get();
+      let saved = EMPTY_RECORD;
+
+      if (browser.user !== null) {
+        try {
+          const reply = await request('GET', '/api/v1/game');
+          saved = reply.status === 401 ? forgotten(EMPTY_RECORD) : parseGameRecord(expectStatus(reply, 200));
+          lastGame = saved;
+        } catch (error) {
+          if (lastGame === null || !(error instanceof StorageError) || error.code !== 'offline') {
+            throw error;
+          }
+          saved = lastGame;
+        }
+      }
+      // A battle finished without the network has spent its energy and won its level already.
+      const queued = computeGameRecord(waiting(browser, {}).map(({ attempt }) => attempt));
+
+      return addGameRecords(saved, queued);
+    },
     // A run that has already started may miss attempts queued after it, so runs follow one another.
     flush() {
       const run = (flushing ?? Promise.resolve()).then(sendWaiting);
@@ -390,6 +429,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     settings,
     attempts,
     activeSession,
+    gameSessions,
   };
 }
 

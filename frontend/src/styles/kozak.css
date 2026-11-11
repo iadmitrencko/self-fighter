@@ -1,0 +1,244 @@
+/*
+ * §24: the fonts and tokens of the cossack game, from kozak_design/tokens.css. Only the pages of
+ * /game load them. Cormorant names the journey, its campaigns, stages, levels and bosses; Manrope
+ * writes everything else, the numbers included. Both are served from this site (OFL).
+ */
+
+@font-face {
+  font-family: Cormorant;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('@fontsource/cormorant/files/cormorant-cyrillic-700-normal.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: Cormorant;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('@fontsource/cormorant/files/cormorant-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('@fontsource/manrope/files/manrope-cyrillic-600-normal.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('@fontsource/manrope/files/manrope-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('@fontsource/manrope/files/manrope-cyrillic-800-normal.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('@fontsource/manrope/files/manrope-latin-800-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/*
+ * The system fonts that stand in until the fonts arrive, measured as in fonts.css: Georgia on
+ * Windows, macOS and iOS, Liberation Serif (the metrics of Times New Roman) on Linux and Android.
+ */
+
+@font-face {
+  font-family: 'Cormorant Fallback';
+  font-weight: 700;
+  src: local('Georgia Bold'), local('Georgia-Bold');
+  size-adjust: 77%;
+  ascent-override: 120%;
+  descent-override: 37.27%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Cormorant Times Fallback';
+  font-weight: 700;
+  src: local('Times New Roman Bold'), local('TimesNewRomanPS-BoldMT'), local('Liberation Serif Bold'), local('LiberationSerif-Bold');
+  size-adjust: 90.42%;
+  ascent-override: 102.19%;
+  descent-override: 31.74%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Manrope Fallback';
+  font-weight: 600;
+  src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold');
+  size-adjust: 96.88%;
+  ascent-override: 110.03%;
+  descent-override: 30.96%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Manrope Fallback';
+  font-weight: 800;
+  src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold');
+  size-adjust: 100.04%;
+  ascent-override: 106.56%;
+  descent-override: 29.99%;
+  line-gap-override: 0%;
+}
+
+.kozak-page {
+  /* Surfaces */
+  --k-bg: #121416;
+  --k-bg-training: #0e1011;
+  --k-surface: #1d2023;
+  --k-surface-2: #17191c;
+  --k-surface-raised: #282c30;
+  --k-surface-locked: #1a1c1f;
+
+  /* Nature: the maps and the scenes */
+  --k-forest: #1f3a2e;
+  --k-pine: #2f5b45;
+  --k-oak: #3b2a1e;
+  --k-map-ground: #2a2c22;
+
+  /* Accent: gold for the main action and the progress only */
+  --k-gold: #c9a24a;
+  --k-gold-light: #e2c27a;
+  --k-gold-rim: #f1dda2;
+  --k-gold-dim: #8f7333;
+
+  /* Text */
+  --k-parchment: #e9dec3;
+  --k-parchment-bright: #f3ead6;
+  --k-parchment-dim: #cfc5ae;
+  --k-ash: #a8a190;
+  --k-disabled-text: #8c8f92;
+  --k-locked-number: #9a9da0;
+  --k-text-on-gold: #15171a;
+
+  /* Red for the bosses and danger only */
+  --k-blood: #8e2620;
+  --k-ember: #e0685c;
+  --k-ember-soft: #f0a49a;
+  --k-boss-surface: #1a1213;
+  --k-boss-text: #f3e6cf;
+  --k-boss-locked: #24191a;
+  --k-boss-locked-line: #6b3a35;
+  --k-boss-locked-text: #c9a39c;
+  --k-boss-current: #2a1513;
+  --k-pine-text: #9cc8ae;
+
+  /* Lines */
+  --k-line: rgb(233 222 195 / 12%);
+  --k-line-soft: rgb(233 222 195 / 8%);
+  --k-line-strong: rgb(233 222 195 / 35%);
+  --k-line-active: rgb(201 162 74 / 55%);
+  --k-line-boss: rgb(224 104 92 / 50%);
+  --k-locked-ring: #4a4f55;
+  --k-veil: rgb(18 20 22 / 82%);
+  --k-veil-art: rgb(18 20 22 / 45%);
+  --k-tile: rgb(233 222 195 / 5%);
+
+  /* Badges of a status */
+  --k-badge-done-bg: rgb(47 91 69 / 55%);
+  --k-badge-done-fg: #bfe0c8;
+  --k-badge-open-bg: rgb(201 162 74 / 18%);
+  --k-badge-open-fg: #e2c27a;
+  --k-badge-lock-bg: #282c30;
+  --k-badge-lock-fg: #a8a190;
+  --k-badge-boss-bg: rgb(142 38 32 / 35%);
+  --k-badge-boss-fg: #f0a49a;
+
+  /* Glows */
+  --k-glow-current: 0 0 0 10px rgb(201 162 74 / 22%), 0 0 40px rgb(201 162 74 / 60%);
+  --k-glow-boss: 0 0 0 8px rgb(224 104 92 / 18%), 0 0 36px rgb(224 104 92 / 55%);
+  --k-glow-card: 0 20px 60px rgb(0 0 0 / 45%), 0 0 0 4px rgb(201 162 74 / 8%);
+  --k-shadow-card: 0 20px 50px rgb(0 0 0 / 55%);
+  --k-shadow-marker: 0 4px 12px rgb(0 0 0 / 60%);
+  --k-glow-boss-inset: inset 0 0 60px rgb(142 38 32 / 25%);
+  --k-stripes-current: repeating-linear-gradient(45deg, var(--k-gold) 0 6px, var(--k-gold-dim) 6px 12px);
+
+  /* The pieces of the battle and of the victories over a boss */
+  --k-segment: #23272a;
+  --k-set-of: #7f7a6e;
+  --k-night: #120d0d;
+  --k-boss-title: #f6e4bc;
+  --k-boss-sub: #c9bba0;
+  --k-boss-tile: rgb(40 28 26 / 90%);
+  --k-battle-line: rgb(243 234 214 / 25%);
+  --k-battle-divider: rgb(243 234 214 / 18%);
+  --k-battle-rule: rgb(243 234 214 / 10%);
+
+  /* Veils and lines of gold and ember over pictures */
+  --k-panel: rgb(29 32 35 / 96%);
+  --k-scene-veil: rgb(18 20 22 / 70%);
+  --k-badge-veil: rgb(18 20 22 / 75%);
+  --k-night-veil: rgb(18 13 13 / 75%);
+  --k-gold-line: rgb(201 162 74 / 50%);
+  --k-gold-line-mid: rgb(201 162 74 / 45%);
+  --k-gold-line-soft: rgb(201 162 74 / 35%);
+  --k-gold-wash: rgb(201 162 74 / 14%);
+  --k-gold-glow: 0 0 24px rgb(226 194 122 / 25%);
+  --k-ember-line: rgb(224 104 92 / 60%);
+  --k-sheet-line: rgb(233 222 195 / 14%);
+  --k-boss-sheet-line: rgb(224 104 92 / 55%);
+  --k-boss-sheet-glow: inset 0 30px 60px rgb(142 38 32 / 22%);
+  --k-title-shadow: 0 2px 20px rgb(0 0 0 / 60%);
+
+  /* Type */
+  --k-font-display: Cormorant, 'Cormorant Fallback', 'Cormorant Times Fallback', Georgia, serif;
+  --k-tracking-label: 0.1em;
+
+  /* Radius */
+  --k-r-btn: 12px;
+  --k-r-btn-training: 18px;
+  --k-r-card: 16px;
+  --k-r-tile: 10px;
+  --k-r-pill: 999px;
+
+  /* Sizes */
+  --k-btn-h: 3.5rem;
+  --k-btn-h-training: 4.75rem;
+  --k-hit: 3rem;
+  --k-marker-done: 2.875rem;
+  --k-marker-current: 3.5rem;
+  --k-marker-locked: 2.75rem;
+  --k-marker-boss: 3.5rem;
+
+  /* The site takes the colors of the game on its pages: gold for the player, ember for the enemy. */
+  --color-bg: var(--k-bg);
+  --color-surface: var(--k-surface);
+  --color-text: var(--k-parchment);
+  --color-text-muted: var(--k-ash);
+  --color-accent: var(--k-gold);
+  --color-accent-hover: var(--k-gold-light);
+  --color-on-accent: var(--k-text-on-gold);
+  --color-rival: var(--k-ember);
+  --color-rival-text: var(--k-ember-soft);
+}
+
+@media (min-width: 75rem) {
+  .kozak-page {
+    --k-btn-h: 3.25rem;
+    --k-marker-done: 3rem;
+    --k-marker-current: 3.75rem;
+    --k-marker-boss: 4rem;
+  }
+}

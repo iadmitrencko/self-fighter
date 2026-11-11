@@ -7,11 +7,14 @@ import { EXERCISE_NAME_MAX, EXERCISES_MAX, LADDER_MAX, REPS_MAX, ROUNDS_MAX } fr
 import type { WorkoutConfig } from '../domain/config/types';
 import { createSession } from '../domain/engine/session';
 import { finalize } from '../domain/history/attempt';
+import { completeSet, enterBattle, levelConfig, retreat } from '../domain/kozak/battle';
+import { allLevels, SICH } from '../domain/kozak/journey';
 import {
   cycleOffsets,
   ladderConfig,
   offsetsArbitrary,
   play,
+  pullUps,
   STARTED_AT,
   targetConfig,
   testDeps,
@@ -82,9 +85,12 @@ describe('the format of attempts', () => {
 
   it.each([
     ['an unknown field', { rating: 5 }],
-    ['an unknown format version', { schemaVersion: 3 }],
-    ['no challenge in version 2', { challenge: undefined }],
-    ['a challenge in version 1', { schemaVersion: 1 }],
+    ['an unknown format version', { schemaVersion: 4 }],
+    ['the version 1 the API no longer takes', { schemaVersion: 1, game: undefined }],
+    ['no challenge', { challenge: undefined }],
+    ['no game in version 3', { game: undefined }],
+    ['a game in version 2', { schemaVersion: 2, game: { pool: 'fight', energyFullAt: '2026-11-02T12:00:00.000Z' } }],
+    ['a fight that took the energy of the journey', { game: { pool: 'campaign', energyFullAt: '2026-11-02T12:00:00.000Z' } }],
     ['a challenge without a title', { challenge: { slug: '100-push-ups', title: '' } }],
     ['a challenge with a strange address', { challenge: { slug: '100 Push-Ups', title: '100 віджимань' } }],
     ['an id the browser did not create', { id: 'attempt-1' }],
@@ -107,11 +113,43 @@ describe('the format of attempts', () => {
     expect(check(null, attempt)).toBeNull();
   });
 
-  // Section 3.7 of the plan: a tab opened before the release still sends version 1.
-  it('still accepts an attempt of version 1', () => {
-    const attempt: Record<string, unknown> = { ...attemptOf(targetConfig(), () => 11), schemaVersion: 1 };
-    delete attempt.challenge;
+  // Section 3.7 of the plan: a tab opened before the release still sends version 2.
+  it('still accepts an attempt of version 2', () => {
+    const attempt: Record<string, unknown> = { ...attemptOf(targetConfig(), () => 11), schemaVersion: 2 };
+    delete attempt.game;
 
     expect(check(null, attempt)).toBeNull();
+  });
+
+  // §24.4: a fight of the game names the pool of energy it took.
+  it('accepts a fight of the game', () => {
+    const session = enterBattle(createSession(targetConfig(), testDeps({ newId: () => newId() })), 'fight', null);
+
+    expect(session).not.toBeNull();
+    expect(check(null, finalize(play(session ?? (undefined as never), () => 11), FINISHED_AT))).toBeNull();
+  });
+
+  // §24.5: every level of the journey, won or left in the middle.
+  it.each(allLevels(SICH).map((level) => [level.id, level] as const))('accepts the level %s', (_, level) => {
+    const start = enterBattle(createSession(levelConfig(level, pullUps), testDeps({ newId: () => newId() })), 'campaign', null);
+    const won = play(start ?? (undefined as never), (stage) => stage.target);
+    const left = retreat(completeSet(start ?? (undefined as never)));
+
+    expect(check(null, finalize(won, FINISHED_AT))).toBeNull();
+    expect(check(null, finalize(left, FINISHED_AT))).toBeNull();
+  });
+
+  it.each([
+    ['no game', { game: null }],
+    ['the energy of fights', { game: { pool: 'fight', energyFullAt: '2026-11-02T12:00:00.000Z' } }],
+    ['a challenge', { challenge: { slug: '100-pull-ups', title: '100 підтягувань' } }],
+    ['version 2', { schemaVersion: 2 }],
+    ['a draw', { result: { sets: [{ target: 1, done: true }], outcome: 'draw' } }],
+  ])('refuses a level of the journey with %s', (_, change) => {
+    const level = allLevels(SICH)[0];
+    const start = enterBattle(createSession(levelConfig(level ?? (undefined as never), pullUps), testDeps({ newId: () => newId() })), 'campaign', null);
+    const attempt = finalize(play(start ?? (undefined as never), (stage) => stage.target), FINISHED_AT);
+
+    expect(check(null, { ...attempt, ...change })).not.toBeNull();
   });
 });

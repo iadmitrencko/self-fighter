@@ -7,7 +7,9 @@ import type { ActiveSessionStore, AttemptStatus, CurrentUser } from './contract'
 
 const PREFIX = 'self-fighter:';
 const PROBE = `${PREFIX}probe`;
-const ACTIVE_SESSION = `${PREFIX}active-session`;
+export const ACTIVE_SESSION = `${PREFIX}active-session`;
+// The battles of the game in progress, one for each pool of energy (§24.4).
+export const GAME_SESSION = `${PREFIX}game-session:`;
 const OUTBOX = `${PREFIX}outbox:`;
 
 export interface BrowserBuffer {
@@ -80,21 +82,26 @@ function store(storage: Storage, key: string, value: string): true {
   return true;
 }
 
-export function createActiveSessionStore(buffer: BrowserBuffer): ActiveSessionStore {
+// Each store keeps one kind of session: a level of the journey never opens as a workout.
+export function createActiveSessionStore<TSession extends Session>(
+  buffer: BrowserBuffer,
+  key: string,
+  kind: (session: Session) => session is TSession,
+): ActiveSessionStore<TSession> {
   return {
     load() {
-      const session = parse(buffer.read(ACTIVE_SESSION));
+      const session = parse(buffer.read(key));
 
-      if (isCurrentSession(session)) {
+      if (isCurrentSession(session) && kind(session)) {
         return session;
       }
       // A release changed the format. An unfinished attempt does not count anyway (§12.4).
-      buffer.remove(ACTIVE_SESSION);
+      buffer.remove(key);
 
       return null;
     },
-    save: (session) => buffer.write(ACTIVE_SESSION, JSON.stringify(session)),
-    clear: () => buffer.remove(ACTIVE_SESSION),
+    save: (session) => buffer.write(key, JSON.stringify(session)),
+    clear: () => buffer.remove(key),
   };
 }
 

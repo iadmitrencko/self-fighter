@@ -5,6 +5,8 @@ services:
     ports: !reset []
     # e2e/fake-google.mjs plays Google: Playwright starts it in the network of this container.
     environment:
+      # The scenarios of three browsers come from one address, so they need more guests an hour.
+      GUEST_CREATION_LIMIT: 1000
       GOOGLE_CLIENT_ID: e2e-client
       GOOGLE_CLIENT_SECRET: e2e-secret
       GOOGLE_AUTHORIZATION_URL: http://localhost:9100/authorize

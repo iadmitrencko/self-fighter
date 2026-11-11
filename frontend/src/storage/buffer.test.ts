@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createSession } from '../domain/engine/session';
-import { ladderConfig, testDeps } from '../domain/testing/fixtures';
+import { createSession, isCampaignSession, isWorkoutSession } from '../domain/engine/session';
+import { levelConfig } from '../domain/kozak/battle';
+import { findLevel, SICH } from '../domain/kozak/journey';
+import { ladderConfig, pullUps, testDeps } from '../domain/testing/fixtures';
 import {
+  ACTIVE_SESSION,
   createActiveSessionStore,
   createBrowserBuffer,
   createOutbox,
+  GAME_SESSION,
   type OutboxEntry,
 } from './buffer';
 import { finishedAttempt } from './testing/attempts';
@@ -88,10 +92,30 @@ describe('browser buffer', () => {
 describe('active session', () => {
   const session = createSession(ladderConfig(), testDeps());
 
-  it('survives a reload', () => {
-    createActiveSessionStore(createBrowserBuffer(localStorage)).save(session);
+  const store = () => createActiveSessionStore(createBrowserBuffer(localStorage), ACTIVE_SESSION, isWorkoutSession);
 
-    expect(createActiveSessionStore(createBrowserBuffer(localStorage)).load()).toEqual(session);
+  it('survives a reload', () => {
+    store().save(session);
+
+    expect(store().load()).toEqual(session);
+  });
+
+  // §24.4: a level of the journey waits in its own place and never opens as a workout.
+  it('keeps each kind of session in its own place', () => {
+    const level = findLevel(SICH, 'forest-ravens/1/1');
+    const battle = createSession(levelConfig(level ?? (undefined as never), pullUps), testDeps());
+    const campaign = createActiveSessionStore(
+      createBrowserBuffer(localStorage),
+      `${GAME_SESSION}campaign`,
+      isCampaignSession,
+    );
+
+    campaign.save(battle);
+    localStorage.setItem(ACTIVE_SESSION, JSON.stringify(battle));
+
+    expect(campaign.load()).toEqual(battle);
+    expect(store().load()).toBeNull();
+    expect(localStorage.getItem(ACTIVE_SESSION)).toBeNull();
   });
 
   // A release that changes the format drops the attempt in progress instead of migrating it.
@@ -100,9 +124,8 @@ describe('active session', () => {
     ['damaged data', '{"schemaVersion":'],
   ])('forgets a session in %s', (_, stored) => {
     localStorage.setItem('self-fighter:active-session', stored);
-    const store = createActiveSessionStore(createBrowserBuffer(localStorage));
 
-    expect(store.load()).toBeNull();
+    expect(store().load()).toBeNull();
     expect(localStorage.getItem('self-fighter:active-session')).toBeNull();
   });
 });

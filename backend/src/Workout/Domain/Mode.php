@@ -10,4 +10,6 @@ enum Mode: string
     case RandomOpponent = 'random-opponent';
     case OpponentLevels = 'opponent-levels';
     case Ladder = 'ladder';
+    // §24.5: a level of the journey of the game. The journey sets it, so it has no settings.
+    case Campaign = 'campaign';
 }

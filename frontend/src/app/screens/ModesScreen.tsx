@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { Link } from 'react-router';
 import type { Mode } from '../../domain/config/types';
-import type { Session } from '../../domain/engine/session';
+import type { WorkoutSession } from '../../domain/engine/session';
 import { modeGuides, modeNames, modesTexts } from '../../i18n/uk';
 import { Icon } from '../components/Icon';
 import { BACK, Screen, ScreenHead } from '../components/Screen';
@@ -80,7 +80,7 @@ export function ModesScreen() {
   );
 }
 
-function ResumeNotice({ session, onDiscard }: { session: Session; onDiscard: () => void }) {
+function ResumeNotice({ session, onDiscard }: { session: WorkoutSession; onDiscard: () => void }) {
   const titleId = useId();
   const done = session.stages.filter(({ actual }) => actual !== null).length;
 

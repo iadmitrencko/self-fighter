@@ -35,6 +35,14 @@ interface AttemptRepository
      */
     public function passedChallenges(UserId $owner, AttemptFilter $filter): array;
 
+    /**
+     * @return list<string> the levels of the journey won at least once, in alphabetical order (§24.5)
+     */
+    public function passedLevels(UserId $owner): array;
+
+    // §24.4: the moment the pool is full again by the battles that took from it, or null for none.
+    public function energyFullAt(UserId $owner, GamePool $pool): ?\DateTimeImmutable;
+
     // §23.3: the attempts keep their ids, so moving them twice adds nothing.
     public function transfer(UserId $from, UserId $to): void;
 

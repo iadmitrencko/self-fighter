@@ -2,6 +2,7 @@ import { useId, type CSSProperties, type Ref } from 'react';
 import { REPS_MAX } from '../../domain/config/limits';
 import { parseReps } from '../../domain/config/validation';
 import { fightTexts } from '../../i18n/uk';
+import { useArena } from '../arena';
 import { Icon } from '../components/Icon';
 
 // §12.2: whole numbers from 0; an empty field cannot be confirmed.
@@ -115,10 +116,12 @@ export function Progress({ done, total, label }: { done: number; total: number; 
 }
 
 export function InterruptButton({ onClick }: { onClick: () => void }) {
+  const { leaving } = useArena();
+
   return (
     <button type="button" className="button button--outline fight-head__stop" onClick={onClick}>
       <Icon name="close" className="button__icon" />
-      {fightTexts.interrupt}
+      {leaving.button}
     </button>
   );
 }

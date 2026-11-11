@@ -7,6 +7,7 @@ namespace App\Tests\Workout\Domain;
 use App\Shared\Domain\UserId;
 use App\Tests\Workout\Documents;
 use App\Workout\Domain\Attempt;
+use App\Workout\Domain\GamePool;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -33,6 +34,25 @@ final class AttemptTest extends TestCase
         self::assertNull($this->attemptOf($owner, Documents::fight())->challenge());
     }
 
+    // §24: the record of the game counts the battles by pool, the levels won and the energy.
+    public function testRemembersTheBattleOfTheGame(): void
+    {
+        $owner = UserId::generate();
+        $workout = $this->attemptOf($owner, Documents::fight());
+        $fight = $this->attemptOf($owner, Documents::fight(overrides: ['game' => Documents::game('fight', '2026-11-02T12:00:00.000Z')]));
+        $level = $this->attemptOf($owner, Documents::level('forest-ravens/2/3', energyFullAt: '2026-11-02T15:00:00.000Z'));
+
+        self::assertNull($workout->pool());
+        self::assertNull($workout->level());
+        self::assertNull($workout->energyFullAt());
+        self::assertSame(GamePool::Fight, $fight->pool());
+        self::assertNull($fight->level());
+        self::assertEquals(new \DateTimeImmutable('2026-11-02 12:00:00 UTC'), $fight->energyFullAt());
+        self::assertSame(GamePool::Campaign, $level->pool());
+        self::assertSame('forest-ravens/2/3', $level->level());
+        self::assertEquals(new \DateTimeImmutable('2026-11-02 15:00:00 UTC'), $level->energyFullAt());
+    }
+
     /**
      * @param array<string, mixed> $change
      */
@@ -52,6 +72,27 @@ final class AttemptTest extends TestCase
         yield 'outcome' => [['result' => []]];
         yield 'finish time' => [['finishedAt' => '2026-02-30T10:00:00.000Z']];
         yield 'format version' => [['schemaVersion' => '1']];
+        yield 'pool of the game' => [['game' => ['pool' => 'arena', 'energyFullAt' => '2026-11-02T12:00:00.000Z']]];
+        yield 'time the energy is full' => [['game' => ['pool' => 'fight', 'energyFullAt' => 'soon']]];
+    }
+
+    /**
+     * @param array<string, mixed> $change
+     */
+    #[DataProvider('incompleteLevels')]
+    public function testRefusesALevelWithoutTheseFields(array $change): void
+    {
+        self::assertNull(Attempt::fromDocument(UserId::generate(), [...Documents::level(), ...$change]));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function incompleteLevels(): iterable
+    {
+        yield 'game' => [['game' => null]];
+        yield 'pool of the journey' => [['game' => Documents::game('fight')]];
+        yield 'level' => [['config' => ['mode' => 'campaign', 'sets' => [1]]]];
     }
 
     // MySQL hands back JSON objects with sorted keys, which must not look like another attempt.

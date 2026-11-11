@@ -16,8 +16,19 @@ import type {
   WorkoutConfig,
 } from '../config/types';
 import type { Rng } from '../engine/opponents';
-import type { Stage } from '../engine/rules';
-import { nextStageIndex, submitResult, type Session, type SessionDeps } from '../engine/session';
+import type { FightStage, Stage } from '../engine/rules';
+import {
+  createSession,
+  nextStageIndex,
+  submitResult,
+  type GameMark,
+  type Session,
+  type SessionDeps,
+} from '../engine/session';
+import { finalize, type CampaignAttempt, type FightAttempt } from '../history/attempt';
+import { levelConfig, retreat } from '../kozak/battle';
+import { findLevel, SICH } from '../kozak/journey';
+import type { Outcome } from '../results/results';
 
 export const pushUps: ExerciseRef = { id: 'push-ups', name: 'Віджимання' };
 export const squats: ExerciseRef = { id: 'squats', name: 'Присідання' };
@@ -235,4 +246,32 @@ export function cycleOffsets(offsets: readonly number[]): (stage: Stage) => numb
 
     return nearTarget(stage, offset);
   };
+}
+
+const FINISHED_AT = new Date(STARTED_AT.getTime() + 600_000);
+
+// §24.5: a level of the journey, won or left after its first set.
+export function campaignAttempt(
+  id: string,
+  outcome: 'win' | 'loss' = 'win',
+  energyFullAt = '2026-10-30T15:00:00.000Z',
+): CampaignAttempt {
+  const level = findLevel(SICH, id);
+
+  if (level === null) {
+    throw new Error(`The journey has no level ${id}`);
+  }
+  const session = createSession(levelConfig(level, pullUps), testDeps());
+  const played = outcome === 'win' ? play(session, (stage) => stage.target) : retreat(session);
+
+  return { ...finalize(played, FINISHED_AT), game: { pool: 'campaign', energyFullAt } };
+}
+
+// A fight of «Ціль» with the given outcome: rounds won, lost, or one of each for a draw.
+export function fightAttempt(outcome: Outcome, game: GameMark | null = null): FightAttempt {
+  const session = createSession(targetConfig(), testDeps());
+  const reps = (stage: FightStage) =>
+    outcome === 'win' || (outcome === 'draw' && stage.round === 0) ? REPS_MAX : 0;
+
+  return { ...finalize(play(session, (stage) => reps(stage as FightStage)), FINISHED_AT), game };
 }

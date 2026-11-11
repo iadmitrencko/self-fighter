@@ -9,6 +9,7 @@ use App\Workout\Domain\Attempt;
 use App\Workout\Domain\AttemptFilter;
 use App\Workout\Domain\AttemptId;
 use App\Workout\Domain\AttemptRepository;
+use App\Workout\Domain\GamePool;
 use App\Workout\Domain\Outcome;
 
 /**
@@ -49,6 +50,23 @@ final readonly class AttemptHistory
             $counts[Outcome::Draw->value] ?? 0,
             $counts[Outcome::Loss->value] ?? 0,
             $this->attempts->passedChallenges($owner, $filter),
+        );
+    }
+
+    // §24: counted from the attempts as well, so the game always agrees with the history.
+    public function game(UserId $owner): GameRecord
+    {
+        $energy = [];
+
+        foreach (GamePool::cases() as $pool) {
+            $energy[$pool->value] = $this->attempts->energyFullAt($owner, $pool);
+        }
+
+        return new GameRecord(
+            Tally::of($this->attempts->countByOutcome($owner, new AttemptFilter(pool: GamePool::Fight))),
+            Tally::of($this->attempts->countByOutcome($owner, new AttemptFilter(pool: GamePool::Campaign))),
+            $this->attempts->passedLevels($owner),
+            $energy,
         );
     }
 }

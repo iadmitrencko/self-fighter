@@ -7,7 +7,9 @@ import type { GameStorage } from './contract';
 import { StorageError } from './errors';
 import { newId } from './ids';
 import { createMemoryStorage, type TestGoogleAccount } from './memory';
-import { finishedAttempt } from './testing/attempts';
+import { levelConfig } from '../domain/kozak/battle';
+import { findLevel, SICH } from '../domain/kozak/journey';
+import { finishedAttempt, gameFight, levelAttempt } from './testing/attempts';
 import { createFakeServer } from './testing/fakeServer';
 
 // Screens rely on these rules whichever storage runs underneath (section 3.7 of the plan).
@@ -216,6 +218,54 @@ describe.each([
 
       expect((await storage.attempts.stats()).challenges).toEqual(['100-squats']);
       expect((await storage.attempts.stats({ mode: 'ladder' })).challenges).toEqual([]);
+    });
+  });
+
+  // §24: the record of the game counts its own battles only.
+  describe('the game', () => {
+    it('counts the battles of the game apart from the workouts of the site', async () => {
+      await storage.attempts.save(finishedAttempt('win', '2026-11-01T10:00:00.000Z'));
+      await storage.attempts.save(gameFight('win', '2026-11-01T11:00:00.000Z', '2026-11-01T13:00:00.000Z'));
+      await storage.attempts.save(gameFight('draw', '2026-11-01T12:00:00.000Z', '2026-11-01T15:00:00.000Z'));
+      await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'loss', '2026-11-02T09:00:00.000Z', '2026-11-02T14:00:00.000Z'));
+      await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'win', '2026-11-02T10:00:00.000Z', '2026-11-02T19:00:00.000Z'));
+      await storage.attempts.flush();
+
+      expect(await storage.attempts.game()).toEqual({
+        fights: { wins: 1, draws: 1, losses: 0 },
+        campaign: { wins: 1, draws: 0, losses: 1 },
+        passed: ['forest-ravens/1/1'],
+        energy: { fight: '2026-11-01T15:00:00.000Z', campaign: '2026-11-02T19:00:00.000Z' },
+      });
+      expect((await storage.attempts.stats()).total).toBe(5);
+    });
+
+    it('has an empty record before the first battle', async () => {
+      expect(await storage.attempts.game()).toEqual({
+        fights: { wins: 0, draws: 0, losses: 0 },
+        campaign: { wins: 0, draws: 0, losses: 0 },
+        passed: [],
+        energy: { fight: null, campaign: null },
+      });
+    });
+
+    // §24.4: a fight and a level wait apart from each other and from the workout of the site.
+    it('keeps a battle in progress for each pool of energy', async () => {
+      const fight = createSession(targetConfig(), testDeps());
+      const level = createSession(levelConfig(findLevel(SICH, 'forest-ravens/1/1') ?? (undefined as never), pullUps), testDeps());
+
+      storage.gameSessions.fight.save(fight);
+      storage.gameSessions.campaign.save(level);
+
+      expect(storage.activeSession.load()).toBeNull();
+      expect(storage.gameSessions.fight.load()).toEqual(fight);
+      expect(storage.gameSessions.campaign.load()).toEqual(level);
+
+      await storage.settings.save(targetConfig());
+      await storage.account.deleteData();
+
+      expect(storage.gameSessions.fight.load()).toBeNull();
+      expect(storage.gameSessions.campaign.load()).toBeNull();
     });
   });
 

@@ -1,0 +1,22 @@
+{% extends 'site/layout.html.twig' %}
+
+{# §24: the cossack game lives in the frame of the site, in its own colors. React renders its screens. #}
+
+{% block title %}{{ 'kozak.title'|trans }} — {{ 'site.name'|trans }}{% endblock %}
+
+{% block body_attributes %} class="kozak-page"{% endblock %}
+
+{% block assets %}
+    {#- The names of the screens are the largest text, so their font comes first. #}
+    <link rel="preload" href="{{ asset('node_modules/@fontsource/cormorant/files/cormorant-cyrillic-700-normal.woff2', 'vite') }}" as="font" type="font/woff2" crossorigin>
+    {{ vite_entry_link_tags('kozak') }}
+    {{ vite_entry_script_tags('kozak', { dependency: 'react' }) }}
+{% endblock %}
+
+{#- The game shows its own record: the score of the site would count other workouts as well. #}
+{% block score %}{% endblock %}
+
+{% block main %}
+    <div id="root" data-game="{{ game|json_encode }}"></div>
+    <noscript><p class="container app-noscript">{{ 'workout.noscript'|trans }}</p></noscript>
+{% endblock %}

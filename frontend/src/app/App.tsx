@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
 import { notFoundTexts, signInTexts, storageMessages } from '../i18n/uk';
 import { showScore } from '../score/score';
 import type { StorageErrorCode } from '../storage/errors';
 import { ConfirmDialog } from './components/Dialog';
+import { ScrollToTop, SiteLinks } from './components/routing';
 import { BACK, Screen, ScreenHead } from './components/Screen';
 import { SignInPromptProvider } from './components/SignIn';
 import { DataVersionContext, useDataVersion } from './data';
@@ -28,7 +29,7 @@ export function App({ game }: { game: Game }) {
       <DataVersionContext value={data}>
         <SignInPromptProvider>
           <ScrollToTop />
-          <SiteLinks />
+          <SiteLinks base={BASE} />
           <ScoreSync />
           <SignInOutcome />
           <Routes>
@@ -179,55 +180,6 @@ const OUTCOME_NOTICES: Record<SignInOutcome, { tone: 'done' | 'warning' | 'error
   cancelled: { tone: 'warning', text: signInTexts.cancelled },
   failed: { tone: 'error', text: signInTexts.failed },
 };
-
-// A new screen starts at its top, as a new page would.
-function ScrollToTop() {
-  const { pathname } = useLocation();
-
-  useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-
-  return null;
-}
-
-/**
- * The header and the footer of the site lead to screens of the game as well. Inside the game they
- * open a screen without loading the page again, so they work offline in the middle of a workout.
- */
-function SiteLinks() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const open = (event: MouseEvent) => {
-      const link = event.target instanceof Element ? event.target.closest('a') : null;
-
-      if (
-        link === null ||
-        event.defaultPrevented ||
-        event.button !== 0 ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.shiftKey ||
-        event.altKey ||
-        link.target !== '' ||
-        link.hasAttribute('download') ||
-        link.origin !== window.location.origin ||
-        (link.pathname !== BASE && !link.pathname.startsWith(`${BASE}/`))
-      ) {
-        return;
-      }
-      event.preventDefault();
-      void navigate(`${link.pathname.slice(BASE.length) || '/'}${link.search}${link.hash}`);
-    };
-
-    document.addEventListener('click', open);
-
-    return () => document.removeEventListener('click', open);
-  }, [navigate]);
-
-  return null;
-}
 
 function NotFound() {
   return (

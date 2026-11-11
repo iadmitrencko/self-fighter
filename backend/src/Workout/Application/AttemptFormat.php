@@ -12,8 +12,9 @@ use App\Workout\Domain\Mode;
  */
 interface AttemptFormat
 {
-    // Version 2 added the ready-made challenge of an attempt. Version 1 is still accepted (section 3.7 of the plan).
-    public const int VERSION = 2;
+    // Version 2 added the ready-made challenge of an attempt, version 3 the battles of the game and
+    // the levels of its journey (§24). Version 2 is still accepted (section 3.7 of the plan).
+    public const int VERSION = 3;
 
     /**
      * @return array<mixed>|null the attempt in the current format version, or null when the JSON is not
@@ -23,6 +24,7 @@ interface AttemptFormat
 
     /**
      * @return array<mixed>|null the configuration, or null when the JSON is not a configuration of the mode
+     *                           or the mode has no settings
      */
     public function readConfiguration(string $json, Mode $mode): ?array;
 }

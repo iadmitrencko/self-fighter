@@ -1,5 +1,6 @@
 import type { Attempt } from '../domain/history/attempt';
 import type { Statistics } from '../domain/history/statistics';
+import type { GameRecord, Tally } from '../domain/kozak/record';
 import { isRecord } from './buffer';
 import type {
   AttemptPage,
@@ -106,6 +107,35 @@ export function parseStatistics(body: unknown): Statistics {
     losses: body.losses,
     challenges: body.challenges,
   };
+}
+
+// §24: the record of the game as the server counts it from the attempts it keeps.
+export function parseGameRecord(body: unknown): GameRecord {
+  if (
+    !isRecord(body) ||
+    !Array.isArray(body.passed) ||
+    !body.passed.every((level) => typeof level === 'string') ||
+    !isRecord(body.energy) ||
+    !isOptionalText(body.energy.fight) ||
+    !isOptionalText(body.energy.campaign)
+  ) {
+    throw unexpected();
+  }
+
+  return {
+    fights: parseTally(body.fights),
+    campaign: parseTally(body.campaign),
+    passed: body.passed,
+    energy: { fight: body.energy.fight, campaign: body.energy.campaign },
+  };
+}
+
+function parseTally(value: unknown): Tally {
+  if (!isRecord(value) || !isCount(value.wins) || !isCount(value.draws) || !isCount(value.losses)) {
+    throw unexpected();
+  }
+
+  return { wins: value.wins, draws: value.draws, losses: value.losses };
 }
 
 // The export joins what every module of the server keeps about the user.

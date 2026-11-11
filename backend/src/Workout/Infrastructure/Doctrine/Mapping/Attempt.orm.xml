@@ -4,11 +4,12 @@
                   xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
     <entity name="App\Workout\Domain\Attempt" table="attempt">
-        <!-- The history filters by mode, outcome and period (§14.3) -->
+        <!-- The history filters by mode, outcome and period (§14.3); the game counts its battles by pool (§24) -->
         <indexes>
             <index name="idx_attempt_user_finished_at" columns="user_id,finished_at"/>
             <index name="idx_attempt_user_mode_finished_at" columns="user_id,mode,finished_at"/>
             <index name="idx_attempt_user_outcome_finished_at" columns="user_id,outcome,finished_at"/>
+            <index name="idx_attempt_user_pool_outcome" columns="user_id,pool,outcome"/>
         </indexes>
 
         <id name="id" type="attempt_id"/>
@@ -16,6 +17,9 @@
         <field name="mode" length="20" enum-type="App\Workout\Domain\Mode"/>
         <field name="outcome" length="4" enum-type="App\Workout\Domain\Outcome"/>
         <field name="challenge" length="80" nullable="true"/>
+        <field name="pool" length="8" nullable="true" enum-type="App\Workout\Domain\GamePool"/>
+        <field name="level" length="80" nullable="true"/>
+        <field name="energyFullAt" type="datetime_immutable" nullable="true"/>
         <field name="schemaVersion" type="smallint"/>
         <field name="finishedAt" type="datetime_immutable"/>
         <field name="document" type="json"/>

@@ -13,6 +13,7 @@
     "check:bundle": "vite build --outDir node_modules/.cache/bundle-check --emptyOutDir && node scripts/check-bundle-size.js node_modules/.cache/bundle-check"
   },
   "dependencies": {
+    "@fontsource/cormorant": "^5.3.0",
     "@fontsource/google-sans": "^5.3.2",
     "@fontsource/manrope": "^5.3.0",
     "@fontsource/unbounded": "^5.3.0",

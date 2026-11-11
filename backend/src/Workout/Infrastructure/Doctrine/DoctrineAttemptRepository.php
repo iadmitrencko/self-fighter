@@ -10,6 +10,8 @@ use App\Workout\Domain\Attempt;
 use App\Workout\Domain\AttemptFilter;
 use App\Workout\Domain\AttemptId;
 use App\Workout\Domain\AttemptRepository;
+use App\Workout\Domain\GamePool;
+use App\Workout\Domain\Mode;
 use App\Workout\Domain\Outcome;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -83,6 +85,29 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
         return array_values(array_filter($slugs, 'is_string'));
     }
 
+    public function passedLevels(UserId $owner): array
+    {
+        $levels = $this->filtered($owner, new AttemptFilter(Mode::Campaign, Outcome::Win))
+            ->select('DISTINCT a.level')
+            ->andWhere('a.level IS NOT NULL')
+            ->orderBy('a.level')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_values(array_filter($levels, 'is_string'));
+    }
+
+    // Every battle moves the moment later, so the latest one has seen them all.
+    public function energyFullAt(UserId $owner, GamePool $pool): ?\DateTimeImmutable
+    {
+        $latest = $this->filtered($owner, new AttemptFilter(pool: $pool))
+            ->select('MAX(a.energyFullAt)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return \is_string($latest) ? new \DateTimeImmutable($latest, new \DateTimeZone('UTC')) : null;
+    }
+
     public function transfer(UserId $from, UserId $to): void
     {
         $this->entityManager
@@ -119,6 +144,9 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
         }
         if (null !== $filter->to) {
             $query->andWhere('a.finishedAt < :to')->setParameter('to', $filter->to);
+        }
+        if (null !== $filter->pool) {
+            $query->andWhere('a.pool = :pool')->setParameter('pool', $filter->pool->value);
         }
 
         return $query;
