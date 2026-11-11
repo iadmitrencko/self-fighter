@@ -46,14 +46,17 @@ export function renderGame(
 }
 
 // Renders the cossack game at a path under /game (§24), with the same storage, events and clock.
-export function renderKozak(path: string, options: { storage?: GameStorage; now?: () => Date } = {}) {
+export function renderKozak(
+  path: string,
+  options: { storage?: GameStorage; now?: () => Date; signIn?: readonly string[] } = {},
+) {
   const storage = options.storage ?? createMemoryStorage();
   const analytics = createMemoryAnalytics();
   const game: Game = {
     storage,
     analytics,
     exercises: READY_MADE,
-    signIn: ['google'],
+    signIn: options.signIn ?? ['google'],
     challenge: null,
     deps: { rng: seededRng(7), now: options.now ?? testClock(), newId },
   };

@@ -13,6 +13,9 @@ export function Dialog({
   children: ReactNode;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  // The dialog closes itself on the way out, and the browser tells of that closing a moment later.
+  // It is no answer of the person: React in development leaves and opens a new dialog at once.
+  const leaving = useRef(false);
   const titleId = useId();
 
   useLayoutEffect(() => {
@@ -20,11 +23,25 @@ export function Dialog({
     element?.showModal();
 
     // Closing before the dialog leaves the page returns the focus to the button that opened it.
-    return () => element?.close();
+    return () => {
+      if (element?.open === true) {
+        leaving.current = true;
+        element.close();
+      }
+    };
   }, []);
 
+  const closed = () => {
+    if (leaving.current) {
+      leaving.current = false;
+
+      return;
+    }
+    onClose();
+  };
+
   return (
-    <dialog ref={dialog} className="dialog" aria-labelledby={titleId} onClose={onClose}>
+    <dialog ref={dialog} className="dialog" aria-labelledby={titleId} onClose={closed}>
       <h2 id={titleId} className="dialog__title">
         {title}
       </h2>

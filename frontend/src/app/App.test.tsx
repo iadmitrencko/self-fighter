@@ -2,7 +2,6 @@ import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { createSession } from '../domain/engine/session';
 import { targetConfig, testDeps } from '../domain/testing/fixtures';
-import { StorageError } from '../storage/errors';
 import { createMemoryStorage, type MemoryStorage } from '../storage/memory';
 import { finishedAttempt } from '../storage/testing/attempts';
 import { renderGame } from './testing/render';
@@ -38,9 +37,16 @@ describe('the game', () => {
   });
 
   it('puts the focus on the heading of a new screen', () => {
-    renderGame('/history');
+    renderGame('/setup/ladder');
 
-    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Історія' }));
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Налаштуй драбину' }));
+  });
+
+  // §24.1: the history and the data of the player live in the game, so the site has no screens for them.
+  it.each(['/history', '/account'])('has no screen at %s', (path) => {
+    renderGame(path);
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Сторінку не знайдено' })).toBeTruthy();
   });
 });
 
@@ -49,9 +55,8 @@ describe('navigation', () => {
   it.each([
     ['/', 'На головну', '/'],
     ['/setup/ladder', 'До вибору режиму', '/'],
-    ['/history', 'До вибору режиму', '/'],
-    ['/account', 'До вибору режиму', '/'],
-    ['/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85', 'До історії', '/history'],
+    // The history is a section of the game: it opens as a page.
+    ['/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85', 'До історії', '/game/history'],
     ['/unknown', 'До вибору режиму', '/'],
   ])('leads back from %s with «%s»', async (path, text, target) => {
     renderGame(path);
@@ -63,13 +68,13 @@ describe('navigation', () => {
   it('opens a screen of the game from a link of the site header', async () => {
     const { user } = renderGame('/');
     const header = document.createElement('a');
-    header.href = '/workout/history';
-    header.textContent = 'Історія в шапці';
+    header.href = '/workout/setup/ladder';
+    header.textContent = 'Драбина в шапці';
     document.body.append(header);
 
     await user.click(header);
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Історія' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Налаштуй драбину' })).toBeTruthy();
     header.remove();
   });
 
@@ -96,24 +101,30 @@ describe('navigation', () => {
     landing.href = '/#modes';
     landing.textContent = 'Режими';
     const tab = document.createElement('a');
-    tab.href = '/workout/history';
+    tab.href = '/workout/setup/ladder';
     tab.target = '_blank';
-    tab.textContent = 'Історія в новій вкладці';
+    tab.textContent = 'Драбина в новій вкладці';
+    // The history lives under the router of the game.
+    const inGame = document.createElement('a');
+    inGame.href = '/game/history';
+    inGame.textContent = 'Історія';
     const clicks: boolean[] = [];
     const remember = (event: MouseEvent) => {
       clicks.push(event.defaultPrevented);
       event.preventDefault();
     };
-    document.body.append(landing, tab);
+    document.body.append(landing, tab, inGame);
     window.addEventListener('click', remember);
 
     await user.click(landing);
     await user.click(tab);
+    await user.click(inGame);
 
     window.removeEventListener('click', remember);
     landing.remove();
     tab.remove();
-    expect(clicks).toEqual([false, false]);
+    inGame.remove();
+    expect(clicks).toEqual([false, false, false]);
     expect(screen.getByRole('heading', { level: 1, name: 'Обери режим' })).toBeTruthy();
   });
 });
@@ -134,23 +145,23 @@ async function accountWithKeptGuest(): Promise<MemoryStorage> {
 describe('coming back from Google', () => {
   it('offers to join what the browser saved without signing in', async () => {
     const storage = await accountWithKeptGuest();
-    const { user } = renderGame('/history?sign-in=done', { storage });
+    const { user } = renderGame('/?sign-in=done', { storage });
 
     const dialog = await screen.findByRole('dialog', { name: 'Перенести дані цього браузера?' });
     expect(within(dialog).getByText(/^У цьому браузері є 1 тренування, збережені без входу/)).toBeTruthy();
-    expect(await screen.findAllByRole('listitem')).toHaveLength(1);
 
     await user.click(within(dialog).getByRole('button', { name: 'Перенести' }));
 
     expect(await screen.findByText('Дані браузера перенесено в обліковий запис.')).toBeTruthy();
-    // The history under the dialog shows the joined attempts at once.
-    await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(2));
+    expect(await storage.account.keptGuest()).toBeNull();
+    // The score in the frame of the site counts the joined attempts at once.
+    expect((await storage.attempts.stats()).total).toBe(2);
   });
 
   // §23.3: the data stays with the guest of the browser and comes back after signing out.
   it('leaves the data of the browser apart when the person says so', async () => {
     const storage = await accountWithKeptGuest();
-    const { user } = renderGame('/history?sign-in=done', { storage });
+    const { user } = renderGame('/?sign-in=done', { storage });
 
     await user.click(await screen.findByRole('button', { name: 'Не переносити' }));
 
@@ -158,28 +169,12 @@ describe('coming back from Google', () => {
     expect(await storage.account.keptGuest()).toMatchObject({ attempts: 1 });
   });
 
-  // §17.2: a failure is explained, and the account screen still offers to join the data.
-  it('explains why the data was not joined', async () => {
-    const storage = await accountWithKeptGuest();
-    const offline = {
-      ...storage,
-      account: { ...storage.account, joinGuest: () => Promise.reject(new StorageError('offline')) },
-    };
-    const { user } = renderGame('/account?sign-in=done', { storage: offline });
-
-    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Перенести' }));
-
-    expect(await screen.findByText("Немає зв'язку із сервером. Перевір інтернет і спробуй ще раз.")).toBeTruthy();
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(screen.getByRole('region', { name: 'Дані без входу' })).toBeTruthy();
-  });
-
   it.each([
     ['done', 'Вхід виконано: тренування, вправи й налаштування тепер доступні на будь-якому пристрої.'],
     ['cancelled', 'Вхід скасовано. Без входу гра працює так само.'],
     ['failed', 'Не вдалося увійти через Google. Спробуй ще раз трохи згодом.'],
   ])('tells how the sign-in went: %s', async (outcome, text) => {
-    const { user } = renderGame(`/account?sign-in=${outcome}`);
+    const { user } = renderGame(`/?sign-in=${outcome}`);
 
     const notice = (await screen.findByText(text)).closest('.notice');
     expect(notice?.getAttribute('role')).toBe(outcome === 'failed' ? 'alert' : 'status');

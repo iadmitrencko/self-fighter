@@ -1,9 +1,21 @@
-import { createContext, use, useId, useMemo, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router';
-import { signInTexts } from '../../i18n/uk';
+import { createContext, use, useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router';
+import { signInTexts, storageMessages } from '../../i18n/uk';
+import type { StorageErrorCode } from '../../storage/errors';
+import { useDataVersion } from '../data';
 import { useGame } from '../game';
-import { isEmbeddedBrowser, signInPath } from '../signIn';
+import {
+  isEmbeddedBrowser,
+  isWorthJoining,
+  readSignInOutcome,
+  signInPath,
+  withoutSignInOutcome,
+  type SignInOutcome as Outcome,
+} from '../signIn';
+import { errorCode, useLoad } from '../useLoad';
+import { ConfirmDialog } from './Dialog';
 import { Icon } from './Icon';
+import { useRouterBase } from './routing';
 
 // The server offers signing in with Google only when it has a client of Google Cloud (§23.2).
 export function useCanSignIn(): boolean {
@@ -16,9 +28,10 @@ export function useCanSignIn(): boolean {
  */
 export function GoogleButton() {
   const { pathname } = useLocation();
+  const base = useRouterBase();
 
   return (
-    <a className="google-button" href={signInPath(pathname)}>
+    <a className="google-button" href={signInPath(base, pathname)}>
       <GoogleLogo />
       <span>{signInTexts.button}</span>
     </a>
@@ -50,7 +63,7 @@ export function SignInPromptProvider({ children }: { children: ReactNode }) {
   return <PromptContext value={prompt}>{children}</PromptContext>;
 }
 
-// §23.2: the offer to sign in, after the first workout and on the history screen.
+// §23.2: the offer to sign in, after the first workout and on the screen of the history in the game.
 export function SignInPrompt({ text }: { text: string }) {
   const { dismissed, dismiss } = use(PromptContext);
   const canSignIn = useCanSignIn();
@@ -75,6 +88,99 @@ export function SignInPrompt({ text }: { text: string }) {
     </section>
   );
 }
+
+/**
+ * §23.2–§23.3: Google sends the browser back to the screen it left, on the site or in the game, and
+ * the address tells how the sign-in went. A guest of this browser with data waits for the person to
+ * decide whether to join it.
+ */
+export function SignInOutcome() {
+  const { storage } = useGame();
+  const { changed } = useDataVersion();
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Read once: the address forgets the outcome at once, so a reload does not tell it again.
+  const [outcome] = useState(() => readSignInOutcome(location.search));
+  const forgotten = useRef(false);
+  const loadGuest = useCallback(
+    () => (outcome === 'done' ? storage.account.keptGuest() : Promise.resolve(null)),
+    [storage, outcome],
+  );
+  const [guest] = useLoad(loadGuest);
+  const [closed, setClosed] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<StorageErrorCode | null>(null);
+
+  useEffect(() => {
+    if (outcome !== null && !forgotten.current) {
+      forgotten.current = true;
+      void navigate(
+        { pathname: location.pathname, search: withoutSignInOutcome(location.search), hash: location.hash },
+        { replace: true },
+      );
+    }
+  }, [outcome, navigate, location]);
+
+  async function join() {
+    setBusy(true);
+
+    try {
+      await storage.account.joinGuest();
+      setJoined(true);
+      changed();
+    } catch (error) {
+      setFailure(errorCode(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (outcome === null || closed || (outcome === 'done' && guest.status === 'loading')) {
+    return null;
+  }
+
+  if (outcome === 'done' && guest.status === 'ready' && isWorthJoining(guest.value) && !joined && failure === null) {
+    const { attempts, exercises } = guest.value;
+
+    return (
+      <ConfirmDialog
+        title={signInTexts.joinTitle}
+        text={signInTexts.joinText(attempts, exercises)}
+        confirm={signInTexts.join}
+        cancel={signInTexts.keepApart}
+        tone="primary"
+        busy={busy}
+        onConfirm={() => void join()}
+        onCancel={() => setClosed(true)}
+      />
+    );
+  }
+
+  const { tone, text } =
+    failure !== null
+      ? { tone: 'error', text: storageMessages[failure] }
+      : joined
+        ? { tone: 'done', text: signInTexts.joined }
+        : OUTCOME_NOTICES[outcome];
+
+  return (
+    <div className="app-notice">
+      <div className={`notice notice--${tone}`} role={tone === 'error' ? 'alert' : 'status'}>
+        <p>{text}</p>
+        <button type="button" className="button button--outline" onClick={() => setClosed(true)}>
+          {signInTexts.close}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const OUTCOME_NOTICES: Record<Outcome, { tone: 'done' | 'warning' | 'error'; text: string }> = {
+  done: { tone: 'done', text: signInTexts.done },
+  cancelled: { tone: 'warning', text: signInTexts.cancelled },
+  failed: { tone: 'error', text: signInTexts.failed },
+};
 
 // The standard logo of Google: its colors belong to the mark, not to the palette of the site.
 function GoogleLogo() {

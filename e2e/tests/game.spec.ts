@@ -19,7 +19,15 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   await page.goto('/');
   await page.getByRole('navigation', { name: 'Головна навігація' }).getByRole('link', { name: 'Гра' }).click();
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Джура' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('button', { name: 'Як здобути славу' }).click();
+  await expect(page.getByRole('region', { name: 'Як здобути славу' })).toBeVisible();
+  await expectAccessible(page);
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Звання' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Звання', exact: true })).toBeVisible();
   await expectAccessible(page);
 
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Похід' }).click();
@@ -53,9 +61,21 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   await expectAccessible(page);
   await expect.poll(async () => (await gameRecord(page))?.passed).toEqual(['forest-ravens/1/1']);
 
+  // §24.1: the history is a section of the game and names the level.
+  await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Історія' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Історія' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Перше випробування Перемога Похід/ })).toBeVisible();
+  await expectAccessible(page);
+
+  // §24.1: the data of the player is the last section of the game.
+  await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Налаштування' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Налаштування' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Завантажити дані' })).toBeVisible();
+  await expectAccessible(page);
+
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Козак' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Джура' })).toBeVisible();
-  await expect(page.getByText('Ще 8 слави до звання «Заставний»').first()).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Ще 8 слави до звання «Заставний»' })).toBeVisible();
 });
 
 // §24.5: a retreat loses the level and keeps it open for another try.

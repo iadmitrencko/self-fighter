@@ -135,7 +135,6 @@ export const commonTexts = {
   toModes: 'До вибору режиму',
   toHistory: 'До історії',
   history: 'Історія',
-  account: 'Мої дані',
   newWorkout: 'Нове тренування',
   pending: 'Очікує надсилання',
   rejected: 'Не прийнято сервером',
@@ -319,10 +318,9 @@ export const resultTexts = {
       : '«Повторити» — ті самі налаштування.',
 };
 
+// §14: the history, a section of the game (§24.1).
 export const historyTexts = {
-  title: 'Історія',
   stats: 'Загальна статистика',
-  total: 'Завершено тренувань',
   challenges: 'Пройдено викликів',
   catalog: 'Каталог викликів',
   challenge: (title: string, passed: boolean) => (passed ? `Виклик пройдено · ${title}` : `Виклик · ${title}`),
@@ -335,13 +333,12 @@ export const historyTexts = {
     'opponent-levels': 'Рівні',
     ladder: 'Драбина',
   } satisfies Record<Mode, string>,
+  // Non-breaking spaces keep «2 : 1» and «9 з 9» on one line.
   fightDetails: (rounds: number, exercises: number, won: number, lost: number) =>
-    `${counts.rounds(rounds)} · ${counts.exercises(exercises)} · ${won} : ${lost}`,
+    `${counts.rounds(rounds)} · ${counts.exercises(exercises)} · ${won}\u00a0:\u00a0${lost}`,
   ladderDetails: (exercise: string, max: number, returnDown: boolean, passed: number, total: number) =>
-    `${exercise} · до ${max}${returnDown ? ' і вниз' : ''} · ${passed} з ${total}`,
-  empty: 'Ще немає завершених тренувань.',
+    `${exercise} · до\u00a0${max}${returnDown ? ' і вниз' : ''} · ${passed}\u00a0з\u00a0${total}`,
   emptyFiltered: 'За цим фільтром тренувань немає.',
-  start: 'Почати тренування',
   more: 'Показати ще',
   note: "Історія прив'язана до цього браузера. Перервані тренування не враховуються.",
   accountNote: 'Історія відкривається на будь-якому пристрої після входу через Google. Перервані тренування не враховуються.',
@@ -372,7 +369,6 @@ export const signInTexts = {
 };
 
 export const accountTexts = {
-  title: 'Мої дані',
   intro:
     "Ти граєш як гість. Тренування, власні вправи й налаштування зберігаються на сервері та прив'язані до цього браузера: в іншому браузері чи після очищення його даних історія почнеться з нуля.",
   accountIntro:

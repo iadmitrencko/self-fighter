@@ -42,7 +42,7 @@
   gap: var(--space-xs);
 }
 
-/* On a phone the history and the data are icons; the hubs of the site wait in the footer. */
+/* On a phone the game is an icon; the hubs of the site wait in the footer. */
 .site-nav__link {
   display: inline-flex;
   align-items: center;

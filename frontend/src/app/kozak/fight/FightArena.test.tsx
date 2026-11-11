@@ -53,7 +53,10 @@ describe('the fights of the game', () => {
     expect(await screen.findByText('+1 слава')).toBeTruthy();
     expect(storage.gameSessions.fight.load()).toBeNull();
     expect((await storage.attempts.game()).fights).toEqual({ wins: 1, draws: 0, losses: 0 });
-    expect(screen.getByRole('link', { name: 'Історія' }).getAttribute('href')).toBe('/workout/history');
+    // §24.1: the history is a section of the game, beside the result as in the menu.
+    const sections = screen.getByRole('navigation', { name: 'Розділи гри' });
+    const toHistory = screen.getAllByRole('link', { name: 'Історія' }).filter((link) => !sections.contains(link));
+    expect(toHistory.map((link) => link.getAttribute('href'))).toEqual(['/history']);
   });
 
   // §24.6: leaving a fight in the middle loses it, so its energy stays spent.

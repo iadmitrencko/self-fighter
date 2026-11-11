@@ -1,6 +1,6 @@
 import type { CampaignId } from '../domain/kozak/journey';
 
-// §24.5: the names of the journey alone, for the history of the site, which tells no story.
+// §24.5: the names of the journey alone, for the result of a level on the site, which tells no story.
 
 export const campaignNames: Record<CampaignId, string> = {
   'black-flag': 'Чорний прапор',
@@ -98,10 +98,8 @@ export function levelName(id: string): string {
   return levelNames[id] ?? id;
 }
 
-// The history of the site names a level of the journey by its campaign, stage and level.
+// The site shows the result of a level of the journey by its campaign and level, and leads to the game.
 export const journeyHistoryTexts = {
   journey: 'Похід',
-  level: (campaign: string, stage: number, level: string, done: number, total: number) =>
-    `${campaign} · етап ${stage} · «${level}» · ${done} з ${total} підходів`,
   openInGame: 'Відкрити в грі',
 };

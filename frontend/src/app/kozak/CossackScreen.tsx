@@ -1,141 +1,153 @@
-import { useId } from 'react';
-import { lookOf, RANKS } from '../../domain/kozak/ranks';
+import { useEffect, useId, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { totalTally } from '../../domain/kozak/record';
-import { cossackTexts, kozakTexts, lookTexts, rankNames } from '../../i18n/kozak';
+import { cossackTexts, lookTexts, rankNames } from '../../i18n/kozak';
 import { Title } from '../components/Screen';
 import { CossackFigure } from './art/Cossack';
-import { Bar, EnergyMeter, KozakIcon, KozakScreen, WithCossack } from './parts';
+import { kozakPaths } from './paths';
+import { Bar, EnergyMeter, GloryRewards, KozakIcon, KozakScreen, WithCossack } from './parts';
 import { useNow } from './record';
 
-// §24.1–§24.4: the cossack of the player: his look and rank, his glory, his record and energy.
+// §24.1–§24.4, resesign/kozak.html: the cossack of the player, his glory, energy and record, and
+// the way to the next battle.
 export function CossackScreen() {
   const now = useNow();
   const recordId = useId();
-  const energyId = useId();
-  const ranksId = useId();
-  const howId = useId();
 
   return (
-    <KozakScreen title={cossackTexts.eyebrow} className="k-cossack">
+    <KozakScreen title={cossackTexts.title} className="k-cossack">
       <WithCossack>
         {({ glory, standing, record, energy }) => {
-          const look = lookTexts[standing.look];
           const tally = totalTally(record);
-          const name = rankNames[standing.rank.id];
-          const from = standing.rank.glory;
-          const to = standing.next?.glory ?? from;
+          const { next } = standing;
 
           return (
             <>
-              <header className="k-head">
-                <p className="k-eyebrow">{cossackTexts.eyebrow}</p>
-                <Title className="k-title">{name}</Title>
-                <p className="k-lead">{cossackTexts.rankNumber(standing.number, RANKS.length)}</p>
-              </header>
-              <div className="k-cossack__body">
-                <figure className="k-cossack__portrait">
-                  <CossackFigure look={standing.look} label={look.figure} />
-                  <figcaption className="k-cossack__look">
-                    <span className="k-eyebrow">{cossackTexts.look}</span>
-                    <b>{look.ranks}</b>
-                    <span>{look.text}</span>
-                  </figcaption>
+              <section className="k-hero">
+                <figure className="k-hero__portrait">
+                  <CossackFigure look={standing.look} label={lookTexts[standing.look].figure} />
                 </figure>
-                <div className="k-cossack__facts">
-                  <section className="k-card k-glory">
-                    <p className="k-glory__label">{kozakTexts.glory}</p>
-                    <p className="k-glory__value">
-                      <KozakIcon name="glory" className="k-glory__icon" />
-                      {glory}
-                    </p>
-                    {standing.next === null ? (
+                <div className="k-hero__body">
+                  <Title className="k-hero__title">
+                    <span className="k-hero__label">{cossackTexts.rank}</span>{' '}
+                    <span className="k-hero__rank">{rankNames[standing.rank.id]}</span>
+                  </Title>
+                  <div className="k-glory">
+                    <div className="k-glory__top">
+                      <p className="k-glory__value">
+                        <KozakIcon name="glory" className="k-glory__icon" />
+                        <b className="k-glory__number">{glory}</b> <span>{cossackTexts.gloryWord(glory)}</span>
+                      </p>
+                      <GloryHelp />
+                    </div>
+                    {next === null ? (
                       <p className="k-glory__next">{cossackTexts.top}</p>
                     ) : (
                       <>
-                        <Bar value={glory - from} max={to - from} label={cossackTexts.toNext(to - glory, rankNames[standing.next.id])} />
-                        <p className="k-glory__next">{cossackTexts.toNext(to - glory, rankNames[standing.next.id])}</p>
+                        {/* As on the page of the ranks: the glory out of what the next rank needs. */}
+                        <Bar value={glory} max={next.glory} label={cossackTexts.toNext(next.glory - glory, rankNames[next.id])} />
+                        <p className="k-glory__next">
+                          {cossackTexts.toNextBefore} <strong>{cossackTexts.toNextAmount(next.glory - glory)}</strong>{' '}
+                          {cossackTexts.toNextAfter(rankNames[next.id])}
+                        </p>
                       </>
                     )}
-                  </section>
-                  <section className="k-card" aria-labelledby={recordId}>
-                    <h2 id={recordId} className="k-card__title">
-                      {cossackTexts.record}
-                    </h2>
-                    <dl className="k-tally">
-                      <div className="k-tally__item k-tally__item--wins">
-                        <dt>{cossackTexts.wins}</dt>
-                        <dd>{tally.wins}</dd>
-                      </div>
-                      <div className="k-tally__item">
-                        <dt>{cossackTexts.draws}</dt>
-                        <dd>{tally.draws}</dd>
-                      </div>
-                      <div className="k-tally__item k-tally__item--losses">
-                        <dt>{cossackTexts.losses}</dt>
-                        <dd>{tally.losses}</dd>
-                      </div>
-                    </dl>
-                    <p className="k-card__note">{cossackTexts.recordNote}</p>
-                  </section>
-                  <section className="k-card" aria-labelledby={energyId}>
-                    <h2 id={energyId} className="k-card__title">
-                      {cossackTexts.energy}
-                    </h2>
-                    <div className="k-energies">
-                      <EnergyMeter pool="fight" energy={energy('fight', now)} now={now} />
-                      <EnergyMeter pool="campaign" energy={energy('campaign', now)} now={now} />
-                    </div>
-                    <p className="k-card__note">{cossackTexts.energyNote}</p>
-                  </section>
+                  </div>
+                  <div className="k-hero__energy">
+                    <EnergyMeter pool="fight" energy={energy('fight', now)} now={now} compact />
+                    <EnergyMeter pool="campaign" energy={energy('campaign', now)} now={now} compact />
+                  </div>
+                  <div className="k-hero__actions">
+                    <Link className="k-action k-action--primary" to={kozakPaths.fight}>
+                      <span className="k-action__name">{cossackTexts.fight}</span>
+                      <span className="k-action__cost">{cossackTexts.fightCost}</span>
+                    </Link>
+                    <Link className="k-action" to={kozakPaths.journey}>
+                      <span className="k-action__name">{cossackTexts.journey}</span>
+                      <span className="k-action__cost">{cossackTexts.journeyCost}</span>
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              <div className="k-cossack__more">
-                <section className="k-card" aria-labelledby={ranksId}>
-                  <h2 id={ranksId} className="k-card__title">
-                    {cossackTexts.ranks}
-                  </h2>
-                  <p className="k-card__note">{cossackTexts.ranksNote}</p>
-                  <ol className="k-ranks" role="list">
-                    {RANKS.map((rank, index) => {
-                      const state = index + 1 < standing.number ? 'done' : index + 1 === standing.number ? 'current' : 'next';
-                      const newLook = index === 0 || lookOf(rank.id) !== lookOf(RANKS[index - 1]?.id ?? rank.id);
-
-                      return (
-                        <li
-                          key={rank.id}
-                          className={`k-ranks__item k-ranks__item--${state}${newLook ? ' k-ranks__item--look' : ''}`}
-                          aria-current={state === 'current' ? 'step' : undefined}
-                        >
-                          <span className="k-ranks__mark" aria-hidden="true">
-                            {state === 'done' ? <KozakIcon name="check" className="k-ranks__check" /> : index + 1}
-                          </span>
-                          <span className="k-ranks__name">{rankNames[rank.id]}</span>
-                          <span className="k-ranks__glory">
-                            {state === 'current' ? cossackTexts.current : cossackTexts.rankGlory(rank.glory)}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </section>
-                <section className="k-card" aria-labelledby={howId}>
-                  <h2 id={howId} className="k-card__title">
-                    {cossackTexts.howTitle}
-                  </h2>
-                  <dl className="k-how">
-                    {cossackTexts.how.map(([what, amount]) => (
-                      <div key={what} className="k-how__item">
-                        <dt>{what}</dt>
-                        <dd>{amount}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
-              </div>
+              </section>
+              <section className="k-record" aria-labelledby={recordId}>
+                <h2 id={recordId} className="k-record__title">
+                  {cossackTexts.record}
+                </h2>
+                <p className="k-record__counts">
+                  <span>
+                    <strong>{tally.wins}</strong> {cossackTexts.wins(tally.wins)}
+                  </span>
+                  <span>
+                    <strong>{tally.draws}</strong> {cossackTexts.draws(tally.draws)}
+                  </span>
+                  <span>
+                    <strong>{tally.losses}</strong> {cossackTexts.losses(tally.losses)}
+                  </span>
+                </p>
+                <Link className="k-record__link" to={kozakPaths.history}>
+                  {cossackTexts.history} <span aria-hidden="true">→</span>
+                </Link>
+              </section>
             </>
           );
         }}
       </WithCossack>
     </KozakScreen>
+  );
+}
+
+// «?» beside the glory: what brings it, in a small panel that closes on Escape or a tap elsewhere.
+function GloryHelp() {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const box = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    // On a phone the panel may open below the edge of the screen.
+    panel.current?.scrollIntoView({ block: 'nearest' });
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        button.current?.focus();
+      }
+    };
+    const onPointer = (event: PointerEvent) => {
+      if (!(event.target instanceof Node && box.current?.contains(event.target) === true)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
+    };
+  }, [open]);
+
+  return (
+    <div ref={box} className="k-help">
+      <button
+        ref={button}
+        type="button"
+        className="k-help__button"
+        aria-label={cossackTexts.help}
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((value) => !value)}
+      >
+        ?
+      </button>
+      <div ref={panel} id={panelId} className="k-help__panel" role="region" aria-label={cossackTexts.help} hidden={!open}>
+        <p className="k-help__title">{cossackTexts.help}</p>
+        <GloryRewards />
+      </div>
+    </div>
   );
 }

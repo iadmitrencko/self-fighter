@@ -158,7 +158,7 @@ final class ContentPagesTest extends WebTestCase
             self::texts($crawler, '.prose h2'),
         );
         self::assertCount(4, $crawler->filter('.prose ul li'));
-        self::assertSame(['/workout/account'], self::links($crawler->filter('.prose')));
+        self::assertSame(['/game/settings'], self::links($crawler->filter('.prose')));
     }
 
     public function testBreadcrumbsLeadBackToTheHub(): void

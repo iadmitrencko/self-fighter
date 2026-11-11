@@ -31,82 +31,123 @@ export const rankNames: Record<RankId, string> = {
   hetman: 'Гетьман',
 };
 
-// §24.2: the look of the cossack grows richer with the rank.
-export const lookTexts: Record<Look, { ranks: string; text: string; figure: string }> = {
+// §24.2: the look of the cossack grows richer with the rank, and the ranks of one look make a group.
+export const lookTexts: Record<Look, { group: string; figure: string }> = {
   recruit: {
-    ranks: 'Джура — Ройовий',
-    text: 'Простий одяг, базове спорядження.',
+    group: 'Молодші',
     figure: 'Козак у простій сорочці й шароварах, з дерев’яним києм.',
   },
   cossack: {
-    ranks: 'Козак — Хорунжий',
-    text: 'Кращий одяг, зброя, елементи обладунку.',
+    group: 'Козацтво',
     figure: 'Козак у жупані з червоним поясом, із шаблею та наплічником.',
   },
   officer: {
-    ranks: 'Сотник — Полковник',
-    text: 'Багате спорядження, відзнаки, особливий вигляд.',
+    group: 'Старшина',
     figure: 'Козацький старшина в каптані зі шнурами, у шапці зі шликом, з перначем.',
   },
   general: {
-    ranks: 'Генерал-осавул — Маршал',
-    text: 'Унікальні елементи одягу, коштовності.',
+    group: 'Генералітет',
     figure: 'Генеральний старшина в кунтуші з хутряним коміром, із самоцвітами на шаблі.',
   },
   hetman: {
-    ranks: 'Гетьман',
-    text: 'Унікальні елементи одягу, коштовності, гетьманські атрибути.',
+    group: 'Вершина',
     figure: 'Гетьман у багряному кунтуші з булавою, під бунчуком.',
   },
 };
 
 export const kozakTexts = {
   section: 'Розділи гри',
-  nav: { cossack: 'Козак', fight: 'Бій', journey: 'Похід' },
-  glory: 'Слава',
-  rank: 'Звання',
+  nav: { cossack: 'Козак', fight: 'Бій', journey: 'Похід', ranks: 'Звання', history: 'Історія', settings: 'Налаштування' },
   loading: 'Збираємо літопис козака…',
   notFound: 'Тут нічого немає',
   notFoundText: 'Можливо, в адресі помилка. Повернись до козака або в похід.',
   toCossack: 'До козака',
 };
 
+const gloryAmount = (glory: number) => plural(glory, { one: '{n} слава', few: '{n} слави', many: '{n} слави' });
+
+// §24.3: what brings glory, on the screen of the cossack and of the ranks.
+export const gloryRewards = [
+  ['Перемога в бою', '+1'],
+  ['Рівень походу', '+2'],
+  ['Бос етапу', '+5'],
+  ['Кампанію пройдено', '+10'],
+  ['Похід пройдено', '+30'],
+] as const;
+
 export const cossackTexts = {
-  eyebrow: 'Козак',
-  rankNumber: (number: number, total: number) => `Звання ${number} з ${total}`,
-  glory: (glory: number) => plural(glory, { one: '{n} слава', few: '{n} слави', many: '{n} слави' }),
-  toNext: (left: number, rank: string) =>
-    `Ще ${plural(left, { one: '{n} слава', few: '{n} слави', many: '{n} слави' })} до звання «${rank}»`,
+  title: 'Козак',
+  rank: 'Звання:',
+  // The word after the number of glory: «2 слави».
+  gloryWord: (glory: number) => plural(glory, { one: 'слава', few: 'слави', many: 'слави' }),
+  // «Ще 8 слави до звання «Заставний»», with the amount in bold.
+  toNextBefore: 'Ще',
+  toNextAmount: gloryAmount,
+  toNextAfter: (rank: string) => `до звання «${rank}»`,
+  toNext: (left: number, rank: string) => `Ще ${gloryAmount(left)} до звання «${rank}»`,
   top: 'Найвище звання здобуто.',
+  help: 'Як здобути славу',
+  fight: 'До бою',
+  fightCost: '−1 енергії боїв',
+  journey: 'У похід',
+  journeyCost: '−1 енергії походу',
   record: 'Бойовий рахунок',
-  recordNote: 'Бої й рівні походу разом.',
-  wins: 'Перемоги',
-  draws: 'Нічиї',
-  losses: 'Поразки',
-  look: 'Вигляд',
-  ranks: 'Звання',
-  ranksNote: 'Звання зростає зі славою, а з ним багатшає й вигляд козака.',
-  rankGlory: (glory: number) => `від ${glory}`,
+  wins: (count: number) => plural(count, { one: 'перемога', few: 'перемоги', many: 'перемог' }),
+  draws: (count: number) => plural(count, { one: 'нічия', few: 'нічиї', many: 'нічиїх' }),
+  losses: (count: number) => plural(count, { one: 'поразка', few: 'поразки', many: 'поразок' }),
+  history: 'Історія боїв',
+};
+
+export const ranksTexts = {
+  title: 'Звання',
+  lead: 'Звання зростає зі славою, а з ним багатшає й вигляд козака.',
+  all: 'Усі звання',
+  range: (first: number, last: number) => (first === last ? `звання ${first}` : `звання ${first}–${last}`),
   current: 'Зараз',
+  left: (left: number) => `Ще ${gloryAmount(left)}`,
+  from: (glory: number) => `від ${glory}`,
+  // Read before the name of a rank: the circle with its number is a picture.
+  number: (number: number) => `${number}. `,
+  progress: 'Твій поступ',
+  toward: (target: number, rank: string) => `з ${target} до «${rank}»`,
+  towardLabel: (glory: number, target: number, rank: string) => `${gloryAmount(glory)} з ${target} до звання «${rank}»`,
+  top: 'Найвище звання здобуто.',
+  toCossack: 'До козака',
   howTitle: 'Як здобути славу',
-  how: [
-    ['Перемога в бою', '+1'],
-    ['Рівень походу', '+2'],
-    ['Бос етапу', '+5'],
-    ['Кампанію пройдено', '+10'],
-    ['Похід пройдено', '+30'],
-  ] as const,
-  energy: 'Енергія',
-  energyNote: 'Кожен бій і кожна спроба рівня забирають одиницю енергії, навіть невдалі. Вона відновлюється сама.',
+};
+
+// §14, §24.1: the one history of every attempt, a section of the game.
+export const gameHistoryTexts = {
+  title: 'Історія',
+  lead: 'Усі завершені бої, рівні походу й звичайні тренування.',
+  // The word after the number of attempts: «12 тренувань».
+  total: (count: number) => plural(count, { one: 'тренування', few: 'тренування', many: 'тренувань' }),
+  // Where an attempt comes from: a fight of the game, a level of the journey or a workout of the site.
+  kinds: { fight: 'Бій', journey: 'Похід', workout: 'Тренування' },
+  journey: 'Похід',
+  // Non-breaking spaces keep «етап 1» and «3 з 4» on one line.
+  level: (campaign: string, stage: number, done: number, total: number) =>
+    `${campaign} · етап\u00a0${stage} · ${done}\u00a0з\u00a0${total} підходів`,
+  empty: 'Історія ще порожня. Тут з’являться завершені бої, рівні походу й тренування.',
+  toFight: 'До бою',
+  toJourney: 'У похід',
+};
+
+// §15.5, §23, §24.1: the data of the player, a section of the game. The texts of its cards are those
+// of the account (accountTexts).
+export const settingsTexts = {
+  title: 'Налаштування',
 };
 
 export const energyTexts: Record<EnergyPool, { name: string; every: string }> = {
-  fight: { name: 'Енергія боїв', every: '+1 кожні 2 години' },
-  campaign: { name: 'Енергія походу', every: '+1 кожні 5 годин' },
+  fight: { name: 'Енергія боїв', every: '+1 кожні 2 год' },
+  campaign: { name: 'Енергія походу', every: '+1 кожні 5 год' },
 };
 
 export const energyStatus = {
-  value: (value: number, max: number) => `${value} з ${max}`,
+  value: (value: number, max: number) => `${value} / ${max}`,
+  // What a screen reader says instead of the slash.
+  spoken: (value: number, max: number) => `${value} з ${max}`,
   full: 'Повна',
   next: (time: string) => `+1 через ${time}`,
   empty: (time: string) => `Енергії немає. Наступна одиниця через ${time}.`,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lookOf, RANKS, standingOf } from './ranks';
+import { lookOf, rankGroups, RANKS, standingOf } from './ranks';
 
 describe('ranks', () => {
   // §24.2: the glory each rank needs, from the brief.
@@ -41,6 +41,18 @@ describe('ranks', () => {
 
   it('never go below the first rank', () => {
     expect(standingOf(-5)).toMatchObject({ glory: 0, number: 1 });
+  });
+
+  // The page of the ranks shows them by the look they give.
+  it('fall into a group for each look', () => {
+    expect(rankGroups().map(({ look, first, last, ranks }) => [look, first, last, ranks.length])).toEqual([
+      ['recruit', 1, 3, 3],
+      ['cossack', 4, 9, 6],
+      ['officer', 10, 14, 5],
+      ['general', 15, 19, 5],
+      ['hetman', 20, 20, 1],
+    ]);
+    expect(rankGroups().flatMap(({ ranks }) => ranks)).toEqual(RANKS);
   });
 
   // §24.2: the five looks of the cossack.

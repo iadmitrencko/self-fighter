@@ -23,28 +23,38 @@
   top: 0;
   z-index: 3;
   margin-inline: calc(-1 * var(--page-gutter));
-  padding: var(--space-xs) var(--page-gutter);
+  padding-block: var(--space-xs);
   border-bottom: 1px solid var(--k-line);
   background: var(--k-bg);
 }
 
+/* Six tabs do not fit a phone: each keeps its width and the strip scrolls sideways from edge to
+   edge of the screen. Where they fit, they share the row. The icon stands above its name. */
 .kozak-nav {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-xs);
+  display: flex;
+  gap: var(--space-2xs);
+  padding-inline: var(--page-gutter);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--page-gutter);
+  scrollbar-width: none;
 }
 
 .kozak-nav__link {
   display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xs);
+  gap: 0.125rem;
   min-height: var(--k-hit);
-  padding: 0 var(--space-s);
-  border-radius: var(--k-r-btn);
+  padding: 0.375rem 0.625rem;
+  border-radius: 10px;
   color: var(--k-ash);
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .kozak-nav__link:hover {
@@ -58,13 +68,19 @@
 }
 
 .kozak-nav__icon {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.125rem;
+  height: 1.125rem;
   flex: none;
+  stroke-width: 2;
 }
 
-.kozak-status {
-  display: none;
+/* From the width where the six names fit beside their icons. */
+@media (min-width: 40rem) {
+  .kozak-nav__link {
+    flex-direction: row;
+    gap: var(--space-xs);
+    font-size: var(--text-s);
+  }
 }
 
 .kozak__main {
@@ -77,72 +93,41 @@
   padding: 0;
 }
 
+/* resesign: a narrow column of the sections beside the screen. */
 @media (min-width: 64rem) {
   .kozak {
     display: grid;
-    grid-template-columns: 13.5rem minmax(0, 1fr);
+    grid-template-columns: 12.5rem minmax(0, 1fr);
     align-items: start;
-    gap: var(--space-2xl);
-    padding-top: var(--space-xl);
+    gap: var(--space-xl);
+    padding-top: var(--space-l);
   }
 
   .kozak__aside {
     top: var(--space-l);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-l);
     margin: 0;
     padding: 0;
     border: 0;
   }
 
   .kozak-nav {
-    grid-template-columns: none;
+    flex-direction: column;
+    padding-inline: 0;
+    overflow: visible;
   }
 
   .kozak-nav__link {
+    flex: none;
+    flex-direction: row;
     justify-content: flex-start;
     gap: var(--space-s);
-    padding: 0 var(--space-m);
-    font-size: var(--text-base);
+    padding: var(--space-s) 0.875rem;
+    font-size: var(--text-s);
+    font-weight: 500;
   }
 
-  .kozak-status {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-m);
-    padding: var(--space-m);
-    border: 1px solid var(--k-line);
-    border-radius: var(--k-r-card);
-    background: var(--k-surface-2);
-  }
-
-  .kozak-status__rank,
-  .kozak-status__glory {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-  }
-
-  .kozak-status__rank b {
-    font-family: var(--k-font-display);
-    font-size: 1.5rem;
-    line-height: 1.1;
-  }
-
-  .kozak-status__glory b {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-xs);
-    color: var(--k-gold-light);
-    font-size: 1.25rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .kozak-status__icon {
-    width: 1.125rem;
-    height: 1.125rem;
+  .kozak-nav__link[aria-current='page'] {
+    font-weight: 600;
   }
 }
 
@@ -288,6 +273,19 @@
 .k-button--boss:hover {
   background: var(--k-ember);
   color: var(--k-text-on-gold);
+}
+
+/* Deleting the data: red, as danger is, yet quieter than the main action. */
+.k-button--danger {
+  border-color: var(--k-ember-line);
+  background: transparent;
+  color: var(--k-ember-soft);
+}
+
+.k-button--danger:hover {
+  border-color: var(--k-ember);
+  background: var(--k-badge-boss-bg);
+  color: var(--k-ember-soft);
 }
 
 .k-button--locked,
@@ -529,34 +527,27 @@
   color: var(--k-ember-soft);
 }
 
-.k-energies {
+/* The cossack, resesign/kozak.html: the portrait beside the glory, the energy and the way to a
+   battle, the record under them. */
+
+.k-cossack {
+  container: k-cossack / inline-size;
+  gap: 1.25rem;
+}
+
+.k-hero {
   display: grid;
-  gap: var(--space-s);
-}
-
-@media (min-width: 48rem) {
-  .k-energies {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* The cossack */
-
-.k-cossack__body,
-.k-cossack__more {
-  display: grid;
-  gap: var(--space-l);
-  align-items: start;
-}
-
-.k-cossack__portrait {
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--k-line-active);
+  border: 1px solid var(--k-line);
   border-radius: var(--k-r-card);
   background: var(--k-surface);
-  box-shadow: var(--k-glow-card);
+}
+
+.k-hero__portrait {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  max-height: 26.25rem;
+  background: var(--k-map-ground);
 }
 
 .k-figure {
@@ -566,51 +557,89 @@
   aspect-ratio: 3 / 4;
 }
 
-.k-cossack__look {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: var(--space-m) var(--space-l) var(--space-l);
-  color: var(--k-ash);
-  font-size: var(--text-s);
+/* The picture covers its box whatever its height: the figure stays in the middle. */
+.k-hero__portrait .k-figure {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  aspect-ratio: auto;
 }
 
-.k-cossack__look b {
-  color: var(--k-parchment);
-  font-family: var(--k-font-display);
-  font-size: 1.375rem;
-}
-
-.k-cossack__facts {
+.k-hero__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-l);
   min-width: 0;
+  padding: var(--space-l) var(--space-m);
 }
 
-.k-glory__label {
+.k-hero__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem var(--space-s);
+  font-size: inherit;
+  font-weight: 400;
+}
+
+.k-hero__label {
   color: var(--k-ash);
-  font-size: var(--text-s);
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.k-hero__rank {
+  color: var(--k-parchment);
+  font-family: var(--k-font-display);
+  font-size: 2.5rem;
   font-weight: 700;
-  letter-spacing: var(--k-tracking-label);
-  text-transform: uppercase;
+  line-height: 1;
+}
+
+.k-glory {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  padding: 1.125rem 1.25rem;
+  border-radius: var(--k-r-btn);
+  background: var(--k-tile);
+}
+
+.k-glory__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
 }
 
 .k-glory__value {
   display: flex;
-  align-items: center;
-  gap: var(--space-s);
+  align-items: baseline;
+  gap: 0.625rem;
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-glory__icon {
+  align-self: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  color: var(--k-gold);
+}
+
+.k-glory__number {
   color: var(--k-gold-light);
-  font-size: 3.5rem;
+  font-size: 2.25rem;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
-.k-glory__icon {
-  width: 2.25rem;
-  height: 2.25rem;
-  color: var(--k-gold);
+.k-glory .k-bar,
+.k-progress .k-bar {
+  height: 0.5rem;
+  border-radius: 4px;
 }
 
 .k-glory__next {
@@ -618,121 +647,237 @@
   font-size: var(--text-s);
 }
 
-.k-tally {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-xs);
-}
-
-.k-tally__item {
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 0.125rem;
-  padding: var(--space-s);
-  border-radius: var(--k-r-tile);
-  background: var(--k-tile);
-  text-align: center;
-}
-
-.k-tally__item dt {
-  color: var(--k-ash);
-  font-size: var(--text-xs);
-}
-
-.k-tally__item dd {
-  margin: 0;
-  font-size: 1.75rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.k-tally__item--wins dd {
-  color: var(--k-gold-light);
-}
-
-.k-tally__item--losses dd {
-  color: var(--k-ember-soft);
-}
-
-.k-ranks {
-  display: grid;
-  gap: 0.25rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.k-ranks__item {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-s);
-  min-height: 2.5rem;
-  padding: 0 var(--space-s);
-  border-radius: var(--k-r-tile);
-  color: var(--k-ash);
-}
-
-.k-ranks__item--look {
-  margin-top: var(--space-xs);
-  border-top: 1px solid var(--k-line);
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-}
-
-.k-ranks__item--look:first-child {
-  margin-top: 0;
-  border-top: 0;
-}
-
-.k-ranks__item--done {
+.k-glory__next strong {
   color: var(--k-parchment);
 }
 
-.k-ranks__item--current {
-  background: var(--k-badge-open-bg);
+/* «?» beside the glory and the panel it opens over the card. */
+.k-help {
+  flex: none;
+}
+
+.k-help__button {
+  width: var(--k-hit);
+  height: var(--k-hit);
+  border: 1px solid var(--k-line);
+  border-radius: 50%;
+  background: var(--k-surface);
   color: var(--k-gold-light);
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.k-help__button[aria-expanded='true'] {
+  border-color: var(--k-gold);
+}
+
+@media (hover: hover) {
+  .k-help__button:hover {
+    border-color: var(--k-line-active);
+  }
+}
+
+.k-help__panel {
+  position: absolute;
+  top: 4rem;
+  right: var(--space-m);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: min(17.5rem, calc(100% - 2 * var(--space-m)));
+  padding: var(--space-m);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-btn);
+  background: var(--k-surface-raised);
+  box-shadow: var(--k-shadow-card);
+}
+
+.k-help__panel[hidden] {
+  display: none;
+}
+
+.k-help__title {
+  margin-bottom: var(--space-2xs);
+  font-size: var(--text-s);
   font-weight: 700;
 }
 
-.k-ranks__mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  background: var(--k-surface-raised);
-  font-size: var(--text-xs);
-  font-weight: 800;
+.k-help__panel .k-how__item {
+  padding: 0;
+  background: none;
+  color: var(--k-parchment-dim);
 }
 
-.k-ranks__item--done .k-ranks__mark {
+.k-hero__energy {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(13.75rem, 100%), 1fr));
+  gap: var(--space-m);
+}
+
+.k-hero__energy .k-energy__head {
+  font-size: var(--text-s);
+}
+
+.k-hero__energy .k-energy__name {
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.k-hero__energy .k-energy__value {
+  font-size: inherit;
+  font-weight: 700;
+}
+
+.k-hero__energy .k-energy__cell {
+  height: 0.375rem;
+  border-radius: 3px;
+}
+
+.k-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-s);
+  margin-top: auto;
+}
+
+.k-action {
+  display: flex;
+  flex: 1 1 12.5rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.875rem 1.25rem;
+  border: 1px solid var(--k-gold-line-soft);
+  border-radius: var(--k-r-tile);
+  color: var(--k-parchment);
+  text-align: center;
+  text-decoration: none;
+}
+
+.k-action__name {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.k-action__cost {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.k-action--primary {
+  border-color: var(--k-gold);
   background: var(--k-gold);
   color: var(--k-text-on-gold);
 }
 
-.k-ranks__item--current .k-ranks__mark {
-  background: var(--k-forest);
-  color: var(--k-parchment);
-  box-shadow: 0 0 0 2px var(--k-gold);
+.k-action--primary .k-action__name {
+  font-weight: 800;
 }
 
-.k-ranks__check {
-  width: 0.875rem;
-  height: 0.875rem;
+.k-action--primary .k-action__cost {
+  color: inherit;
 }
 
-.k-ranks__name {
-  font-family: var(--k-font-display);
-  font-size: 1.1875rem;
-  font-weight: 700;
+@media (hover: hover) {
+  .k-action:hover {
+    border-color: var(--k-gold);
+    background: var(--k-gold-wash);
+    color: var(--k-parchment);
+  }
+
+  .k-action--primary:hover {
+    border-color: var(--k-gold-light);
+    background: var(--k-gold-light);
+    color: var(--k-text-on-gold);
+  }
 }
 
-.k-ranks__glory {
+.k-record {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s) 1.75rem;
+  padding: 1.125rem 1.25rem;
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-card);
+  background: var(--k-surface);
+}
+
+.k-record__title,
+.k-card__label,
+.k-rank-group__title,
+.k-filter__legend {
+  color: var(--k-ash);
+  font-family: inherit;
   font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: var(--k-tracking-label);
+  text-transform: uppercase;
+}
+
+.k-record__counts {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2xs) 1.25rem;
+  color: var(--k-ash);
+  font-size: var(--text-m);
+}
+
+.k-record__counts strong {
+  color: var(--k-parchment);
+  font-size: var(--text-l);
   font-variant-numeric: tabular-nums;
 }
+
+.k-record__link,
+.k-progress__back {
+  color: var(--k-gold-light);
+  font-size: var(--text-s);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.k-record__link:hover,
+.k-progress__back:hover {
+  color: var(--k-gold-rim);
+}
+
+/* Wider than a phone, the portrait stands beside the rest and takes at most two fifths of the card.
+   A phone shows it whole above them: a box wider than this would crop the head of the cossack. */
+@container k-cossack (min-width: 27rem) {
+  .k-hero {
+    grid-template-columns: minmax(10rem, min(23.75rem, 40%)) minmax(0, 1fr);
+  }
+
+  .k-hero__portrait {
+    aspect-ratio: auto;
+    max-height: none;
+    min-height: 26.25rem;
+  }
+
+  .k-hero__body {
+    padding: var(--space-l) 1.25rem;
+  }
+}
+
+@container k-cossack (min-width: 45rem) {
+  .k-hero__body {
+    padding: var(--space-xl) 2.25rem;
+  }
+
+  .k-hero__rank {
+    font-size: 3.25rem;
+  }
+}
+
+/* What brings glory: on the page of the ranks and in the panel beside the glory. */
 
 .k-how {
   display: grid;
@@ -744,25 +889,693 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-m);
-  min-height: 2.5rem;
-  padding: 0 var(--space-s);
-  border-radius: var(--k-r-tile);
+  padding: 0.625rem var(--space-s);
+  border-radius: 8px;
   background: var(--k-tile);
+  font-size: var(--text-s);
 }
 
 .k-how__item dd {
-  margin: 0;
   color: var(--k-gold-light);
   font-weight: 800;
 }
 
-@media (min-width: 48rem) {
-  .k-cossack__body {
-    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+/* The ranks, resesign/zvannya.html: the ladder by looks; the progress beside it on a wide screen and
+   above it on a phone, where the ladder is long. */
+
+.k-ranks-screen {
+  container: k-ranks / inline-size;
+}
+
+.k-ranks-layout {
+  display: grid;
+  grid-template-areas:
+    'progress'
+    'ladder'
+    'how';
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.k-progress {
+  grid-area: progress;
+  padding: 1.25rem;
+}
+
+.k-ladder {
+  display: flex;
+  grid-area: ladder;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.k-rewards {
+  grid-area: how;
+  gap: var(--space-xs);
+  padding: 1.25rem;
+}
+
+.k-rewards .k-card__title {
+  margin-bottom: 0.375rem;
+  font-size: 1.625rem;
+}
+
+.k-progress__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.625rem;
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-progress__value b {
+  color: var(--k-gold-light);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-progress__icon {
+  align-self: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--k-gold);
+}
+
+.k-progress__back {
+  align-self: flex-start;
+}
+
+.k-rank-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: var(--space-m) var(--space-xs);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-card);
+  background: var(--k-surface);
+}
+
+/* On a phone the name of a group stands in line with the ranks under it. */
+.k-rank-group__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-s);
+  margin-bottom: 0.375rem;
+  padding-inline: var(--space-s);
+}
+
+.k-rank-group__range {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0;
+  list-style: none;
+}
+
+.k-rank {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.625rem var(--space-s);
+  border-radius: var(--k-r-tile);
+  color: var(--k-ash);
+}
+
+.k-rank__number {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--k-line);
+  border-radius: 50%;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-rank__check {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.k-rank__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--k-font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.k-rank__note {
+  flex: none;
+  font-size: var(--text-s);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-rank--done .k-rank__number {
+  border-color: var(--k-gold-line-soft);
+  color: var(--k-gold);
+}
+
+.k-rank--done .k-rank__name {
+  color: var(--k-parchment-dim);
+}
+
+.k-rank--current {
+  background: var(--k-badge-open-bg);
+  color: var(--k-gold-light);
+}
+
+.k-rank--current .k-rank__number {
+  border-color: var(--k-gold);
+  background: var(--k-gold);
+  color: var(--k-text-on-gold);
+}
+
+.k-rank--next .k-rank__number {
+  border-color: var(--k-gold-line-soft);
+  color: var(--k-parchment);
+}
+
+.k-rank--next .k-rank__name {
+  color: var(--k-parchment);
+}
+
+.k-rank--next .k-rank__note {
+  color: var(--k-gold-light);
+}
+
+@container k-ranks (min-width: 46rem) {
+  .k-ranks-layout {
+    grid-template-rows: auto 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
+    grid-template-areas:
+      'ladder progress'
+      'ladder how';
+    column-gap: var(--space-l);
   }
 
-  .k-cossack__more {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  .k-rank-group {
+    padding: 1.125rem 1.25rem;
+  }
+
+  .k-rank-group__head {
+    padding-inline: 0;
+  }
+}
+
+/* The history: the statistics and the filters beside the list on a wide screen, above it on a
+   phone. The note and the offer to sign in follow the list there, so the battles come first. */
+
+.k-history-screen {
+  container: k-history / inline-size;
+}
+
+.k-history-layout {
+  display: grid;
+  grid-template-areas:
+    'tally'
+    'filters'
+    'list'
+    'aside';
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.k-tally {
+  grid-area: tally;
+  gap: 0.875rem;
+  padding: 1.25rem;
+  container: k-tally / inline-size;
+}
+
+.k-tally__total {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-tally__total b {
+  color: var(--k-parchment);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-tally__bar {
+  display: flex;
+  gap: 2px;
+  height: 0.375rem;
+  overflow: hidden;
+  border-radius: 3px;
+}
+
+.k-tally__part--win {
+  background: var(--k-gold);
+}
+
+.k-tally__part--draw {
+  background: var(--k-ash);
+}
+
+.k-tally__part--loss {
+  background: var(--k-ember);
+}
+
+/* A narrow card, such as the column beside the list, gives each result a row, as the rewards of
+   glory have; a wider one puts the three side by side. */
+.k-tally__counts {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.k-tally__count {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-s);
+  padding: 0.5rem var(--space-s);
+  border-radius: 8px;
+  background: var(--k-tile);
+}
+
+.k-tally__count dt {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  font-weight: 600;
+}
+
+.k-tally__count dd {
+  color: var(--k-parchment-dim);
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+@container k-tally (min-width: 17rem) {
+  .k-tally__counts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .k-tally__count {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.125rem;
+    padding: 0.625rem var(--space-s);
+  }
+
+  .k-tally__count dt {
+    font-size: var(--text-xs);
+  }
+
+  .k-tally__count dd {
+    font-size: 1.375rem;
+  }
+}
+
+.k-tally__count--win dd {
+  color: var(--k-gold-light);
+}
+
+.k-tally__count--loss dd {
+  color: var(--k-ember-soft);
+}
+
+.k-tally__challenges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs) var(--space-xs);
+  padding-top: var(--space-s);
+  border-top: 1px solid var(--k-line);
+  font-size: var(--text-s);
+  font-weight: 600;
+}
+
+.k-tally__check {
+  width: 1rem;
+  height: 1rem;
+  color: var(--k-badge-done-fg);
+}
+
+.k-tally__challenges b {
+  color: var(--k-badge-done-fg);
+  font-weight: 800;
+}
+
+.k-tally__catalog {
+  margin-left: auto;
+  color: var(--k-gold-light);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.k-tally__catalog:hover {
+  color: var(--k-gold-rim);
+}
+
+.k-filters {
+  grid-area: filters;
+  gap: var(--space-m);
+  padding: 1.25rem;
+}
+
+.k-filter {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.k-filter__legend {
+  margin-bottom: var(--space-xs);
+  padding: 0;
+}
+
+.k-filter__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+/* The real radio covers its chip, so a tap anywhere on the chip lands on it. */
+.k-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-pill);
+  background: var(--k-tile);
+  color: var(--k-parchment-dim);
+  font-size: var(--text-s);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.k-chip__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.k-chip:has(:checked) {
+  border-color: var(--k-line-active);
+  background: var(--k-badge-open-bg);
+  color: var(--k-gold-light);
+}
+
+.k-chip:has(:focus-visible) {
+  outline: 2px solid var(--k-gold);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .k-chip:hover {
+    border-color: var(--k-line-strong);
+    color: var(--k-parchment);
+  }
+
+  .k-chip:has(:checked):hover {
+    border-color: var(--k-gold);
+    color: var(--k-gold-light);
+  }
+}
+
+.k-history {
+  display: flex;
+  grid-area: list;
+  flex-direction: column;
+  gap: var(--space-s);
+  min-width: 0;
+}
+
+.k-history__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: 0;
+  list-style: none;
+}
+
+/* A card of an attempt: the result as a circle, as the ranks have their numbers, and one link for
+   the whole card. */
+.k-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 0.875rem var(--space-m);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-btn);
+  background: var(--k-surface);
+  color: var(--k-parchment);
+  text-decoration: none;
+}
+
+.k-entry:focus-visible {
+  outline: 2px solid var(--k-gold);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .k-entry:hover {
+    border-color: var(--k-line-strong);
+    color: var(--k-parchment);
+  }
+}
+
+.k-entry__marker {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--k-line-strong);
+  border-radius: 50%;
+  background: var(--k-surface-raised);
+  color: var(--k-parchment-dim);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.k-entry--win .k-entry__marker {
+  border-color: var(--k-gold);
+  background: var(--k-gold);
+  color: var(--k-text-on-gold);
+}
+
+.k-entry--loss .k-entry__marker {
+  border-color: var(--k-line-boss);
+  background: var(--k-badge-boss-bg);
+  color: var(--k-ember-soft);
+}
+
+.k-entry__body {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.125rem var(--space-s);
+  min-width: 0;
+}
+
+.k-entry__name {
+  font-size: var(--text-base);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* The journey names its levels in Cormorant, as on its maps. */
+.k-entry__name--level {
+  font-family: var(--k-font-display);
+  font-size: 1.25rem;
+  line-height: 1.15;
+}
+
+.k-entry__outcome {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: var(--k-tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.k-entry--win .k-entry__outcome {
+  color: var(--k-gold-light);
+}
+
+.k-entry--loss .k-entry__outcome {
+  color: var(--k-ember-soft);
+}
+
+.k-entry__details,
+.k-entry__challenge,
+.k-entry__meta {
+  grid-column: 1 / -1;
+}
+
+.k-entry__details {
+  color: var(--k-parchment-dim);
+  font-size: var(--text-s);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.k-entry__challenge {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-entry__challenge--passed {
+  color: var(--k-badge-done-fg);
+  font-weight: 700;
+}
+
+.k-entry__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: 0.125rem;
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-history__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-m);
+  padding: var(--space-l);
+  border: 1px dashed var(--k-line-strong);
+  border-radius: var(--k-r-card);
+  color: var(--k-parchment-dim);
+}
+
+.k-history-aside {
+  display: flex;
+  grid-area: aside;
+  flex-direction: column;
+  gap: var(--space-m);
+}
+
+.k-history-aside__note {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+.k-history-aside__note a {
+  color: var(--k-gold-light);
+  white-space: nowrap;
+}
+
+/* Beside the list the offer to sign in is as compact as the cards above it. */
+.k-history-aside .sign-in-prompt {
+  padding: 1.25rem;
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+@container k-history (min-width: 46rem) {
+  .k-history-layout {
+    grid-template-rows: auto auto 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
+    grid-template-areas:
+      'list tally'
+      'list filters'
+      'list aside';
+    column-gap: var(--space-l);
+  }
+}
+
+/* The settings: the account, the data of the browser, the download and the deletion, as cards in
+   one column on a phone and two on a wide screen. */
+
+.k-settings-screen {
+  container: k-settings / inline-size;
+}
+
+.k-settings {
+  display: grid;
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.k-setting {
+  align-items: flex-start;
+  padding: 1.25rem;
+}
+
+.k-setting__title {
+  font-family: var(--k-font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.k-setting .k-button {
+  margin-top: var(--space-2xs);
+}
+
+.k-identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.k-identity__name {
+  font-weight: 700;
+}
+
+.k-identity__email {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  overflow-wrap: anywhere;
+}
+
+.k-settings__status {
+  padding: var(--space-s) var(--space-m);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-btn);
+  background: var(--k-surface);
+  color: var(--k-parchment-dim);
+  font-size: var(--text-s);
+}
+
+.k-settings__status:empty {
+  display: none;
+}
+
+@container k-settings (min-width: 46rem) {
+  .k-settings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2379,9 +3192,15 @@ button.k-marker::before {
 .kozak .result-hero__title,
 .kozak .mode-guide__title,
 .kozak .ladder-result__title,
-.kozak .round-card__title {
+.kozak .round-card__title,
+.kozak .sign-in-prompt__title {
   font-family: var(--k-font-display);
   font-weight: 700;
+}
+
+.kozak .sign-in-prompt__title {
+  font-size: 1.5rem;
+  line-height: 1.1;
 }
 
 .kozak .screen-head__title,
@@ -2395,6 +3214,11 @@ button.k-marker::before {
 
 .kozak .choices,
 .kozak .mode-guide,
+.kozak .card,
 .kozak .k-card {
   border-radius: var(--k-r-card);
+}
+
+.kozak .card {
+  border-color: var(--k-line);
 }

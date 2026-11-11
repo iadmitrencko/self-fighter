@@ -22,3 +22,4 @@ if (typeof HTMLDialogElement !== 'undefined' && !('showModal' in HTMLDialogEleme
 }
 
 window.scrollTo = () => undefined;
+Element.prototype.scrollIntoView = () => undefined;

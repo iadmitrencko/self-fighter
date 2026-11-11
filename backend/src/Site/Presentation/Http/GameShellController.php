@@ -8,6 +8,8 @@ use App\Shared\Application\GameContent;
 use App\Shared\Application\SignInMethods;
 use App\Shared\Domain\GameModes;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
@@ -28,14 +30,21 @@ final class GameShellController extends AbstractController
     #[Route('/workout/setup/{mode}', name: 'workout_setup', requirements: ['mode' => GameModes::PATTERN], methods: ['GET'])]
     #[Route('/workout/fight', name: 'workout_fight', methods: ['GET'])]
     #[Route('/workout/result/{id}', name: 'workout_result', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
-    #[Route('/workout/history', name: 'workout_history', methods: ['GET'])]
-    #[Route('/workout/account', name: 'workout_account', methods: ['GET'])]
     public function __invoke(): Response
     {
         return $this->render('workout/shell.html.twig', ['game' => [
             'exercises' => $this->content->exercises(),
             'signIn' => $this->signIn->available(),
         ]]);
+    }
+
+    // §24.1: the history and the data of the player live in the game. Old links and bookmarks lead
+    // there, and so does a sign-in with Google that set out from here: the address keeps how it went.
+    #[Route('/workout/history', name: 'workout_history', defaults: ['screen' => 'kozak_history'], methods: ['GET'])]
+    #[Route('/workout/account', name: 'workout_account', defaults: ['screen' => 'kozak_settings'], methods: ['GET'])]
+    public function moved(Request $request, string $screen): RedirectResponse
+    {
+        return $this->redirectToRoute($screen, $request->query->all());
     }
 
     // §21.3: the settings of the challenge open filled in, and the player may change them.

@@ -1,25 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
-import { notFoundTexts, signInTexts, storageMessages } from '../i18n/uk';
+import { useEffect, useMemo, useState } from 'react';
+import { Route, Routes, useLocation, useParams } from 'react-router';
+import { notFoundTexts } from '../i18n/uk';
 import { showScore } from '../score/score';
-import type { StorageErrorCode } from '../storage/errors';
-import { ConfirmDialog } from './components/Dialog';
-import { ScrollToTop, SiteLinks } from './components/routing';
+import { RouterBase, ScrollToTop, SiteLinks } from './components/routing';
 import { BACK, Screen, ScreenHead } from './components/Screen';
-import { SignInPromptProvider } from './components/SignIn';
+import { SignInOutcome, SignInPromptProvider } from './components/SignIn';
 import { DataVersionContext, useDataVersion } from './data';
 import { GameProvider, useGame, type Game } from './game';
 import { BASE, isMode } from './paths';
-import { AccountScreen } from './screens/AccountScreen';
-import { HistoryScreen } from './screens/HistoryScreen';
 import { ModesScreen } from './screens/ModesScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { SetupScreen } from './setup/SetupScreen';
-import { isWorthJoining, readSignInOutcome, withoutSignInOutcome, type SignInOutcome } from './signIn';
-import { errorCode, useLoad } from './useLoad';
 import { WorkoutScreen } from './workout/WorkoutScreen';
 
-// The screens of the game under /workout (section 3.4 of the plan).
+// The screens of the game under /workout (section 3.4 of the plan). The history and the data of the
+// player live in the game (§24.1).
 export function App({ game }: { game: Game }) {
   const [version, setVersion] = useState(0);
   const data = useMemo(() => ({ version, changed: () => setVersion((value) => value + 1) }), [version]);
@@ -27,22 +22,22 @@ export function App({ game }: { game: Game }) {
   return (
     <GameProvider game={game}>
       <DataVersionContext value={data}>
-        <SignInPromptProvider>
-          <ScrollToTop />
-          <SiteLinks base={BASE} />
-          <ScoreSync />
-          <SignInOutcome />
-          <Routes>
-            <Route index element={<ModesScreen />} />
-            <Route path="setup/:mode" element={<SetupRoute />} />
-            <Route path="challenge/:slug" element={<ChallengeRoute />} />
-            <Route path="fight" element={<WorkoutScreen />} />
-            <Route path="result/:id" element={<ResultScreen />} />
-            <Route path="history" element={<HistoryScreen />} />
-            <Route path="account" element={<AccountScreen />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </SignInPromptProvider>
+        <RouterBase value={BASE}>
+          <SignInPromptProvider>
+            <ScrollToTop />
+            <SiteLinks base={BASE} />
+            <ScoreSync />
+            <SignInOutcome />
+            <Routes>
+              <Route index element={<ModesScreen />} />
+              <Route path="setup/:mode" element={<SetupRoute />} />
+              <Route path="challenge/:slug" element={<ChallengeRoute />} />
+              <Route path="fight" element={<WorkoutScreen />} />
+              <Route path="result/:id" element={<ResultScreen />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SignInPromptProvider>
+        </RouterBase>
       </DataVersionContext>
     </GameProvider>
   );
@@ -88,98 +83,6 @@ function ScoreSync() {
 
   return null;
 }
-
-/**
- * §23.2–§23.3: Google sends the browser back to the screen it left, and the address tells how the
- * sign-in went. A guest of this browser with data waits for the person to decide whether to join it.
- */
-function SignInOutcome() {
-  const { storage } = useGame();
-  const { changed } = useDataVersion();
-  const location = useLocation();
-  const navigate = useNavigate();
-  // Read once: the address forgets the outcome at once, so a reload does not tell it again.
-  const [outcome] = useState(() => readSignInOutcome(location.search));
-  const forgotten = useRef(false);
-  const loadGuest = useCallback(
-    () => (outcome === 'done' ? storage.account.keptGuest() : Promise.resolve(null)),
-    [storage, outcome],
-  );
-  const [guest] = useLoad(loadGuest);
-  const [closed, setClosed] = useState(false);
-  const [joined, setJoined] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<StorageErrorCode | null>(null);
-
-  useEffect(() => {
-    if (outcome !== null && !forgotten.current) {
-      forgotten.current = true;
-      void navigate(
-        { pathname: location.pathname, search: withoutSignInOutcome(location.search), hash: location.hash },
-        { replace: true },
-      );
-    }
-  }, [outcome, navigate, location]);
-
-  async function join() {
-    setBusy(true);
-
-    try {
-      await storage.account.joinGuest();
-      setJoined(true);
-      changed();
-    } catch (error) {
-      setFailure(errorCode(error));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (outcome === null || closed || (outcome === 'done' && guest.status === 'loading')) {
-    return null;
-  }
-
-  if (outcome === 'done' && guest.status === 'ready' && isWorthJoining(guest.value) && !joined && failure === null) {
-    const { attempts, exercises } = guest.value;
-
-    return (
-      <ConfirmDialog
-        title={signInTexts.joinTitle}
-        text={signInTexts.joinText(attempts, exercises)}
-        confirm={signInTexts.join}
-        cancel={signInTexts.keepApart}
-        tone="primary"
-        busy={busy}
-        onConfirm={() => void join()}
-        onCancel={() => setClosed(true)}
-      />
-    );
-  }
-
-  const { tone, text } =
-    failure !== null
-      ? { tone: 'error', text: storageMessages[failure] }
-      : joined
-        ? { tone: 'done', text: signInTexts.joined }
-        : OUTCOME_NOTICES[outcome];
-
-  return (
-    <div className="app-notice">
-      <div className={`notice notice--${tone}`} role={tone === 'error' ? 'alert' : 'status'}>
-        <p>{text}</p>
-        <button type="button" className="button button--outline" onClick={() => setClosed(true)}>
-          {signInTexts.close}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-const OUTCOME_NOTICES: Record<SignInOutcome, { tone: 'done' | 'warning' | 'error'; text: string }> = {
-  done: { tone: 'done', text: signInTexts.done },
-  cancelled: { tone: 'warning', text: signInTexts.cancelled },
-  failed: { tone: 'error', text: signInTexts.failed },
-};
 
 function NotFound() {
   return (

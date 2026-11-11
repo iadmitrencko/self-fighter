@@ -34,7 +34,7 @@ test('custom exercises are created, reused, renamed and deleted', async ({ page 
   await manage.getByRole('button', { name: 'Закрити' }).click();
   await expect(page.getByRole('button', { name: /Бурпі/ })).toHaveCount(0);
 
-  await page.goto('/workout/history');
+  await page.goto('/game/history');
   await page.getByRole('link', { name: /^Ціль/ }).click();
   await expect(page.getByRole('rowheader', { name: 'Бурпі' })).toBeVisible();
   await page.getByRole('button', { name: 'Повторити' }).click();

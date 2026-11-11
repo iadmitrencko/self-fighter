@@ -39,8 +39,7 @@ export function FightArena() {
             },
             back: {
               modes: { to: kozakPaths.fight, text: fightHallTexts.toHall },
-              // The history is a screen of the site: it opens as a page.
-              history: { to: '/workout/history', text: commonTexts.toHistory, site: true },
+              history: { to: kozakPaths.history, text: commonTexts.toHistory },
             },
             session: storage.gameSessions.fight,
             leaving: {

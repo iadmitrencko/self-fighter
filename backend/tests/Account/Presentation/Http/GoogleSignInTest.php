@@ -23,7 +23,7 @@ final class GoogleSignInTest extends ApiTestCase
     // Section 3.7 of the plan: the authorization code flow with state and PKCE, and only the basic scopes.
     public function testSignsInThroughGoogleWithStateAndPkce(): void
     {
-        $this->browser->request('GET', '/connect/google?to=/workout/history');
+        $this->browser->request('GET', '/connect/google?to=/game/history');
 
         $location = (string) $this->browser->getResponse()->headers->get('Location');
         $parameters = $this->authorizationParameters();
@@ -43,7 +43,7 @@ final class GoogleSignInTest extends ApiTestCase
         FakeGoogle::willIdentify(['sub' => '1001']);
         $this->browser->request('GET', '/connect/google/check?'.http_build_query(['state' => $parameters['state'], 'code' => 'the-code']));
 
-        self::assertResponseRedirects('/workout/history?sign-in=done');
+        self::assertResponseRedirects('/game/history?sign-in=done');
         [$exchange] = FakeGoogle::requests();
         self::assertSame('https://oauth2.googleapis.com/token', $exchange['url']);
         self::assertSame('authorization_code', $exchange['body']['grant_type']);
@@ -67,7 +67,7 @@ final class GoogleSignInTest extends ApiTestCase
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
         $guestCookie = $this->deviceCookie();
 
-        self::assertSame('/workout/history?sign-in=done', $this->signInWithGoogle(['sub' => '1001', 'name' => 'Олена', 'email' => 'olena@example.com']));
+        self::assertSame('/game/history?sign-in=done', $this->signInWithGoogle(['sub' => '1001', 'name' => 'Олена', 'email' => 'olena@example.com']));
 
         self::assertNotSame($guestCookie->getValue(), $this->deviceCookie()->getValue());
         self::assertSame([
@@ -172,12 +172,12 @@ final class GoogleSignInTest extends ApiTestCase
     public function testCancelledSignInLeavesTheBrowserAsItWas(): void
     {
         $guest = $this->signUp();
-        $this->browser->request('GET', '/connect/google?to=/workout/account');
+        $this->browser->request('GET', '/connect/google?to=/game/settings');
         $state = $this->authorizationParameters()['state'] ?? '';
 
         $this->browser->request('GET', '/connect/google/check?'.http_build_query(['error' => 'access_denied', 'state' => $state]));
 
-        self::assertResponseRedirects('/workout/account?sign-in=cancelled');
+        self::assertResponseRedirects('/game/settings?sign-in=cancelled');
         self::assertResponseNotHasCookie(self::DEVICE_COOKIE);
         self::assertSame($guest, $this->me()['user']['id'] ?? null);
         self::assertSame([], FakeGoogle::requests());
@@ -186,11 +186,11 @@ final class GoogleSignInTest extends ApiTestCase
     // An answer with a state this browser did not start, as a page of an attacker would send it.
     public function testRefusesAnAnswerToAnotherSignIn(): void
     {
-        $this->browser->request('GET', '/connect/google?to=/workout/account');
+        $this->browser->request('GET', '/connect/google?to=/game/settings');
 
         $this->browser->request('GET', '/connect/google/check?'.http_build_query(['state' => 'forged', 'code' => 'code-of-the-attacker']));
 
-        self::assertResponseRedirects('/workout/account?sign-in=failed');
+        self::assertResponseRedirects('/game/settings?sign-in=failed');
         self::assertSame([], FakeGoogle::requests());
         self::assertSame(0, $this->rowCount('user'));
     }
@@ -198,13 +198,13 @@ final class GoogleSignInTest extends ApiTestCase
     // The state is spent with the first answer, so a repeated one finishes nothing.
     public function testAnswerWorksOnce(): void
     {
-        $this->browser->request('GET', '/connect/google?to=/workout/account');
+        $this->browser->request('GET', '/connect/google?to=/game/settings');
         $answer = '/connect/google/check?'.http_build_query(['state' => $this->authorizationParameters()['state'] ?? '', 'code' => 'the-code']);
         $this->browser->request('GET', $answer);
 
         $this->browser->request('GET', $answer);
 
-        self::assertResponseRedirects('/workout/account?sign-in=failed');
+        self::assertResponseRedirects('/game/settings?sign-in=failed');
         self::assertCount(1, FakeGoogle::requests());
     }
 
@@ -217,7 +217,7 @@ final class GoogleSignInTest extends ApiTestCase
 
         $this->browser->request('GET', '/connect/google/check?'.http_build_query(['state' => $this->authorizationParameters()['state'] ?? '', 'code' => 'expired']));
 
-        self::assertResponseRedirects('/workout/account?sign-in=failed');
+        self::assertResponseRedirects('/game/settings?sign-in=failed');
         self::assertSame($cookie->getValue(), $this->deviceCookie()->getValue());
         self::assertSame(['id' => $guest, 'kind' => 'guest'], array_intersect_key($this->me()['user'] ?? [], ['id' => 1, 'kind' => 1]));
         self::assertSame(0, $this->rowCount('user_identity'));
@@ -229,7 +229,7 @@ final class GoogleSignInTest extends ApiTestCase
     #[DataProvider('foreignTokens')]
     public function testRefusesAnIdTokenNotMeantForThisClient(array $claims): void
     {
-        self::assertSame('/workout/history?sign-in=failed', $this->signInWithGoogle($claims));
+        self::assertSame('/game/history?sign-in=failed', $this->signInWithGoogle($claims));
 
         self::assertSame(0, $this->rowCount('user'));
     }
@@ -250,7 +250,7 @@ final class GoogleSignInTest extends ApiTestCase
     #[DataProvider('foreignReturns')]
     public function testReturnsOnlyToTheGame(string $returnTo): void
     {
-        self::assertSame('/workout/account?sign-in=done', $this->signInWithGoogle([], $returnTo));
+        self::assertSame('/game/settings?sign-in=done', $this->signInWithGoogle([], $returnTo));
     }
 
     /**
@@ -262,7 +262,27 @@ final class GoogleSignInTest extends ApiTestCase
         yield 'a protocol-relative address' => ['//evil.example/workout'];
         yield 'a page of the site' => ['/privacy'];
         yield 'a path that climbs out' => ['/workout/../privacy'];
+        yield 'a path that climbs out of the cossack game' => ['/game/../privacy'];
         yield 'a query' => ['/workout?next=https://evil.example'];
+        yield 'a section that only starts like the game' => ['/gameover'];
+    }
+
+    // §24.1: the screens of /workout and of the cossack game, the history among them, are a way back.
+    #[DataProvider('screens')]
+    public function testReturnsToTheScreenItLeft(string $screen): void
+    {
+        self::assertSame($screen.'?sign-in=done', $this->signInWithGoogle([], $screen));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function screens(): iterable
+    {
+        yield 'a screen of /workout' => ['/workout/setup/ladder'];
+        yield 'the history in the game' => ['/game/history'];
+        yield 'the settings of the game' => ['/game/settings'];
+        yield 'the result of a fight of the game' => ['/game/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85'];
     }
 
     // Only signing in starts a session, and the answer of Google ends it.
@@ -281,9 +301,9 @@ final class GoogleSignInTest extends ApiTestCase
     {
         $this->exhaustLimit('sign_in', $this->address);
 
-        $this->browser->request('GET', '/connect/google?to=/workout/history');
+        $this->browser->request('GET', '/connect/google?to=/game/history');
 
-        self::assertResponseRedirects('/workout/history?sign-in=failed');
+        self::assertResponseRedirects('/game/history?sign-in=failed');
     }
 
     /**

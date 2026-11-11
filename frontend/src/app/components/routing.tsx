@@ -1,5 +1,13 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { createContext, use, useEffect, useLayoutEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import { BASE } from '../paths';
+
+// The address the router of this page lives under: /workout for the site, /game for the game.
+export const RouterBase = createContext(BASE);
+
+export function useRouterBase(): string {
+  return use(RouterBase);
+}
 
 // A new screen starts at its top, as a new page would.
 export function ScrollToTop() {

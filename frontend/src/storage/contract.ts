@@ -49,8 +49,9 @@ export interface CustomExercise extends ExerciseRef {
 export type Settings = Partial<Record<Mode, WorkoutConfig>>;
 
 // History filters (§14.3). Times are UTC instants: the period includes `from` and excludes `to`.
+// The levels of the journey (§24.5) have a mode of their own.
 export interface AttemptFilter {
-  readonly mode?: Mode;
+  readonly mode?: Attempt['mode'];
   readonly outcome?: Outcome;
   readonly from?: string;
   readonly to?: string;

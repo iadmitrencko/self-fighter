@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { commonTexts } from '../../i18n/uk';
-import { paths } from '../paths';
+import { HISTORY_PAGE, paths } from '../paths';
 import { Icon } from './Icon';
 
 // One screen of the game inside the frame of the site. The browser tab shows its title.
@@ -32,14 +32,14 @@ export function Title({ children, className }: { children: ReactNode; className?
 export interface Back {
   readonly to: string;
   readonly text: string;
-  // The landing is a page of the site, not a screen of the game.
+  // The address lies outside this router, such as the landing or the history in the game: it opens as a page.
   readonly site?: boolean;
 }
 
 export const BACK = {
   home: { to: '/', text: commonTexts.toHome, site: true },
   modes: { to: paths.modes, text: commonTexts.toModes },
-  history: { to: paths.history, text: commonTexts.toHistory },
+  history: { to: HISTORY_PAGE, text: commonTexts.toHistory, site: true },
 } satisfies Record<string, Back>;
 
 // A link to a screen of this game or to a page of the site, which opens as a page.

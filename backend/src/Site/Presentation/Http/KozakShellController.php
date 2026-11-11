@@ -26,6 +26,9 @@ final class KozakShellController extends AbstractController
     }
 
     #[Route('/game', name: 'kozak', methods: ['GET'])]
+    #[Route('/game/ranks', name: 'kozak_ranks', methods: ['GET'])]
+    #[Route('/game/history', name: 'kozak_history', methods: ['GET'])]
+    #[Route('/game/settings', name: 'kozak_settings', methods: ['GET'])]
     #[Route('/game/fight', name: 'kozak_fight', methods: ['GET'])]
     #[Route('/game/fight/setup/{mode}', name: 'kozak_fight_setup', requirements: ['mode' => GameModes::PATTERN], methods: ['GET'])]
     #[Route('/game/fight/battle', name: 'kozak_fight_battle', methods: ['GET'])]

@@ -61,6 +61,25 @@ export function standingOf(glory: number): Standing {
   };
 }
 
+// The ranks of one look, with their numbers from 1 to 20.
+export interface RankGroup {
+  readonly look: Look;
+  readonly first: number;
+  readonly last: number;
+  readonly ranks: readonly Rank[];
+}
+
+export function rankGroups(): RankGroup[] {
+  return RANKS.reduce<RankGroup[]>((groups, rank, index) => {
+    const look = lookOf(rank.id);
+    const group = groups.at(-1);
+
+    return group?.look === look
+      ? [...groups.slice(0, -1), { ...group, last: index + 1, ranks: [...group.ranks, rank] }]
+      : [...groups, { look, first: index + 1, last: index + 1, ranks: [rank] }];
+  }, []);
+}
+
 export function lookOf(id: RankId): Look {
   const index = RANKS.findIndex((rank) => rank.id === id);
   const found = LOOKS.findLast(([from]) => RANKS.findIndex((rank) => rank.id === from) <= index);

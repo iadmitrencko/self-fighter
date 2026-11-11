@@ -1,19 +1,24 @@
 import { useCallback, useId, useState, type ReactNode } from 'react';
-import { accountTexts, signInTexts } from '../../i18n/uk';
+import { settingsTexts } from '../../i18n/kozak';
+import { accountTexts, commonTexts, signInTexts } from '../../i18n/uk';
 import type { AccountUser, KeptGuest, UserData } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
 import { ConfirmDialog } from '../components/Dialog';
-import { BACK, Screen, ScreenHead } from '../components/Screen';
+import { Title } from '../components/Screen';
 import { SignInWithGoogle, useCanSignIn } from '../components/SignIn';
-import { ErrorNotice, Loading } from '../components/notices';
+import { ErrorNotice } from '../components/notices';
 import { useDataVersion } from '../data';
 import { useGame } from '../game';
 import { isWorthJoining } from '../signIn';
 import { errorCode, useLoad } from '../useLoad';
+import { KozakScreen } from './parts';
 
-// §15.5, §23: every user, a guest too, can download the data and delete it; a guest can sign in,
-// an account can sign out and take in the guest this browser kept beside it.
-export function AccountScreen() {
+/**
+ * §15.5, §23, §24.1: the data of the player as a section of the game. Every user, a guest too, can
+ * download the data and delete it; a guest can sign in, an account can sign out and take in the
+ * guest this browser kept beside it.
+ */
+export function SettingsScreen() {
   const { storage } = useGame();
   const { changed } = useDataVersion();
   const canSignIn = useCanSignIn();
@@ -104,39 +109,45 @@ export function AccountScreen() {
     });
 
   return (
-    <Screen title={accountTexts.title}>
-      <ScreenHead back={BACK.modes} title={accountTexts.title} />
-      <p className="lead">{account === null ? accountTexts.intro : accountTexts.accountIntro}</p>
-      {browser.status === 'loading' && <Loading />}
+    <KozakScreen title={settingsTexts.title} className="k-settings-screen">
+      <header className="k-head">
+        <Title className="k-title">{settingsTexts.title}</Title>
+        <p className="k-lead">{account === null ? accountTexts.intro : accountTexts.accountIntro}</p>
+      </header>
+      {browser.status === 'loading' && (
+        <p className="k-loading" role="status">
+          {commonTexts.loading}
+        </p>
+      )}
       {browser.status === 'failed' && <ErrorNotice error={browser.error} onRetry={reload} />}
       {failure !== null && <ErrorNotice error={failure} />}
-      <p className="account-status" role="status">
+      <p className="k-settings__status" role="status">
         {message ?? (browser.status === 'ready' && user === null ? accountTexts.nothing : '')}
       </p>
       {browser.status === 'ready' && (
-        <div className="account-sections">
+        <div className="k-settings">
           {account !== null && <AccountCard account={account} busy={busy} onSignOut={() => void startSignOut()} />}
           {account === null && canSignIn && (
-            <Section title={accountTexts.signInTitle}>
-              <p>{accountTexts.signInText}</p>
+            <Setting title={accountTexts.signInTitle}>
+              <p className="k-card__text">{accountTexts.signInText}</p>
               <SignInWithGoogle />
-            </Section>
+            </Setting>
           )}
           {isWorthJoining(guest) && <KeptGuestCard guest={guest} busy={busy} onJoin={() => void join()} />}
           {user !== null && (
             <>
-              <Section title={accountTexts.exportTitle}>
-                <p>{accountTexts.exportText}</p>
-                <button type="button" className="button button--outline button--large" disabled={busy} onClick={() => void download()}>
+              <Setting title={accountTexts.exportTitle}>
+                <p className="k-card__text">{accountTexts.exportText}</p>
+                <button type="button" className="k-button k-button--secondary" disabled={busy} onClick={() => void download()}>
                   {accountTexts.export}
                 </button>
-              </Section>
-              <Section title={accountTexts.deleteTitle}>
-                <p>{account === null ? accountTexts.deleteText : accountTexts.accountDeleteText}</p>
-                <button type="button" className="button button--danger button--large" disabled={busy} onClick={() => setConfirming('delete')}>
+              </Setting>
+              <Setting title={accountTexts.deleteTitle}>
+                <p className="k-card__text">{account === null ? accountTexts.deleteText : accountTexts.accountDeleteText}</p>
+                <button type="button" className="k-button k-button--danger" disabled={busy} onClick={() => setConfirming('delete')}>
                   {accountTexts.delete}
                 </button>
-              </Section>
+              </Setting>
             </>
           )}
         </div>
@@ -162,16 +173,16 @@ export function AccountScreen() {
           onCancel={() => setConfirming(null)}
         />
       )}
-    </Screen>
+    </KozakScreen>
   );
 }
 
-function Section({ title, className = '', children }: { title: string; className?: string; children: ReactNode }) {
+function Setting({ title, active = false, children }: { title: string; active?: boolean; children: ReactNode }) {
   const titleId = useId();
 
   return (
-    <section className={`card account-section ${className}`.trim()} aria-labelledby={titleId}>
-      <h2 id={titleId} className="account-section__title">
+    <section className={active ? 'k-card k-card--active k-setting' : 'k-card k-setting'} aria-labelledby={titleId}>
+      <h2 id={titleId} className="k-setting__title">
         {title}
       </h2>
       {children}
@@ -182,36 +193,34 @@ function Section({ title, className = '', children }: { title: string; className
 // §23.1: the person sees whose account is open, by the name and the email Google gave.
 function AccountCard({ account, busy, onSignOut }: { account: AccountUser; busy: boolean; onSignOut: () => void }) {
   return (
-    <Section title={accountTexts.accountTitle}>
+    <Setting title={accountTexts.accountTitle}>
       {(account.name !== null || account.email !== null) && (
-        <p className="account-identity">
-          {account.name !== null && <span className="account-identity__name">{account.name}</span>}
-          {account.email !== null && <span className="account-identity__email">{account.email}</span>}
+        <p className="k-identity">
+          {account.name !== null && <span className="k-identity__name">{account.name}</span>}{' '}
+          {account.email !== null && <span className="k-identity__email">{account.email}</span>}
         </p>
       )}
-      <button type="button" className="button button--outline button--large" disabled={busy} onClick={onSignOut}>
+      <button type="button" className="k-button k-button--secondary" disabled={busy} onClick={onSignOut}>
         {accountTexts.signOut}
       </button>
-    </Section>
+    </Setting>
   );
 }
 
 // §23.3: what this browser saved without signing in waits for the person to take it into the account.
 function KeptGuestCard({ guest, busy, onJoin }: { guest: KeptGuest; busy: boolean; onJoin: () => void }) {
   return (
-    <Section title={accountTexts.keptTitle} className="account-section--kept">
-      <p>{accountTexts.keptText(guest.attempts, guest.exercises)}</p>
-      <button type="button" className="button button--primary" disabled={busy} onClick={onJoin}>
+    <Setting title={accountTexts.keptTitle} active>
+      <p className="k-card__text">{accountTexts.keptText(guest.attempts, guest.exercises)}</p>
+      <button type="button" className="k-button k-button--primary" disabled={busy} onClick={onJoin}>
         {accountTexts.join}
       </button>
-    </Section>
+    </Setting>
   );
 }
 
 function saveFile(data: UserData) {
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
-  );
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
   const link = document.createElement('a');
   link.href = url;
   link.download = accountTexts.fileName;

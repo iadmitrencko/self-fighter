@@ -81,7 +81,7 @@ abstract class ApiTestCase extends WebTestCase
      *
      * @param array<string, mixed> $claims
      */
-    protected function signInWithGoogle(array $claims = [], string $returnTo = '/workout/history'): string
+    protected function signInWithGoogle(array $claims = [], string $returnTo = '/game/history'): string
     {
         FakeGoogle::willIdentify($claims);
         $this->browser->request('GET', '/connect/google?'.http_build_query(['to' => $returnTo]));

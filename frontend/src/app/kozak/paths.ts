@@ -5,6 +5,9 @@ export const KOZAK_BASE = '/game';
 
 export const kozakPaths = {
   cossack: '/',
+  ranks: '/ranks',
+  history: '/history',
+  settings: '/settings',
   fight: '/fight',
   fightSetup: (mode: Mode) => `/fight/setup/${mode}`,
   fightBattle: '/fight/battle',

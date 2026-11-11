@@ -8,9 +8,10 @@ export const paths = {
   setup: (mode: Mode) => `/setup/${mode}`,
   fight: '/fight',
   result: (id: string) => `/result/${id}`,
-  history: '/history',
-  account: '/account',
 };
+
+// §24.1: the history lives in the game. From /workout it opens as a page.
+export const HISTORY_PAGE = '/game/history';
 
 export const MODES: readonly Mode[] = ['target', 'random-opponent', 'opponent-levels', 'ladder'];
 

@@ -1,0 +1,228 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import type { Attempt } from '../../domain/history/attempt';
+import { createMemoryStorage, type MemoryStorage } from '../../storage/memory';
+import { finishedAttempt, gameFight, levelAttempt } from '../../storage/testing/attempts';
+import { renderKozak } from '../testing/render';
+
+async function storageWith(...attempts: Attempt[]): Promise<MemoryStorage> {
+  const storage = createMemoryStorage();
+
+  for (const attempt of attempts) {
+    await storage.attempts.save(attempt);
+  }
+
+  return storage;
+}
+
+function tally() {
+  const stats = within(screen.getByRole('region', { name: 'Загальна статистика' }));
+
+  return {
+    total: stats.getByText(/^тренуван/).closest('p')?.textContent,
+    counts: stats.getAllByRole('definition').map((value) => value.textContent),
+  };
+}
+
+// The card of an attempt in the list, by the name it starts with.
+function entry(name: RegExp): HTMLElement {
+  return screen.getByRole('link', { name });
+}
+
+describe('the history of the game', () => {
+  // §24.1: one history of the fights of the game, the levels of the journey and the workouts of the site.
+  it('names where every attempt comes from and opens its result', async () => {
+    const workout = finishedAttempt('win', '2026-10-29T10:00:00.000Z');
+    const fight = gameFight('draw', '2026-10-29T11:00:00.000Z', '2026-10-29T13:00:00.000Z');
+    const level = levelAttempt('forest-ravens/1/2', 'loss', '2026-10-29T12:00:00.000Z', '2026-10-29T17:00:00.000Z');
+    renderKozak('/history', { storage: await storageWith(workout, fight, level) });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Історія' })).toBeTruthy();
+    expect(document.title).toBe('Історія — Self-Fighter');
+    const items = await screen.findAllByRole('listitem');
+    // Numbers keep to one line with what joins them.
+    expect(items.map((item) => item.querySelector('.k-entry__details')?.textContent)).toEqual([
+      'Похід · Лісові круки · етап\u00a01 · 0\u00a0з\u00a04 підходів',
+      'Бій · 1 раунд · 2 вправи · 0\u00a0:\u00a00',
+      'Тренування · 1 раунд · 2 вправи · 1\u00a0:\u00a00',
+    ]);
+    expect(items.map((item) => item.querySelector('.k-entry__outcome')?.textContent)).toEqual(['Поразка', 'Нічия', 'Перемога']);
+    // The fights and the levels open in the game, a workout of the site as a page of the site.
+    expect(entry(/^Лісова варта/).getAttribute('href')).toBe(`/journey/result/${level.id}`);
+    expect(entry(/^Ціль Нічия/).getAttribute('href')).toBe(`/fight/result/${fight.id}`);
+    expect(entry(/^Ціль Перемога/).getAttribute('href')).toBe(`/workout/result/${workout.id}`);
+  });
+
+  it('opens the result of a fight of the game', async () => {
+    const fight = gameFight('win', '2026-10-29T11:00:00.000Z', '2026-10-29T13:00:00.000Z');
+    const { user } = renderKozak('/history', { storage: await storageWith(fight) });
+
+    await user.click(await screen.findByRole('link', { name: /^Ціль/ }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Перемога' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'До історії' }).getAttribute('href')).toBe('/history');
+  });
+
+  // §14.2: the total is always the sum of wins, draws and losses.
+  it('counts every attempt in the statistics', async () => {
+    const storage = await storageWith(
+      finishedAttempt('win', '2026-10-29T10:00:00.000Z'),
+      finishedAttempt('draw', '2026-10-29T11:00:00.000Z'),
+      finishedAttempt('loss', '2026-10-29T12:00:00.000Z', 'ladder'),
+    );
+    renderKozak('/history', { storage });
+
+    expect(await screen.findAllByRole('listitem')).toHaveLength(3);
+    expect(tally()).toEqual({ total: '3 тренування', counts: ['1', '1', '1'] });
+    const newest = entry(/^Драбина/);
+    expect(within(newest).getByText('Тренування · Підтягування · до 1 · 0 з 1')).toBeTruthy();
+    expect(within(newest).getByText('Поразка')).toBeTruthy();
+  });
+
+  // §21.3: the challenges passed count once each, and the list says which challenge an attempt took.
+  it('counts the challenges passed', async () => {
+    const squats = { slug: '100-squats', title: '100 присідань' };
+    const storage = await storageWith(
+      finishedAttempt('loss', '2026-10-29T10:00:00.000Z', 'target', squats),
+      finishedAttempt('win', '2026-10-29T11:00:00.000Z', 'target', squats),
+      finishedAttempt('win', '2026-10-29T12:00:00.000Z', 'target', squats),
+    );
+    renderKozak('/history', { storage });
+
+    expect(await screen.findAllByRole('listitem')).toHaveLength(3);
+    const stats = within(screen.getByRole('region', { name: 'Загальна статистика' }));
+    expect(stats.getByText('Пройдено викликів').closest('p')?.textContent).toBe('Пройдено викликів 1 Каталог викликів');
+    // The catalog is a page of the site.
+    expect(stats.getByRole('link', { name: 'Каталог викликів' }).getAttribute('href')).toBe('/challenges');
+    expect(screen.getAllByText(/^Виклик/).map((label) => label.textContent)).toEqual([
+      'Виклик пройдено · 100 присідань',
+      'Виклик пройдено · 100 присідань',
+      'Виклик · 100 присідань',
+    ]);
+  });
+
+  // §14.3: filters by mode, the journey included, and by result.
+  it('filters by mode and result together with the statistics', async () => {
+    const storage = await storageWith(
+      finishedAttempt('win', '2026-10-29T10:00:00.000Z'),
+      finishedAttempt('loss', '2026-10-29T11:00:00.000Z'),
+      finishedAttempt('win', '2026-10-29T12:00:00.000Z', 'ladder'),
+      levelAttempt('forest-ravens/1/1', 'win', '2026-10-29T13:00:00.000Z', '2026-10-29T18:00:00.000Z'),
+    );
+    const { user } = renderKozak('/history', { storage });
+    const modes = within(await screen.findByRole('group', { name: 'Режим' }));
+    await screen.findAllByRole('listitem');
+
+    await user.click(modes.getByRole('radio', { name: 'Драбина' }));
+
+    expect(await screen.findAllByRole('listitem')).toHaveLength(1);
+    expect(tally().total).toBe('1 тренування');
+
+    await user.click(modes.getByRole('radio', { name: 'Похід' }));
+
+    expect(await screen.findByRole('link', { name: /^Перше випробування Перемога Похід/ })).toBeTruthy();
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+
+    await user.click(modes.getByRole('radio', { name: 'Усі' }));
+    await user.click(screen.getByRole('radio', { name: 'Поразки' }));
+
+    await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(1));
+    expect(tally()).toEqual({ total: '1 тренування', counts: ['0', '0', '1'] });
+  });
+
+  it('leads to the first battle while the history is empty', async () => {
+    renderKozak('/history');
+
+    expect(await screen.findByText('Історія ще порожня. Тут з’являться завершені бої, рівні походу й тренування.')).toBeTruthy();
+    expect(tally()).toEqual({ total: '0 тренувань', counts: ['0', '0', '0'] });
+    expect(screen.getByRole('link', { name: 'До бою' }).getAttribute('href')).toBe('/fight');
+    expect(screen.getByRole('link', { name: 'У похід' }).getAttribute('href')).toBe('/journey');
+  });
+
+  it('says so when a filter finds nothing', async () => {
+    const { user } = renderKozak('/history', { storage: await storageWith(finishedAttempt('win', '2026-10-29T10:00:00.000Z')) });
+    await screen.findAllByRole('listitem');
+
+    await user.click(screen.getByRole('radio', { name: 'Нічиї' }));
+
+    expect(await screen.findByText('За цим фільтром тренувань немає.')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'До бою' })).toBeNull();
+  });
+
+  it('loads the history page by page', async () => {
+    const attempts = Array.from({ length: 22 }, (_, index) =>
+      finishedAttempt('win', new Date(Date.UTC(2026, 9, 1, index)).toISOString()),
+    );
+    const { user } = renderKozak('/history', { storage: await storageWith(...attempts) });
+
+    expect(await screen.findAllByRole('listitem')).toHaveLength(20);
+
+    await user.click(screen.getByRole('button', { name: 'Показати ще' }));
+
+    expect(await screen.findAllByRole('listitem')).toHaveLength(22);
+    expect(screen.queryByRole('button', { name: 'Показати ще' })).toBeNull();
+  });
+
+  it('explains a failure and tries again', async () => {
+    const storage = createMemoryStorage();
+    const list = storage.attempts.list.bind(storage.attempts);
+    let failures = 1;
+    storage.attempts.list = (query) => (failures-- > 0 ? Promise.reject(new Error('offline')) : list(query));
+    const { user } = renderKozak('/history', { storage });
+
+    expect(await screen.findByText('Сервер зараз не відповідає. Спробуй ще раз за хвилину.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Спробувати ще раз' }));
+
+    expect(await screen.findByText('Історія ще порожня. Тут з’являться завершені бої, рівні походу й тренування.')).toBeTruthy();
+  });
+});
+
+// §23.2: the history is where a guest misses it on another device.
+describe('the offer to sign in in the history', () => {
+  it('brings a guest back to the history of the game until the offer is closed', async () => {
+    const { user } = renderKozak('/history');
+
+    const offer = await screen.findByRole('region', { name: 'Історія на будь-якому пристрої' });
+    expect(within(offer).getByRole('link', { name: 'Увійти через Google' }).getAttribute('href')).toBe(
+      '/connect/google?to=%2Fgame%2Fhistory',
+    );
+    // The data of the player is a section of the game as well.
+    const sections = screen.getByRole('navigation', { name: 'Розділи гри' });
+    const toSettings = screen.getAllByRole('link', { name: 'Налаштування' }).filter((link) => !sections.contains(link));
+    expect(toSettings.map((link) => link.getAttribute('href'))).toEqual(['/settings']);
+
+    await user.click(within(offer).getByRole('button', { name: 'Закрити пропозицію увійти' }));
+
+    expect(screen.queryByRole('region', { name: 'Історія на будь-якому пристрої' })).toBeNull();
+  });
+
+  it('tells an account that the history opens on any device', async () => {
+    const storage = createMemoryStorage();
+    storage.signIn({ sub: '1001' });
+    renderKozak('/history', { storage });
+
+    expect(await screen.findByText(/^Історія відкривається на будь-якому пристрої/)).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Історія на будь-якому пристрої' })).toBeNull();
+  });
+
+  // §23.3: Google brings the browser back to the game, which offers to join what the browser saved.
+  it('offers to join the data of the browser after coming back from Google', async () => {
+    const storage = createMemoryStorage();
+    storage.signIn({ sub: '1001' });
+    await storage.attempts.save(finishedAttempt('loss', '2026-10-28T10:00:00.000Z'));
+    await storage.account.signOut();
+    await storage.attempts.save(finishedAttempt('win', '2026-10-29T10:00:00.000Z'));
+    storage.signIn({ sub: '1001' });
+    const { user } = renderKozak('/history?sign-in=done', { storage });
+
+    const dialog = await screen.findByRole('dialog', { name: 'Перенести дані цього браузера?' });
+    expect(await screen.findAllByRole('listitem')).toHaveLength(1);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Перенести' }));
+
+    expect(await screen.findByText('Дані браузера перенесено в обліковий запис.')).toBeTruthy();
+    // The history under the dialog shows the joined attempts at once.
+    await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(2));
+  });
+});

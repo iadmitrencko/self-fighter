@@ -78,7 +78,7 @@ final class PagesTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         self::assertSame(
-            ['/', '/game', '/challenges', '/modes', '/exercises', '/guides', '/about', '/workout', '/workout/history', '/workout/account', '/privacy'],
+            ['/', '/game', '/challenges', '/modes', '/exercises', '/guides', '/about', '/workout', '/game/history', '/game/settings', '/privacy'],
             $crawler->filter('footer nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
         // §22: the decision changes as easily as it was made.
@@ -123,13 +123,14 @@ final class PagesTest extends WebTestCase
         $site = $client->request('GET', '/');
         $header = $site->filter('header')->html();
         $footer = $site->filter('footer')->html();
-        $game = $client->request('GET', '/workout/history');
+        $game = $client->request('GET', '/workout/setup/target');
 
         self::assertSame($header, $game->filter('header')->html());
         self::assertSame($footer, $game->filter('footer')->html());
         self::assertSelectorExists('main #root');
         self::assertSame(
-            ['/game', '/challenges', '/modes', '/exercises', '/workout/history', '/workout/account', '/workout'],
+            // §24.1: the history and the settings are sections of the game, so the header leads to them through «Гра».
+            ['/game', '/challenges', '/modes', '/exercises', '/workout'],
             $game->filter('header nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
     }
@@ -161,6 +162,9 @@ final class PagesTest extends WebTestCase
         $client = self::createClient();
         $screens = [
             '/game',
+            '/game/ranks',
+            '/game/history',
+            '/game/settings',
             '/game/fight',
             '/game/fight/setup/target',
             '/game/fight/setup/ladder',
@@ -205,7 +209,7 @@ final class PagesTest extends WebTestCase
         $client = self::createClient();
         $scores = [];
 
-        foreach (['/', '/challenges', '/workout', '/workout/history'] as $page) {
+        foreach (['/', '/challenges', '/workout', '/workout/setup/target'] as $page) {
             $crawler = $client->request('GET', $page);
             $scores[] = $crawler->filter('.score')->outerHtml();
 
@@ -232,6 +236,22 @@ final class PagesTest extends WebTestCase
         self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
     }
 
+    // §24.1: the history and the data of the player moved into the game; the old addresses lead
+    // there and keep their query, such as how a sign-in with Google went.
+    public function testTheHistoryAndTheDataOfThePlayerLeadToTheGame(): void
+    {
+        $client = self::createClient();
+
+        $client->request('GET', '/workout/history');
+        self::assertResponseRedirects('/game/history', 302);
+
+        $client->request('GET', '/workout/history?sign-in=done');
+        self::assertResponseRedirects('/game/history?sign-in=done', 302);
+
+        $client->request('GET', '/workout/account?sign-in=cancelled');
+        self::assertResponseRedirects('/game/settings?sign-in=cancelled', 302);
+    }
+
     // Section 3.4: Symfony knows every screen of the game, so a reload opens it and anything else is a 404.
     public function testEveryScreenOfTheGameHasItsAddress(): void
     {
@@ -243,8 +263,6 @@ final class PagesTest extends WebTestCase
             '/workout/setup/ladder',
             '/workout/fight',
             '/workout/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
-            '/workout/history',
-            '/workout/account',
             '/workout/challenge/100-push-ups',
         ];
 

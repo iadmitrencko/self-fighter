@@ -34,7 +34,8 @@ test('a guest downloads the data and deletes it', async ({ page }) => {
   await enter(page, 12);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('▲ Перемога');
 
-  await page.goto('/workout/account');
+  // §24.1: the data of the player lives in the settings of the game.
+  await page.goto('/game/settings');
   await expectAccessible(page);
   const [download] = await Promise.all([
     page.waitForEvent('download'),
@@ -48,8 +49,8 @@ test('a guest downloads the data and deletes it', async ({ page }) => {
   await page.getByRole('dialog', { name: 'Видалити всі дані?' }).getByRole('button', { name: 'Видалити назавжди' }).click();
 
   await expect(page.getByText('Дані видалено.')).toBeVisible();
-  await page.goto('/workout/history');
-  await expect(page.getByText('Ще немає завершених тренувань.')).toBeVisible();
+  await page.goto('/game/history');
+  await expect(page.getByText('Історія ще порожня. Тут з’являться завершені бої, рівні походу й тренування.')).toBeVisible();
   const me = await page.request.get('/api/v1/me');
   expect(await me.json()).toEqual({ user: null, guest: null });
 });

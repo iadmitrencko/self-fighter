@@ -24,7 +24,7 @@ site:
     about: Про проєкт
     privacy: Приватність
     history: Історія
-    account: Мої дані
+    settings: Налаштування
   footer:
     nav_label: Навігація сайтом
     home: Головна

@@ -11,7 +11,8 @@ export function CossackFigure({ look, label }: { look: Look; label: string }) {
   const coat = COATS[look];
 
   return (
-    <svg className="k-figure" viewBox="0 0 240 320" role="img" aria-label={label}>
+    // A box of another shape crops the scene around the figure instead of leaving empty bands.
+    <svg className="k-figure" viewBox="0 0 240 320" preserveAspectRatio="xMidYMid slice" role="img" aria-label={label}>
       <defs>
         <linearGradient id={id('sky')} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#1B2420" />

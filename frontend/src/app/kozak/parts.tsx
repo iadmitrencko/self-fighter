@@ -1,23 +1,26 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { Energy, EnergyPool } from '../../domain/kozak/energy';
 import type { Status } from '../../domain/kozak/progress';
-import { energyStatus, energyTexts, formatWait, kozakTexts, statusNames } from '../../i18n/kozak';
+import { energyStatus, energyTexts, formatWait, gloryRewards, kozakTexts, statusNames } from '../../i18n/kozak';
 import { Screen } from '../components/Screen';
 import { ErrorNotice } from '../components/notices';
 import { useCossack, type Cossack } from './record';
 
 // Line icons of the game. They are decoration: a text next to them says the same.
 const ICONS = {
-  cossack: 'M12 3c-2.2 0-4 1.8-4 4.2 0 1.2.4 2.2 1.1 3L7 21h10l-2.1-10.8c.7-.8 1.1-1.8 1.1-3C16 4.8 14.2 3 12 3ZM12 3c1.5-1.4 3.6-1.4 4.6.2M9 21v-4M15 21v-4',
-  fight: 'M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M9.5 17.5 21 6V3h-3L6.5 14.5M11 19l-6-6M8 16l-4 4M5 21l-2-2',
-  journey: 'M5 21V4M5 4h11l-2 4 2 4H5M9 21h-8',
+  cossack: 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21v-2a7 7 0 0 1 14 0v2',
+  fight: 'M4 4l11 11M20 4 9 15M14 17l3 3M10 17l-3 3M17 14l3 3M7 14l-3 3',
+  journey: 'M5 21V4M5 4h11l-2 4 2 4H5',
+  ranks: 'M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.6z',
+  history: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2',
+  settings: 'M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M17 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM11 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM19 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z',
   lock: 'M7 11V7a5 5 0 0 1 10 0v4M5 11h14v10H5z',
   check: 'M5 12l5 5 9-10',
   back: 'M15 18l-6-6 6-6',
   pause: 'M7 5h3v14H7zM14 5h3v14h-3z',
   play: 'M8 5v14l11-7z',
   bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
-  glory: 'M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.4L12 17.3l-5.8 3 1.1-6.4-4.7-4.6 6.5-.9z',
+  glory: 'M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.6z',
 } as const;
 
 export type KozakIconName = keyof typeof ICONS;
@@ -107,7 +110,10 @@ export function EnergyMeter({ pool, energy, now, compact = false }: { pool: Ener
           <KozakIcon name="bolt" className="k-energy__icon" />
           {name}
         </span>
-        <b className="k-energy__value">{energyStatus.value(energy.value, energy.max)}</b>
+        <b className="k-energy__value">
+          <span aria-hidden="true">{energyStatus.value(energy.value, energy.max)}</span>
+          <span className="visually-hidden">{energyStatus.spoken(energy.value, energy.max)}</span>
+        </b>
       </p>
       <div className="k-energy__cells" aria-hidden="true">
         {Array.from({ length: energy.max }, (_, index) => (
@@ -116,6 +122,20 @@ export function EnergyMeter({ pool, energy, now, compact = false }: { pool: Ener
       </div>
       <p className="k-energy__note">{wait === null ? `${energyStatus.full} · ${every}` : energyStatus.next(wait)}</p>
     </div>
+  );
+}
+
+// §24.3: what brings glory, beside the glory of the cossack and on the page of the ranks.
+export function GloryRewards() {
+  return (
+    <dl className="k-how">
+      {gloryRewards.map(([what, amount]) => (
+        <div key={what} className="k-how__item">
+          <dt>{what}</dt>
+          <dd>{amount}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
