@@ -5,7 +5,7 @@ import { addExercises, enter, expectAccessible, field, savedAttempts, setRounds 
 // §18 «Продукт», §15.4: an attempt finished without the network waits in the browser,
 // goes to the server once the connection is back and is not duplicated.
 test('an attempt finished offline is sent later, once', async ({ page, context }) => {
-  await page.goto('/workout/setup/target');
+  await page.goto('/game/fight/setup/target');
   await addExercises(page, 'Віджимання');
   await setRounds(page, 1);
   await field(page, 'Віджимання, раунд 1').fill('5');
@@ -26,7 +26,7 @@ test('an attempt finished offline is sent later, once', async ({ page, context }
 
 // §18 «Продукт», §15.5: a guest downloads every piece of data and deletes it.
 test('a guest downloads the data and deletes it', async ({ page }) => {
-  await page.goto('/workout/setup/target');
+  await page.goto('/game/fight/setup/target');
   await addExercises(page, 'Присідання');
   await setRounds(page, 1);
   await field(page, 'Присідання, раунд 1').fill('10');
@@ -50,7 +50,7 @@ test('a guest downloads the data and deletes it', async ({ page }) => {
 
   await expect(page.getByText('Дані видалено.')).toBeVisible();
   await page.goto('/game/history');
-  await expect(page.getByText('Історія ще порожня. Тут з’являться завершені бої, рівні походу й тренування.')).toBeVisible();
+  await expect(page.getByText('Історія ще порожня. Тут з’являться завершені бої й рівні походу.')).toBeVisible();
   const me = await page.request.get('/api/v1/me');
   expect(await me.json()).toEqual({ user: null, guest: null });
 });

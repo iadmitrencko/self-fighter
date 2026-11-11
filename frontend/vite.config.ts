@@ -18,8 +18,7 @@ export default defineConfig({
     emptyOutDir: true,
     rolldownOptions: {
       input: {
-        app: './src/app/main.tsx',
-        // §24: the cossack game under /game.
+        // §24: the cossack game under /game, where every workout happens.
         kozak: './src/app/kozak/main.tsx',
         site: './src/site/main.ts',
       },

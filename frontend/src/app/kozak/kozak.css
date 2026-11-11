@@ -1,7 +1,7 @@
 /*
  * §24: the screens of the cossack game, from kozak_design/screens. Mobile first; the sections of
  * the game stand on the left of a wide screen and as tabs above the screen of a phone. The
- * fights reuse the screens of /workout in the colors of the game.
+ * fights run the screens of a workout (app.css) in the colors of the game.
  */
 @import '../app.css';
 @import '../../styles/kozak.css';
@@ -87,7 +87,7 @@
   min-width: 0;
 }
 
-/* The screens of /workout keep their own width inside the column of the game. */
+/* The screens of a workout take the column of the game instead of a width of their own. */
 .kozak .screen {
   max-width: none;
   padding: 0;
@@ -1220,39 +1220,6 @@
   color: var(--k-ember-soft);
 }
 
-.k-tally__challenges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2xs) var(--space-xs);
-  padding-top: var(--space-s);
-  border-top: 1px solid var(--k-line);
-  font-size: var(--text-s);
-  font-weight: 600;
-}
-
-.k-tally__check {
-  width: 1rem;
-  height: 1rem;
-  color: var(--k-badge-done-fg);
-}
-
-.k-tally__challenges b {
-  color: var(--k-badge-done-fg);
-  font-weight: 800;
-}
-
-.k-tally__catalog {
-  margin-left: auto;
-  color: var(--k-gold-light);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.k-tally__catalog:hover {
-  color: var(--k-gold-rim);
-}
-
 .k-filters {
   grid-area: filters;
   gap: var(--space-m);
@@ -1435,7 +1402,6 @@
 }
 
 .k-entry__details,
-.k-entry__challenge,
 .k-entry__meta {
   grid-column: 1 / -1;
 }
@@ -1445,16 +1411,6 @@
   font-size: var(--text-s);
   line-height: 1.45;
   text-wrap: pretty;
-}
-
-.k-entry__challenge {
-  color: var(--k-ash);
-  font-size: var(--text-s);
-}
-
-.k-entry__challenge--passed {
-  color: var(--k-badge-done-fg);
-  font-weight: 700;
 }
 
 .k-entry__meta {
@@ -3185,12 +3141,11 @@ button.k-marker::before {
   }
 }
 
-/* The screens of /workout in the colors of the game: names in Cormorant, numbers in Manrope. */
+/* The screens of a workout in the colors of the game: names in Cormorant, numbers in Manrope. */
 
 .kozak .screen-head__title,
 .kozak .fight-head__title,
 .kozak .result-hero__title,
-.kozak .mode-guide__title,
 .kozak .ladder-result__title,
 .kozak .round-card__title,
 .kozak .sign-in-prompt__title {

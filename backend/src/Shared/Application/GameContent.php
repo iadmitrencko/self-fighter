@@ -16,11 +16,4 @@ interface GameContent
      * @return list<array{id: string, name: string}>
      */
     public function exercises(): array;
-
-    /**
-     * A ready-made challenge the game opens with filled settings (§21.3).
-     *
-     * @return array{slug: string, title: string, config: array<string, mixed>}|null
-     */
-    public function challenge(string $slug): ?array;
 }

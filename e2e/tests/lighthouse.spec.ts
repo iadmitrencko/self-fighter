@@ -2,16 +2,7 @@ import { chromium, expect, test } from '@playwright/test';
 import lighthouse from 'lighthouse';
 
 // Section 6.4 of the plan: the budgets of the public pages in the mobile profile of Lighthouse.
-const PAGES = [
-  '/',
-  '/challenges',
-  '/challenges/100-push-ups',
-  '/challenges/full-body-workout-medium',
-  '/exercises/push-ups',
-  '/modes/ladder',
-  '/guides/ladder-training',
-  '/about',
-];
+const PAGES = ['/', '/guides', '/guides/ladder-training', '/about'];
 const BUDGETS = { performance: 0.9, accessibility: 0.95 };
 const LCP_MAX = 2500;
 const CLS_MAX = 0.1;
@@ -34,7 +25,7 @@ test('public pages keep the budgets of Lighthouse', async ({ baseURL, request },
         onlyCategories: ['performance', 'accessibility', 'seo'],
       });
       const { categories, audits } = result?.lhr ?? { categories: {}, audits: {} };
-      // A draft stays closed with noindex until a person reviews it (§21.4): every other rule of SEO holds.
+      // A draft stays closed with noindex until a person reviews it: every other rule of SEO holds.
       const draft = (await (await request.get(path)).text()).includes('<meta name="robots" content="noindex');
 
       for (const [category, budget] of Object.entries(BUDGETS)) {

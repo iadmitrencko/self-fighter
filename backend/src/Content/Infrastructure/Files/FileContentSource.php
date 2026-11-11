@@ -8,10 +8,7 @@ use App\Content\Application\Content;
 use App\Content\Application\ContentSource;
 use App\Content\Application\InvalidContent;
 use App\Content\Domain\Article;
-use App\Content\Domain\Challenge;
-use App\Content\Domain\Demand;
 use App\Content\Domain\Exercise;
-use App\Content\Domain\Level;
 use App\Content\Domain\Page;
 use App\Content\Domain\PageType;
 use League\CommonMark\Environment\Environment;
@@ -21,14 +18,16 @@ use League\CommonMark\Extension\FrontMatter\Output\RenderedContentWithFrontMatte
 use League\CommonMark\Extension\Table\TableExtension;
 use League\CommonMark\MarkdownConverter;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Yaml\Exception\ParseException;
+use Symfony\Component\Yaml\Yaml;
 
 /**
- * Reads backend/content: Markdown files with a YAML front matter, and the challenges that
- * frontend/scripts/generate-challenges.ts expanded from the matrix.
+ * Reads backend/content: the catalog of exercises of the game in exercises.yaml and the pages,
+ * Markdown files with a YAML front matter.
  */
 final readonly class FileContentSource implements ContentSource
 {
-    private const array PAGE_TYPES = ['modes' => PageType::Mode, 'guides' => PageType::Guide, 'pages' => PageType::Service];
+    private const array PAGE_TYPES = ['guides' => PageType::Guide, 'pages' => PageType::Service];
 
     private MarkdownConverter $markdown;
 
@@ -47,15 +46,7 @@ final readonly class FileContentSource implements ContentSource
     public function read(): Content
     {
         $problems = [];
-        $exercises = $this->documents('exercises', static fn (string $slug, FrontMatter $front, string $html): Exercise => new Exercise(
-            $slug,
-            $front->string('name'),
-            $front->bool('in_game'),
-            $front->int('position'),
-            self::article($front, $html),
-            $front->bool('reviewed'),
-            $front->date('updated'),
-        ), $problems);
+        $exercises = $this->exercises($problems);
         $pages = [];
 
         foreach (self::PAGE_TYPES as $directory => $type) {
@@ -68,13 +59,53 @@ final readonly class FileContentSource implements ContentSource
                 $front->date('updated'),
             ), $problems)];
         }
-        $challenges = $this->challenges($problems);
 
         if ([] !== $problems) {
             throw new InvalidContent($problems);
         }
 
-        return new Content($exercises, $pages, $challenges);
+        return new Content($exercises, $pages);
+    }
+
+    /**
+     * The order of the file is the order of the catalog.
+     *
+     * @param list<string> $problems
+     *
+     * @return list<Exercise>
+     */
+    private function exercises(array &$problems): array
+    {
+        $file = $this->directory.'/exercises.yaml';
+
+        if (!is_file($file)) {
+            $problems[] = \sprintf('%s: the catalog of exercises of the game is missing.', $this->relative($file));
+
+            return [];
+        }
+
+        try {
+            $entries = Yaml::parse((string) file_get_contents($file));
+        } catch (ParseException $exception) {
+            $problems[] = \sprintf('%s: %s', $this->relative($file), $exception->getMessage());
+
+            return [];
+        }
+        $exercises = [];
+
+        foreach (\is_array($entries) ? array_values($entries) : [] as $index => $entry) {
+            try {
+                $fields = new FrontMatter(\is_array($entry) ? $entry : []);
+                $exercises[] = new Exercise($fields->string('slug'), $fields->string('name'), $index + 1);
+            } catch (\InvalidArgumentException $exception) {
+                $problems[] = \sprintf('%s, exercise %d: %s', $this->relative($file), $index + 1, $exception->getMessage());
+            }
+        }
+        if ([] === $exercises && [] === $problems) {
+            $problems[] = \sprintf('%s: the game needs at least one exercise.', $this->relative($file));
+        }
+
+        return $exercises;
     }
 
     /**
@@ -99,72 +130,6 @@ final readonly class FileContentSource implements ContentSource
         }
 
         return $documents;
-    }
-
-    /**
-     * @param list<string> $problems
-     *
-     * @return list<Challenge>
-     */
-    private function challenges(array &$problems): array
-    {
-        $file = $this->directory.'/challenges/generated.json';
-
-        if (!is_file($file)) {
-            return [];
-        }
-        $entries = json_decode((string) file_get_contents($file), true, 512, \JSON_THROW_ON_ERROR);
-        $challenges = [];
-
-        foreach (\is_array($entries) ? $entries : [] as $entry) {
-            try {
-                $challenges[] = $this->challenge(new GeneratedChallenge($entry));
-            } catch (\InvalidArgumentException|\ValueError $exception) {
-                $problems[] = \sprintf('%s: %s', $this->relative($file), $exception->getMessage());
-            }
-        }
-
-        return $challenges;
-    }
-
-    private function challenge(GeneratedChallenge $entry): Challenge
-    {
-        $slug = $entry->string('slug');
-        $noteFile = \sprintf('%s/challenges/notes/%s.md', $this->directory, $slug);
-        // Without its own text a challenge stays out of the index (§21.4).
-        [$note, $reviewed, $updated] = ['', false, $entry->date('updated')];
-
-        if (is_file($noteFile)) {
-            [$front, $note] = $this->render($noteFile);
-            $reviewed = $front->bool('reviewed');
-            $updated = max($updated, $front->date('updated'));
-        }
-
-        return new Challenge(
-            $slug,
-            $entry->string('mode'),
-            $entry->strings('exercises'),
-            Level::from($entry->string('level')),
-            Demand::from($entry->string('demand')),
-            $entry->map('config'),
-            $entry->map('program'),
-            $entry->int('stages'),
-            $entry->int('totalReps'),
-            $entry->optionalString('easier'),
-            $entry->optionalString('harder'),
-            $entry->strings('related'),
-            $entry->int('position'),
-            new Article(
-                $entry->string('title'),
-                $entry->string('description'),
-                $entry->string('heading'),
-                $entry->string('lead'),
-                '',
-            ),
-            $note,
-            $reviewed,
-            $updated,
-        );
     }
 
     /**

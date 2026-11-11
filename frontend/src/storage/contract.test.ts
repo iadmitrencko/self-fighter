@@ -69,14 +69,14 @@ describe.each([
       await storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
       await storage.attempts.save(finishedAttempt('win', '2026-11-02T10:00:00.000Z'));
       await storage.attempts.flush();
-      storage.activeSession.save(createSession(targetConfig(), testDeps()));
+      storage.gameSessions.fight.save(createSession(targetConfig(), testDeps()));
 
       await storage.account.deleteData();
 
       expect(await storage.account.current()).toBeNull();
       expect(await storage.exercises.list()).toEqual([]);
       expect(await storage.attempts.list()).toEqual({ items: [], nextCursor: null });
-      expect(storage.activeSession.load()).toBeNull();
+      expect(storage.gameSessions.fight.load()).toBeNull();
     });
   });
 
@@ -196,28 +196,8 @@ describe.each([
       await storage.attempts.save(finishedAttempt('loss', '2026-11-02T11:00:00.000Z', 'ladder'));
       await storage.attempts.flush();
 
-      expect(await storage.attempts.stats()).toEqual({ total: 5, wins: 2, draws: 1, losses: 2, challenges: [] });
-      expect(await storage.attempts.stats({ mode: 'ladder' })).toEqual({
-        total: 1,
-        wins: 0,
-        draws: 0,
-        losses: 1,
-        challenges: [],
-      });
-    });
-
-    // §21.3: a challenge counts once it is won, however often it is tried.
-    it('counts the challenges passed', async () => {
-      const squats = { slug: '100-squats', title: '100 присідань' };
-      const ladder = { slug: 'pull-ups-ladder-to-3', title: 'Драбина підтягувань до 3' };
-      await storage.attempts.save(finishedAttempt('loss', '2026-11-02T09:00:00.000Z', 'target', squats));
-      await storage.attempts.save(finishedAttempt('win', '2026-11-02T10:00:00.000Z', 'target', squats));
-      await storage.attempts.save(finishedAttempt('win', '2026-11-02T11:00:00.000Z', 'target', squats));
-      await storage.attempts.save(finishedAttempt('loss', '2026-11-02T12:00:00.000Z', 'ladder', ladder));
-      await storage.attempts.flush();
-
-      expect((await storage.attempts.stats()).challenges).toEqual(['100-squats']);
-      expect((await storage.attempts.stats({ mode: 'ladder' })).challenges).toEqual([]);
+      expect(await storage.attempts.stats()).toEqual({ total: 5, wins: 2, draws: 1, losses: 2 });
+      expect(await storage.attempts.stats({ mode: 'ladder' })).toEqual({ total: 1, wins: 0, draws: 0, losses: 1 });
     });
   });
 
@@ -249,7 +229,7 @@ describe.each([
       });
     });
 
-    // §24.4: a fight and a level wait apart from each other and from the workout of the site.
+    // §24.4: a fight and a level wait apart from each other.
     it('keeps a battle in progress for each pool of energy', async () => {
       const fight = createSession(targetConfig(), testDeps());
       const level = createSession(levelConfig(findLevel(SICH, 'forest-ravens/1/1') ?? (undefined as never), pullUps), testDeps());
@@ -257,7 +237,6 @@ describe.each([
       storage.gameSessions.fight.save(fight);
       storage.gameSessions.campaign.save(level);
 
-      expect(storage.activeSession.load()).toBeNull();
       expect(storage.gameSessions.fight.load()).toEqual(fight);
       expect(storage.gameSessions.campaign.load()).toEqual(level);
 
@@ -269,18 +248,18 @@ describe.each([
     });
   });
 
-  describe('active session', () => {
+  describe('fight in progress', () => {
     // §12.4: a reload does not lose the attempt in progress or change the opponent.
     it('keeps the attempt in progress until it is cleared', () => {
       const session = createSession(ladderConfig({ exercise: pullUps }), testDeps());
 
-      storage.activeSession.save(session);
+      storage.gameSessions.fight.save(session);
 
-      expect(storage.activeSession.load()).toEqual(session);
+      expect(storage.gameSessions.fight.load()).toEqual(session);
 
-      storage.activeSession.clear();
+      storage.gameSessions.fight.clear();
 
-      expect(storage.activeSession.load()).toBeNull();
+      expect(storage.gameSessions.fight.load()).toBeNull();
     });
   });
 });

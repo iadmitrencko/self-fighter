@@ -93,9 +93,7 @@ export function parseStatistics(body: unknown): Statistics {
     typeof body.total !== 'number' ||
     typeof body.wins !== 'number' ||
     typeof body.draws !== 'number' ||
-    typeof body.losses !== 'number' ||
-    !Array.isArray(body.challenges) ||
-    !body.challenges.every((slug) => typeof slug === 'string')
+    typeof body.losses !== 'number'
   ) {
     throw unexpected();
   }
@@ -105,7 +103,6 @@ export function parseStatistics(body: unknown): Statistics {
     wins: body.wins,
     draws: body.draws,
     losses: body.losses,
-    challenges: body.challenges,
   };
 }
 

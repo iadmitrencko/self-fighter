@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Content\Infrastructure\Files;
 
 /**
- * The YAML block at the top of a content file, read field by field with the types the site needs.
+ * Fields written in YAML, such as the block at the top of a content file or an exercise of
+ * exercises.yaml, read field by field with the types the site needs.
  */
 final readonly class FrontMatter
 {

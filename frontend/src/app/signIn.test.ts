@@ -4,11 +4,11 @@ import { isEmbeddedBrowser, isWorthJoining, readSignInOutcome, signInPath, witho
 describe('signing in with Google', () => {
   // The server brings the browser back to the screen it left.
   it('leads back to the screen it starts from', () => {
-    expect(signInPath('/workout', '/setup/ladder')).toBe('/connect/google?to=%2Fworkout%2Fsetup%2Fladder');
-    expect(signInPath('/workout', '/')).toBe('/connect/google?to=%2Fworkout');
-    // §24.1: the history and the settings live in the game.
-    expect(signInPath('/game', '/history')).toBe('/connect/google?to=%2Fgame%2Fhistory');
-    expect(signInPath('/game', '/settings')).toBe('/connect/google?to=%2Fgame%2Fsettings');
+    expect(signInPath('/fight/setup/ladder')).toBe('/connect/google?to=%2Fgame%2Ffight%2Fsetup%2Fladder');
+    expect(signInPath('/')).toBe('/connect/google?to=%2Fgame');
+    // §24.1: the history and the settings are sections of the game.
+    expect(signInPath('/history')).toBe('/connect/google?to=%2Fgame%2Fhistory');
+    expect(signInPath('/settings')).toBe('/connect/google?to=%2Fgame%2Fsettings');
   });
 
   it('reads how the sign-in went and forgets it', () => {

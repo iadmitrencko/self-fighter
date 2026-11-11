@@ -13,10 +13,10 @@
     {{ vite_entry_script_tags('kozak', { dependency: 'react' }) }}
 {% endblock %}
 
-{#- The game shows its own record: the score of the site would count other workouts as well. #}
+{#- The game shows its own record: the score of the site counts the old workouts of the site as well. #}
 {% block score %}{% endblock %}
 
 {% block main %}
     <div id="root" data-game="{{ game|json_encode }}"></div>
-    <noscript><p class="container app-noscript">{{ 'workout.noscript'|trans }}</p></noscript>
+    <noscript><p class="container app-noscript">{{ 'kozak.noscript'|trans }}</p></noscript>
 {% endblock %}

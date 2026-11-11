@@ -24,9 +24,8 @@
   --color-rival: #5b9bff;
   --color-rival-text: #8fb8ff;
   --color-error: #ffb08a;
-  /* A passed challenge: the green check of §21.3. 10:1 on the background. */
+  /* What went well, such as a sign-in that is done. 10:1 on the background. */
   --color-passed: #5fd38d;
-  --color-on-passed: #111214;
   /* The sign-in button keeps the colors Google sets for its dark theme (§23.2). */
   --color-google-fill: #131314;
   --color-google-stroke: #8e918f;

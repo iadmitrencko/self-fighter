@@ -47,7 +47,7 @@ export async function targetValue(page: Page): Promise<number> {
 
 // One exercise, one round: the shortest «Ціль» there is.
 export async function playShortTarget(page: Page, reps: number, target = 5): Promise<void> {
-  await page.goto('/workout/setup/target');
+  await page.goto('/game/fight/setup/target');
   await addExercises(page, 'Віджимання');
   await setRounds(page, 1);
   await field(page, 'Віджимання, раунд 1').fill(String(target));

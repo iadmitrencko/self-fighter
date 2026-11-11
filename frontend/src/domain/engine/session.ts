@@ -7,7 +7,7 @@ import { ladderSequence } from './ladder';
 import { randomInt, rollLevelOpponent, type Rng } from './opponents';
 import { ladderStageRule, stagePassed, type FightStage, type Stage } from './rules';
 
-// Version 2 remembers the ready-made challenge of the attempt, version 3 the battle of the game
+// Version 2 remembered the ready-made challenge of the attempt, version 3 the battle of the game
 // and the levels of the journey (section 3.7 of the plan, §24).
 export const SCHEMA_VERSION = 3 as const;
 
@@ -117,26 +117,19 @@ function campaignStages({ sets }: CampaignConfig): Stage[] {
   return sets.map((target) => ({ target, rule: 'meet', actual: null }));
 }
 
-export function createSession(config: FightConfig, deps: SessionDeps, challenge?: ChallengeRef | null): FightSession;
-export function createSession(config: LadderConfig, deps: SessionDeps, challenge?: ChallengeRef | null): LadderSession;
+export function createSession(config: FightConfig, deps: SessionDeps): FightSession;
+export function createSession(config: LadderConfig, deps: SessionDeps): LadderSession;
 export function createSession(config: CampaignConfig, deps: SessionDeps): CampaignSession;
-export function createSession(
-  config: WorkoutConfig,
-  deps: SessionDeps,
-  challenge?: ChallengeRef | null,
-): WorkoutSession;
+export function createSession(config: WorkoutConfig, deps: SessionDeps): WorkoutSession;
 // Everything the attempt depends on is fixed here, so a reload cannot change it (§7.3, §11.6).
-export function createSession(
-  source: WorkoutConfig | CampaignConfig,
-  { rng, now, newId }: SessionDeps,
-  challenge: ChallengeRef | null = null,
-): Session {
+// The site offers no ready-made challenges any more (§24.1), so a new attempt takes none.
+export function createSession(source: WorkoutConfig | CampaignConfig, { rng, now, newId }: SessionDeps): Session {
   const config = JSON.parse(JSON.stringify(source)) as WorkoutConfig | CampaignConfig;
   const base = {
     schemaVersion: SCHEMA_VERSION,
     id: newId(),
     startedAt: now().toISOString(),
-    challenge: challenge === null ? null : { slug: challenge.slug, title: challenge.title },
+    challenge: null,
     game: null,
   };
 

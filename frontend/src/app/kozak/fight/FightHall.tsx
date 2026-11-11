@@ -6,12 +6,11 @@ import { modeGuides, modeNames, modesTexts } from '../../../i18n/uk';
 import { Title } from '../../components/Screen';
 import { MemoryWarning } from '../../components/notices';
 import { useGame } from '../../game';
-import { MODES } from '../../paths';
-import { kozakPaths } from '../paths';
+import { kozakPaths, MODES } from '../paths';
 import { EnergyMeter, KozakIcon, KozakScreen, WithCossack } from '../parts';
 import { useNow } from '../record';
 
-// §24.6: the fights of the game start here, from the choice of the mode as on the site.
+// §24.6: the fights of the game start here, from the choice of the mode.
 export function FightHall() {
   const { storage } = useGame();
   const now = useNow();

@@ -34,15 +34,6 @@ describe('createSession', () => {
     expect(session.game).toBeNull();
   });
 
-  // §21.3: the session remembers the ready-made challenge it takes.
-  it('keeps the challenge it takes apart from the page', () => {
-    const challenge = { slug: '100-push-ups', title: '100 віджимань' };
-    const session = createSession(targetConfig(), testDeps(), challenge);
-
-    expect(session.challenge).toEqual(challenge);
-    expect(session.challenge).not.toBe(challenge);
-  });
-
   // §6.3: every cell of the table is an independent target.
   it('turns the target table into stages, round by round', () => {
     const config: TargetConfig = {

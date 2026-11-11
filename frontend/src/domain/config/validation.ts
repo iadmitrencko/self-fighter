@@ -185,7 +185,7 @@ function findErrors(draft: WorkoutDraft): ConfigError[] {
   }
 }
 
-// The only way from a form to a configuration, shared with generated challenges (§11.5, §21.3).
+// The only way from a form to a configuration (§11.5).
 export function validateConfig(draft: WorkoutDraft): ConfigValidation {
   const errors = findErrors(draft);
 

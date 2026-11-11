@@ -27,12 +27,7 @@ final readonly class SyncContentCommand
 
             return Command::FAILURE;
         }
-        $io->success(\sprintf(
-            'Synced %d exercises, %d pages and %d challenges.',
-            \count($content->exercises),
-            \count($content->pages),
-            \count($content->challenges),
-        ));
+        $io->success(\sprintf('Synced %d exercises and %d pages.', \count($content->exercises), \count($content->pages)));
 
         return Command::SUCCESS;
     }

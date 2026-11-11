@@ -15,7 +15,7 @@ import { WithCossack } from '../parts';
 import { useCossack, useFresh } from '../record';
 
 /**
- * §24.6: the fights of the game are the workouts of the site in the colors of the game. Every
+ * §24.6: the fights of the game run the screens of a workout in the colors of the game. Every
  * start takes a unit of the energy of fights, a fight left in the middle is lost, and a win adds
  * glory to the cossack.
  */
@@ -36,6 +36,7 @@ export function FightArena() {
               setup: kozakPaths.fightSetup,
               fight: kozakPaths.fightBattle,
               result: kozakPaths.fightResult,
+              levelResult: kozakPaths.outcome,
             },
             back: {
               modes: { to: kozakPaths.fight, text: fightHallTexts.toHall },
@@ -43,7 +44,6 @@ export function FightArena() {
             },
             session: storage.gameSessions.fight,
             leaving: {
-              kind: 'retreat',
               button: battleTexts.retreatConfirm,
               title: battleTexts.retreatTitle,
               text: fightHallTexts.retreatText,

@@ -2,13 +2,13 @@ import { isCampaignSession, isWorkoutSession } from '../domain/engine/session';
 import { computeStatistics } from '../domain/history/statistics';
 import { addGameRecords, computeGameRecord, EMPTY_RECORD, type GameRecord } from '../domain/kozak/record';
 import {
-  ACTIVE_SESSION,
   asAttempt,
   browserLocalStorage,
   createActiveSessionStore,
   createBrowserBuffer,
   createOutbox,
   GAME_SESSION,
+  SITE_SESSION,
   type BrowserBuffer,
   type Owner,
 } from './buffer';
@@ -56,10 +56,10 @@ export interface ApiStorageOptions {
 
 // The storage of the running game: the API of this site and the localStorage of this browser.
 export function createBrowserStorage(): GameStorage {
-  const storage = createApiStorage({
-    fetch: (path, init) => globalThis.fetch(path, init),
-    buffer: createBrowserBuffer(browserLocalStorage()),
-  });
+  const buffer = createBrowserBuffer(browserLocalStorage());
+  // §24.1: a workout left in progress on /workout has nowhere to go on.
+  buffer.remove(SITE_SESSION);
+  const storage = createApiStorage({ fetch: (path, init) => globalThis.fetch(path, init), buffer });
 
   // The attempts that waited for the connection go to the server the moment it is back.
   window.addEventListener('online', () => void storage.attempts.flush());
@@ -69,19 +69,19 @@ export function createBrowserStorage(): GameStorage {
 
 export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStorage {
   const outbox = createOutbox(buffer);
-  const activeSession = createActiveSessionStore(buffer, ACTIVE_SESSION, isWorkoutSession);
   const gameSessions = {
     fight: createActiveSessionStore(buffer, `${GAME_SESSION}fight`, isWorkoutSession),
     campaign: createActiveSessionStore(buffer, `${GAME_SESSION}campaign`, isCampaignSession),
   };
   // Nothing in progress goes on with the next person on this browser.
   const clearSessions = () => {
-    activeSession.clear();
     gameSessions.fight.clear();
     gameSessions.campaign.clear();
   };
   // Who used the browser at the last answer, so an attempt finished without a connection still has an owner.
   let known: BrowserState = NOBODY;
+  // Whether the server has answered that at all.
+  let answered = false;
   let newGuest: Promise<CurrentUser> | null = null;
   let flushing: Promise<void> | null = null;
   // What the server last said about the game of this user: a battle starts without the network (§15.4).
@@ -107,6 +107,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       lastGame = null;
     }
     known = browser;
+    answered = true;
     adoptWaiting(browser);
 
     return browser;
@@ -166,10 +167,19 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       me.clear();
       const created = (await me.get()).user;
 
-      return (
-        created ??
-        userOf(remember(parseMe(expectStatus(await request('POST', '/api/v1/me'), 200, 201))).user)
-      );
+      if (created !== null) {
+        return created;
+      }
+      const reply = await request('POST', '/api/v1/me');
+      const guest = userOf(remember(parseMe(expectStatus(reply, 200, 201))).user);
+
+      // A guest made just now has no battles on the server yet, so the game knows its record
+      // without asking: its first battle may end without the network (§15.4).
+      if (reply.status === 201) {
+        lastGame = EMPTY_RECORD;
+      }
+
+      return guest;
     }).finally(() => {
       newGuest = null;
     });
@@ -383,7 +393,13 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       return addStatistics(saved, queued);
     },
     async game() {
-      const browser = await me.get();
+      // Without the network the browser is who the server said last, so a battle still ends.
+      const browser = await me.get().catch((error: unknown) => {
+        if (answered && error instanceof StorageError && error.code === 'offline') {
+          return known;
+        }
+        throw error;
+      });
       let saved = EMPTY_RECORD;
 
       if (browser.user !== null) {
@@ -428,7 +444,6 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     exercises,
     settings,
     attempts,
-    activeSession,
     gameSessions,
   };
 }

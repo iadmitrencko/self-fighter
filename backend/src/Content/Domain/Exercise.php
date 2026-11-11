@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Content\Domain;
 
 /**
- * A ready-made exercise (§5.1): its page and, when the game offers it, its place in the catalog
- * of the game. Attempts keep the slug as the id of the exercise.
+ * A ready-made exercise of the game (§5.1) and its place in the catalog. Attempts keep the slug as
+ * the id of the exercise.
  */
 final class Exercise
 {
@@ -15,13 +15,13 @@ final class Exercise
     public function __construct(
         string $slug,
         private string $name,
-        private bool $inGame,
         private int $position,
-        private Article $article,
-        private bool $reviewed,
-        private \DateTimeImmutable $updatedAt,
     ) {
         $this->slug = Slug::check($slug);
+
+        if ('' === trim($name)) {
+            throw new \InvalidArgumentException(\sprintf('The exercise %s has no name.', $slug));
+        }
     }
 
     public function slug(): string
@@ -34,29 +34,8 @@ final class Exercise
         return $this->name;
     }
 
-    public function inGame(): bool
-    {
-        return $this->inGame;
-    }
-
     public function position(): int
     {
         return $this->position;
-    }
-
-    public function article(): Article
-    {
-        return $this->article;
-    }
-
-    // §21.4: search engines see only texts a person has read.
-    public function indexable(): bool
-    {
-        return $this->reviewed;
-    }
-
-    public function updatedAt(): \DateTimeImmutable
-    {
-        return $this->updatedAt;
     }
 }

@@ -4,7 +4,7 @@ import { addExercises, enter, expectAccessible, field, proceed, setRounds, targe
 // §18 «Режими»: «Ціль» has its own target for each exercise in each round, and filling the
 // rounds automatically never overwrites a round changed by hand. With «Виконати» the target is enough.
 test('«Ціль» keeps separate targets and wins by reaching them', async ({ page }) => {
-  await page.goto('/workout/setup/target');
+  await page.goto('/game/fight/setup/target');
   await addExercises(page, 'Віджимання', 'Присідання');
   await setRounds(page, 2);
 
@@ -41,7 +41,7 @@ test('«Ціль» keeps separate targets and wins by reaching them', async ({ p
 
 // §4.4: «Перевиконати» asks for more than the target.
 test('with «Перевиконати» reaching the target is not enough', async ({ page }) => {
-  await page.goto('/workout/setup/target');
+  await page.goto('/game/fight/setup/target');
   await addExercises(page, 'Присідання');
   await setRounds(page, 1);
   await field(page, 'Присідання, раунд 1').fill('10');

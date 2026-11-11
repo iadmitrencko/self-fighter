@@ -77,7 +77,6 @@
   white-space: nowrap;
 }
 
-.site-nav__link--section,
 .site-nav__cta {
   display: none;
 }
@@ -113,12 +112,6 @@
   }
 
   .site-nav__cta {
-    display: inline-flex;
-  }
-}
-
-@media (min-width: 64rem) {
-  .site-nav__link--section {
     display: inline-flex;
   }
 }
@@ -186,10 +179,6 @@
 
 .score__item--losses .score__value {
   color: var(--color-rival-text);
-}
-
-.score__item--challenges .score__value {
-  color: var(--color-passed);
 }
 
 @media (min-width: 48rem) {

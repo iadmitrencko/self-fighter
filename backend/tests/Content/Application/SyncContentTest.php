@@ -9,7 +9,6 @@ use App\Content\Application\ContentRules;
 use App\Content\Application\ContentSource;
 use App\Content\Application\InvalidContent;
 use App\Content\Application\SyncContent;
-use App\Content\Domain\ChallengeRepository;
 use App\Content\Domain\ExerciseRepository;
 use App\Content\Domain\PageRepository;
 use App\Content\Domain\PageType;
@@ -24,33 +23,32 @@ final class SyncContentTest extends KernelTestCase
     public function testReplacesTheContentOfTheSite(): void
     {
         $this->sync(new SiteContent(
-            [Content::exercise('plank')],
+            [Content::exercise('side-plank', 2), Content::exercise('plank')],
             [Content::page(PageType::Guide, 'breathing')],
-            [Content::challenge('two-planks', exercises: ['plank'])],
         ));
         $slugs = static fn (array $items): array => array_map(static fn ($item): string => $item->slug(), $items);
 
-        self::assertSame(['plank'], $slugs(self::service(ExerciseRepository::class)->all()));
+        // In the order of the catalog.
+        self::assertSame(['plank', 'side-plank'], $slugs(self::service(ExerciseRepository::class)->all()));
         self::assertSame(['breathing'], $slugs(self::service(PageRepository::class)->ofType(PageType::Guide)));
-        self::assertSame([], self::service(PageRepository::class)->ofType(PageType::Mode));
-        self::assertSame(['two-planks'], $slugs(self::service(ChallengeRepository::class)->all()));
-        self::assertSame(['two-planks'], $slugs(self::service(ChallengeRepository::class)->withExercise('plank')));
+        self::assertSame([], self::service(PageRepository::class)->ofType(PageType::Service));
     }
 
     // A broken release never reaches the site, not even in part.
     public function testLeavesTheSiteAsItWasWhenTheContentIsBroken(): void
     {
         $database = self::service(Connection::class);
-        $before = $database->fetchFirstColumn('SELECT slug FROM challenge ORDER BY slug');
+        $before = $database->fetchFirstColumn('SELECT slug FROM exercise ORDER BY position');
 
         try {
-            $this->sync(new SiteContent([Content::exercise('plank')], [], [Content::challenge('two-burpees', exercises: ['burpees'])]));
+            $this->sync(new SiteContent([Content::exercise('plank'), Content::exercise('plank', 2)], [Content::page(PageType::Guide, 'breathing')]));
             self::fail('The broken content reached the site.');
         } catch (InvalidContent $invalid) {
-            self::assertSame(['Challenge two-burpees uses the unknown exercise burpees.'], $invalid->problems);
+            self::assertSame(['Exercise plank appears more than once.'], $invalid->problems);
         }
-        self::assertSame($before, $database->fetchFirstColumn('SELECT slug FROM challenge ORDER BY slug'));
-        self::assertSame(3, (int) $database->fetchOne('SELECT COUNT(*) FROM exercise'));
+        self::assertSame(['push-ups', 'squats', 'pull-ups'], $before);
+        self::assertSame($before, $database->fetchFirstColumn('SELECT slug FROM exercise ORDER BY position'));
+        self::assertSame(4, (int) $database->fetchOne('SELECT COUNT(*) FROM content_page'));
     }
 
     private function sync(SiteContent $content): void
@@ -71,7 +69,6 @@ final class SyncContentTest extends KernelTestCase
             new ContentRules(),
             self::service(ExerciseRepository::class),
             self::service(PageRepository::class),
-            self::service(ChallengeRepository::class),
             self::service(Transaction::class),
         ))();
     }

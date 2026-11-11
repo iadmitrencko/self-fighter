@@ -4,11 +4,10 @@ import { kozakTexts } from '../../i18n/kozak';
 import { ResultScreen } from '../screens/ResultScreen';
 import { SetupScreen } from '../setup/SetupScreen';
 import { WorkoutScreen } from '../workout/WorkoutScreen';
-import { RouterBase, ScrollToTop, SiteLinks } from '../components/routing';
+import { ScrollToTop, SiteLinks } from '../components/routing';
 import { SignInOutcome, SignInPromptProvider } from '../components/SignIn';
 import { DataVersionContext } from '../data';
 import { GameProvider, type Game } from '../game';
-import { isMode } from '../paths';
 import { CossackScreen } from './CossackScreen';
 import { FightArena } from './fight/FightArena';
 import { FightHall } from './fight/FightHall';
@@ -20,13 +19,13 @@ import { JourneyScreen } from './journey/JourneyScreen';
 import { OutcomeScreen } from './journey/OutcomeScreen';
 import { PrepScreen } from './journey/PrepScreen';
 import { StageScreen } from './journey/StageScreen';
-import { KOZAK_BASE, kozakPaths } from './paths';
+import { isMode, KOZAK_BASE, kozakPaths } from './paths';
 import { KozakIcon, type KozakIconName } from './parts';
 import { RanksScreen } from './RanksScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { CossackProvider } from './record';
 
-// §24: the section «Гра» under /game, the cossack game of the site.
+// §24: the section «Гра» under /game, the cossack game of the site and the only place of its workouts.
 export function KozakApp({ game }: { game: Game }) {
   const [version, setVersion] = useState(0);
   const data = useMemo(() => ({ version, changed: () => setVersion((value) => value + 1) }), [version]);
@@ -34,17 +33,15 @@ export function KozakApp({ game }: { game: Game }) {
   return (
     <GameProvider game={game}>
       <DataVersionContext value={data}>
-        <RouterBase value={KOZAK_BASE}>
-          <SignInPromptProvider>
-            <ScrollToTop />
-            <SiteLinks base={KOZAK_BASE} />
-            {/* §23.2: the history offers to sign in, and Google brings the browser back to it. */}
-            <SignInOutcome />
-            <CossackProvider>
-              <KozakRoutes />
-            </CossackProvider>
-          </SignInPromptProvider>
-        </RouterBase>
+        <SignInPromptProvider>
+          <ScrollToTop />
+          <SiteLinks base={KOZAK_BASE} />
+          {/* §23.2: Google brings the browser back to the screen the sign-in started from. */}
+          <SignInOutcome />
+          <CossackProvider>
+            <KozakRoutes />
+          </CossackProvider>
+        </SignInPromptProvider>
       </DataVersionContext>
     </GameProvider>
   );

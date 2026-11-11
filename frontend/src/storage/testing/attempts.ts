@@ -18,7 +18,8 @@ import { newId } from '../ids';
 // Reps for push-ups and squats against a target of 10: a draw wins one exercise and loses the other.
 const TARGET_REPS: Record<Outcome, readonly number[]> = { win: [11, 11], draw: [11, 9], loss: [9, 9] };
 
-// A finished attempt as the game stores it. A ladder knows only a win or a loss.
+// A finished attempt as the game stores it. A ladder knows only a win or a loss. An attempt kept
+// from the time of the ready-made challenges may name one (§24.1).
 export function finishedAttempt(
   outcome: Outcome,
   finishedAt: string,
@@ -30,7 +31,7 @@ export function finishedAttempt(
   if (mode === 'ladder') {
     const config = ladderConfig({ max: 1, returnDown: false, rule: 'meet' });
 
-    return finalize(play(createSession(config, deps, challenge), () => (outcome === 'win' ? 1 : 0)), new Date(finishedAt));
+    return { ...finalize(play(createSession(config, deps), () => (outcome === 'win' ? 1 : 0)), new Date(finishedAt)), challenge };
   }
   const config = targetConfig({
     rounds: 1,
@@ -41,7 +42,7 @@ export function finishedAttempt(
   });
   const reps = [...TARGET_REPS[outcome]];
 
-  return finalize(play(createSession(config, deps, challenge), () => reps.shift() ?? 0), new Date(finishedAt));
+  return { ...finalize(play(createSession(config, deps), () => reps.shift() ?? 0), new Date(finishedAt)), challenge };
 }
 
 // §24: a fight of the game that took the energy of fights.

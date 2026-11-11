@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Production opens the site to every crawler, AI search included; any other environment closes
- * it (section 6.3 of the plan). The game stays open: a crawler must reach /workout to see its
+ * it (section 6.3 of the plan). The game stays open: a crawler must reach /game to see its
  * noindex.
  */
 final readonly class RobotsController

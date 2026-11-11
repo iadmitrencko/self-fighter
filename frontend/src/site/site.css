@@ -313,14 +313,9 @@
 }
 
 .mode-card {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-m);
-}
-
-.mode-card:hover {
-  border-color: var(--color-line-strong);
 }
 
 .mode-card__number {
@@ -346,28 +341,6 @@
 .mode-card__text {
   color: var(--color-text-soft);
   line-height: 1.55;
-}
-
-/* The whole card leads to the page of the mode. */
-.mode-card__link {
-  color: var(--color-text);
-  text-decoration: none;
-}
-
-.mode-card__link::after {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  content: '';
-}
-
-.mode-card:hover .mode-card__link {
-  color: var(--color-accent-hover);
-}
-
-.section__more {
-  margin-top: var(--space-l);
-  color: var(--color-text-muted);
 }
 
 .steps {

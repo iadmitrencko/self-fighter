@@ -102,13 +102,14 @@ describe('the format of attempts', () => {
     expect(check(null, { ...attempt, ...change })).not.toBeNull();
   });
 
-  // §21.3: version 2 names the ready-made challenge of the attempt, or null.
+  // Version 2 named the ready-made challenge of the attempt, or null. The site offers none any more
+  // (§24.1), yet an attempt kept from that time stays valid.
   it('accepts an attempt that took a challenge', () => {
     const challenge = { slug: 'pull-ups-ladder-to-3', title: 'Драбина підтягувань до 3' };
-    const attempt = finalize(
-      play(createSession(ladderConfig({ max: 3 }), testDeps({ newId: () => newId() }), challenge), () => 9),
-      FINISHED_AT,
-    );
+    const attempt = {
+      ...finalize(play(createSession(ladderConfig({ max: 3 }), testDeps({ newId: () => newId() })), () => 9), FINISHED_AT),
+      challenge,
+    };
 
     expect(check(null, attempt)).toBeNull();
   });

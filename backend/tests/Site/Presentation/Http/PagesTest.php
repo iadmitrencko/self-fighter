@@ -26,11 +26,10 @@ final class PagesTest extends WebTestCase
         );
         self::assertCount(3, $crawler->filter('#how li'));
         self::assertCount(4, $crawler->filter('.benefit'));
-        self::assertGreaterThanOrEqual(2, $crawler->filter('main a[href="/workout"]')->count());
-        self::assertSame(
-            ['/modes/target', '/modes/random-opponent', '/modes/opponent-levels', '/modes/ladder', '/challenges'],
-            $crawler->filter('#modes a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
-        );
+        // §24.1: a workout starts with a fight of the game.
+        self::assertGreaterThanOrEqual(2, $crawler->filter('main a[href="/game/fight"]')->count());
+        // §24.1: the modes have no pages of their own any more.
+        self::assertCount(0, $crawler->filter('#modes a'));
     }
 
     // Section 6.3 of the plan: search engines learn the name of the site and how people say it.
@@ -78,7 +77,7 @@ final class PagesTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         self::assertSame(
-            ['/', '/game', '/challenges', '/modes', '/exercises', '/guides', '/about', '/workout', '/game/history', '/game/settings', '/privacy'],
+            ['/', '/game', '/guides', '/about', '/game/fight', '/game/history', '/game/settings', '/privacy'],
             $crawler->filter('footer nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
         // §22: the decision changes as easily as it was made.
@@ -91,7 +90,7 @@ final class PagesTest extends WebTestCase
         $client = self::createClient();
         $banners = [];
 
-        foreach (['/', '/challenges/100-push-ups', '/workout', '/privacy'] as $page) {
+        foreach (['/', '/guides/motivation', '/game', '/privacy'] as $page) {
             $crawler = $client->request('GET', $page);
             $banner = $crawler->filter('body > section#consent');
             $banners[] = $banner->outerHtml();
@@ -116,21 +115,21 @@ final class PagesTest extends WebTestCase
         self::assertStringContainsString('ідентифікатором твого користувача, гостя чи облікового запису', $crawler->filter('#consent')->text());
     }
 
-    // The game opens inside the same header and footer as every page of the site.
+    // A fight of the game opens inside the same header and footer as every page of the site.
     public function testGameLivesInTheFrameOfTheSite(): void
     {
         $client = self::createClient();
         $site = $client->request('GET', '/');
         $header = $site->filter('header')->html();
         $footer = $site->filter('footer')->html();
-        $game = $client->request('GET', '/workout/setup/target');
+        $game = $client->request('GET', '/game/fight/setup/target');
 
         self::assertSame($header, $game->filter('header')->html());
         self::assertSame($footer, $game->filter('footer')->html());
         self::assertSelectorExists('main #root');
         self::assertSame(
-            // §24.1: the history and the settings are sections of the game, so the header leads to them through «Гра».
-            ['/game', '/challenges', '/modes', '/exercises', '/workout'],
+            // §24.1: everything is made for the game, so the header leads into it and to a fight in it.
+            ['/game', '/game/fight'],
             $game->filter('header nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
     }
@@ -201,6 +200,10 @@ final class PagesTest extends WebTestCase
 
             self::assertResponseStatusCodeSame(404, $address);
         }
+
+        // Section 6.3: an address with a trailing slash leads to the one without it.
+        $client->request('GET', '/game/fight/');
+        self::assertResponseRedirects('/game/fight', 301);
     }
 
     // §14.2: the score of the player stands on every page; the browser fills in its numbers.
@@ -209,16 +212,16 @@ final class PagesTest extends WebTestCase
         $client = self::createClient();
         $scores = [];
 
-        foreach (['/', '/challenges', '/workout', '/workout/setup/target'] as $page) {
+        foreach (['/', '/guides', '/about', '/privacy'] as $page) {
             $crawler = $client->request('GET', $page);
             $scores[] = $crawler->filter('.score')->outerHtml();
 
             self::assertSame(
-                ['total', 'wins', 'draws', 'losses', 'challenges'],
+                ['total', 'wins', 'draws', 'losses'],
                 $crawler->filter('.score [data-score]')->each(static fn (Crawler $value): string => (string) $value->attr('data-score')),
                 $page,
             );
-            self::assertSame(['Тренування', 'Перемоги', 'Нічиї', 'Поразки', 'Виклики'], $crawler->filter('.score dt')->each(
+            self::assertSame(['Тренування', 'Перемоги', 'Нічиї', 'Поразки'], $crawler->filter('.score dt')->each(
                 static fn (Crawler $label): string => $label->text(),
             ));
         }
@@ -226,104 +229,48 @@ final class PagesTest extends WebTestCase
         self::assertCount(1, array_unique($scores));
     }
 
-    public function testWorkoutShellIsNotIndexed(): void
+    // §24.1: the workouts of /workout are gone. Each of its screens leads to the same screen of the
+    // fights of the game and keeps the query, such as how a sign-in with Google went.
+    public function testTheScreensOfWorkoutLeadToTheGame(): void
     {
         $client = self::createClient();
-        $crawler = $client->request('GET', '/workout');
-
-        self::assertResponseIsSuccessful();
-        self::assertSelectorExists('#root');
-        self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
-    }
-
-    // §24.1: the history and the data of the player moved into the game; the old addresses lead
-    // there and keep their query, such as how a sign-in with Google went.
-    public function testTheHistoryAndTheDataOfThePlayerLeadToTheGame(): void
-    {
-        $client = self::createClient();
-
-        $client->request('GET', '/workout/history');
-        self::assertResponseRedirects('/game/history', 302);
-
-        $client->request('GET', '/workout/history?sign-in=done');
-        self::assertResponseRedirects('/game/history?sign-in=done', 302);
-
-        $client->request('GET', '/workout/account?sign-in=cancelled');
-        self::assertResponseRedirects('/game/settings?sign-in=cancelled', 302);
-    }
-
-    // Section 3.4: Symfony knows every screen of the game, so a reload opens it and anything else is a 404.
-    public function testEveryScreenOfTheGameHasItsAddress(): void
-    {
-        $client = self::createClient();
-        $screens = [
-            '/workout/setup/target',
-            '/workout/setup/random-opponent',
-            '/workout/setup/opponent-levels',
-            '/workout/setup/ladder',
-            '/workout/fight',
-            '/workout/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
-            '/workout/challenge/100-push-ups',
+        $moved = [
+            '/workout' => '/game/fight',
+            '/workout/setup/ladder' => '/game/fight/setup/ladder',
+            '/workout/fight' => '/game/fight',
+            '/workout/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85' => '/game/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
+            '/workout/history' => '/game/history',
+            '/workout/history?sign-in=done' => '/game/history?sign-in=done',
+            '/workout/account?sign-in=cancelled' => '/game/settings?sign-in=cancelled',
+            '/workout/setup/target?sign-in=failed' => '/game/fight/setup/target?sign-in=failed',
+            // The query cannot change where the screen leads.
+            '/workout/setup/ladder?mode=boxing' => '/game/fight/setup/ladder',
         ];
 
-        foreach ($screens as $screen) {
-            $client->request('GET', $screen);
+        foreach ($moved as $address => $screen) {
+            $client->request('GET', $address);
 
-            self::assertResponseIsSuccessful($screen);
-            self::assertSelectorExists('#root');
+            self::assertResponseRedirects($screen, 302, $address);
         }
 
-        foreach (['/workout/setup/boxing', '/workout/result/42', '/workout/unknown', '/workout/challenge/1000-push-ups'] as $address) {
+        foreach (['/workout/setup/boxing', '/workout/result/42', '/workout/unknown'] as $address) {
             $client->request('GET', $address);
 
             self::assertResponseStatusCodeSame(404, $address);
         }
-
-        // Section 6.3: an address with a trailing slash leads to the one without it.
-        $client->request('GET', '/workout/');
-        self::assertResponseRedirects('/workout', 301);
     }
 
-    // §5.1, §23.2: the game gets the ready-made exercises and the ways to sign in with the page, before its first request.
-    public function testShellCarriesTheReadyMadeExercises(): void
+    // §24.1: the ready-made challenges and the pages of the modes and of the exercises are gone; their
+    // old addresses lead into the game.
+    public function testRemovedSectionsLeadToTheGame(): void
     {
         $client = self::createClient();
-        $crawler = $client->request('GET', '/workout');
 
-        self::assertSame(
-            [
-                'exercises' => [
-                    ['id' => 'push-ups', 'name' => 'Віджимання'],
-                    ['id' => 'squats', 'name' => 'Присідання'],
-                    ['id' => 'pull-ups', 'name' => 'Підтягування'],
-                ],
-                'signIn' => ['google'],
-            ],
-            json_decode((string) $crawler->filter('#root')->attr('data-game'), true, 512, \JSON_THROW_ON_ERROR),
-        );
-    }
+        foreach (['/challenges', '/challenges/100-push-ups', '/workout/challenge/push-ups-ladder-to-10', '/modes', '/modes/ladder', '/exercises', '/exercises/squats'] as $address) {
+            $client->request('GET', $address);
 
-    // §21.3: the game opens a ready-made challenge with its configuration and lets the player change it.
-    public function testShellCarriesTheOpenedChallenge(): void
-    {
-        $client = self::createClient();
-        $crawler = $client->request('GET', '/workout/challenge/push-ups-ladder-to-10');
-        $game = json_decode((string) $crawler->filter('#root')->attr('data-game'), true, 512, \JSON_THROW_ON_ERROR);
-
-        self::assertSame(['push-ups', 'squats', 'pull-ups'], array_column($game['exercises'], 'id'));
-        // MySQL keeps the keys of a JSON object in its own order.
-        self::assertEquals([
-            'slug' => 'push-ups-ladder-to-10',
-            'title' => 'Драбина віджимань до 10',
-            'config' => [
-                'mode' => 'ladder',
-                'rule' => 'meet',
-                'exercise' => ['id' => 'push-ups', 'name' => 'Віджимання'],
-                'max' => 10,
-                'returnDown' => false,
-            ],
-        ], $game['challenge']);
-        self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
+            self::assertResponseRedirects('/game', 302, $address);
+        }
     }
 
     // A page that sets no cookie stays the same for everyone and can be cached by a CDN.
@@ -331,7 +278,7 @@ final class PagesTest extends WebTestCase
     {
         $client = self::createClient();
 
-        foreach (['/', '/workout', '/missing'] as $page) {
+        foreach (['/', '/game', '/missing'] as $page) {
             $client->request('GET', $page);
 
             self::assertSame([], $client->getResponse()->headers->getCookies(), $page);
@@ -347,7 +294,7 @@ final class PagesTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
         self::assertSelectorTextSame('h1', 'Сторінку не знайдено');
         self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
-        self::assertSame(['/', '/workout'], $crawler->filter('.error-page a')->each(
+        self::assertSame(['/', '/game/fight'], $crawler->filter('.error-page a')->each(
             static fn (Crawler $link): string => (string) $link->attr('href'),
         ));
     }

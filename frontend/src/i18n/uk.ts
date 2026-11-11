@@ -131,8 +131,6 @@ export const commonTexts = {
   retry: 'Спробувати ще раз',
   cancel: 'Скасувати',
   save: 'Зберегти',
-  toHome: 'На головну',
-  toModes: 'До вибору режиму',
   toHistory: 'До історії',
   history: 'Історія',
   newWorkout: 'Нове тренування',
@@ -140,31 +138,18 @@ export const commonTexts = {
   rejected: 'Не прийнято сервером',
 };
 
+// The choice of a mode in the hall of fights (§24.6).
 export const modesTexts = {
-  title: 'Обери режим',
-  // Labels in capitals use a slash: a capital «З» looks like «3» in Manrope.
-  step: 'Крок 1 / 2',
   group: 'Режим тренування',
   task: 'Завдання',
   win: 'Перемога',
   length: 'Тривалість',
-  next: 'Далі — налаштування',
-  catalog: 'Не хочеться складати тренування?',
-  catalogLink: 'Обери готовий виклик',
-  resumeTitle: 'Незавершене тренування',
-  resumeProgress: (mode: Mode, done: number, total: number) =>
-    `${modeNames[mode]} · пройдено етапів: ${done} з ${total}`,
-  resume: 'Продовжити',
-  discard: 'Відкинути',
 };
 
 export const setupTexts = {
   title: (mode: Mode) => (mode === 'ladder' ? 'Налаштуй драбину' : 'Налаштуй бій'),
+  // Labels in capitals use a slash: a capital «З» looks like «3» in Manrope.
   step: (mode: Mode) => `Крок 2 / 2 · режим «${modeNames[mode]}»`,
-  challengeStep: (mode: Mode) => `Готовий виклик · режим «${modeNames[mode]}»`,
-  challengeFilled: 'Налаштування заповнено з виклику. Їх можна змінити перед стартом.',
-  challengeChanged: 'Налаштування змінено, тож перемога не зарахує виклик. Поверни значення виклику, щоб його пройти.',
-  toChallenge: 'До сторінки виклику',
   exercises: (count: number) => `Вправи · ${count} / ${EXERCISES_MAX}`,
   exercise: 'Вправа',
   remove: (name: string) => `Прибрати вправу ${name}`,
@@ -256,10 +241,6 @@ export const fightTexts = {
     `Раунд ${round}: ${counts.wins(won)}, ${counts.losses(lost)} — ${outcomeTexts[outcome].name.toLowerCase()}.`,
   nextExercise: 'Наступна вправа',
   nextRound: (round: number) => `Почати раунд ${round}`,
-  interrupt: 'Перервати',
-  interruptTitle: 'Перервати тренування?',
-  interruptText: 'Результати цієї спроби не збережуться й не потраплять у статистику.',
-  keepGoing: 'Продовжити тренування',
   saveFailedTitle: 'Спробу не збережено',
   saveFailed: 'Не вдалося зберегти спробу в цьому браузері. Спробуй ще раз.',
 };
@@ -306,9 +287,6 @@ export const resultTexts = {
     actual === null
       ? `Етап ${target}: не дійшли`
       : `Етап ${target}: ${actual}, ${passed ? 'пройдено' : 'не пройдено'}`,
-  challengePassed: (title: string) => `Виклик «${title}» пройдено`,
-  challengeFailed: (title: string) => `Виклик «${title}» ще не пройдено: переможи, щоб його зарахувати.`,
-  toChallenge: 'Сторінка виклику',
   pending: "Спроба очікує надсилання: вона піде на сервер, щойно з'явиться зв'язок.",
   rejected: 'Сервер не прийняв цю спробу, тож вона лишається тільки в цьому браузері.',
   repeat: 'Повторити',
@@ -321,9 +299,6 @@ export const resultTexts = {
 // §14: the history, a section of the game (§24.1).
 export const historyTexts = {
   stats: 'Загальна статистика',
-  challenges: 'Пройдено викликів',
-  catalog: 'Каталог викликів',
-  challenge: (title: string, passed: boolean) => (passed ? `Виклик пройдено · ${title}` : `Виклик · ${title}`),
   modeFilter: 'Режим',
   outcomeFilter: 'Результат',
   all: 'Усі',
@@ -400,9 +375,4 @@ export const accountTexts = {
   accountDeleteWarning: 'Обліковий запис, історію, власні вправи й налаштування не вдасться відновити.',
   deleteConfirm: 'Видалити назавжди',
   deleted: 'Дані видалено.',
-};
-
-export const notFoundTexts = {
-  title: 'Сторінку не знайдено',
-  text: 'Такого екрана в грі немає.',
 };

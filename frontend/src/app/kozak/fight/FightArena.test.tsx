@@ -20,7 +20,7 @@ async function spentFights() {
 }
 
 describe('the fights of the game', () => {
-  // §24.6: the modes of the site, in the colors of the game, with the energy of fights.
+  // §24.6: the modes of a workout, in the colors of the game, with the energy of fights.
   it('start from the choice of a mode', async () => {
     const { user } = renderKozak('/fight');
 
@@ -34,6 +34,26 @@ describe('the fights of the game', () => {
     expect(screen.getByRole('link', { name: 'До вибору бою' }).getAttribute('href')).toBe('/fight');
   });
 
+  // §16.4: the task, the way to win and the length are known before the start.
+  it('offer the four modes, «Ціль» first, and explain the chosen one', async () => {
+    const { user } = renderKozak('/fight');
+    await screen.findByRole('heading', { level: 1, name: 'Бій' });
+
+    expect(screen.getAllByRole('radio').map((radio) => radio.closest('label')?.textContent)).toEqual([
+      '01Ціль',
+      '02Випадковий суперник',
+      '03Рівні суперників',
+      '04Драбина',
+    ]);
+    expect(screen.getByRole<HTMLInputElement>('radio', { name: /Ціль/ }).checked).toBe(true);
+
+    await user.click(screen.getByRole('radio', { name: /Драбина/ }));
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Драбина' })).toBeTruthy();
+    expect(screen.getByText('Пройдено всі етапи. Один непройдений етап — поразка. Нічиєї немає.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'До налаштування бою' }).getAttribute('href')).toBe('/fight/setup/ladder');
+  });
+
   // §24.4, §24.3: a start takes a unit of energy; a win adds glory.
   it('spends energy on the start and gives glory for a win', async () => {
     const { user, storage } = renderKozak('/fight/setup/ladder');
@@ -45,7 +65,6 @@ describe('the fights of the game', () => {
 
     const session = storage.gameSessions.fight.load();
     expect(session?.game?.pool).toBe('fight');
-    expect(storage.activeSession.load()).toBeNull();
 
     await user.type(await screen.findByRole('textbox', { name: 'Твій результат' }), '2');
     await user.click(screen.getByRole('button', { name: 'Зафіксувати етап' }));

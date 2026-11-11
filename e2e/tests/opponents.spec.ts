@@ -18,7 +18,7 @@ async function opponentResults(page: Page, stages: number): Promise<number[]> {
 
 // §18 «Режими»: the opponent gets a result for each exercise of each round and keeps it.
 test('«Випадковий суперник» rolls within the range and keeps the result after a reload', async ({ page }) => {
-  await page.goto('/workout/setup/random-opponent');
+  await page.goto('/game/fight/setup/random-opponent');
   await addExercises(page, 'Віджимання');
   await setRounds(page, 2);
   await field(page, 'Віджимання, результат суперника від').fill('3');
@@ -36,7 +36,7 @@ test('«Випадковий суперник» rolls within the range and keeps
 
 // §8.3: a simple opponent does 10–50% of M; M = 10 gives 1–5.
 test('«Рівні суперників» keeps a simple opponent within its share of M', async ({ page }) => {
-  await page.goto('/workout/setup/opponent-levels');
+  await page.goto('/game/fight/setup/opponent-levels');
   await addExercises(page, 'Присідання');
   await setRounds(page, 4);
   await page.getByRole('radio', { name: /Простий/ }).check();
@@ -51,7 +51,7 @@ test('«Рівні суперників» keeps a simple opponent within its sha
 
 // §8.5: a hard opponent does 50–100% of M and sometimes up to 120%.
 test('«Рівні суперників» lets a hard opponent go above M, but not beyond 120%', async ({ page }) => {
-  await page.goto('/workout/setup/opponent-levels');
+  await page.goto('/game/fight/setup/opponent-levels');
   await addExercises(page, 'Віджимання');
   await setRounds(page, 4);
   await page.getByRole('radio', { name: /Складний/ }).check();

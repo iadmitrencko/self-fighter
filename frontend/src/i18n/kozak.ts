@@ -119,16 +119,16 @@ export const ranksTexts = {
 // §14, §24.1: the one history of every attempt, a section of the game.
 export const gameHistoryTexts = {
   title: 'Історія',
-  lead: 'Усі завершені бої, рівні походу й звичайні тренування.',
+  lead: 'Усі завершені бої й рівні походу та старі тренування сайту.',
   // The word after the number of attempts: «12 тренувань».
   total: (count: number) => plural(count, { one: 'тренування', few: 'тренування', many: 'тренувань' }),
-  // Where an attempt comes from: a fight of the game, a level of the journey or a workout of the site.
+  // Where an attempt comes from: a fight of the game, a level of the journey or an old workout of the site (§24.1).
   kinds: { fight: 'Бій', journey: 'Похід', workout: 'Тренування' },
   journey: 'Похід',
   // Non-breaking spaces keep «етап 1» and «3 з 4» on one line.
   level: (campaign: string, stage: number, done: number, total: number) =>
     `${campaign} · етап\u00a0${stage} · ${done}\u00a0з\u00a0${total} підходів`,
-  empty: 'Історія ще порожня. Тут з’являться завершені бої, рівні походу й тренування.',
+  empty: 'Історія ще порожня. Тут з’являться завершені бої й рівні походу.',
   toFight: 'До бою',
   toJourney: 'У похід',
 };

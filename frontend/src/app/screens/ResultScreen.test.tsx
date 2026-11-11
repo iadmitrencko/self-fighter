@@ -8,7 +8,7 @@ import { createBrowserBuffer } from '../../storage/buffer';
 import { createMemoryStorage } from '../../storage/memory';
 import { finishedAttempt, levelAttempt } from '../../storage/testing/attempts';
 import { createFakeServer } from '../../storage/testing/fakeServer';
-import { renderGame } from '../testing/render';
+import { renderKozak } from '../testing/render';
 
 async function saved(attempt: Parameters<ReturnType<typeof createMemoryStorage>['attempts']['save']>[0]) {
   const storage = createMemoryStorage();
@@ -18,23 +18,20 @@ async function saved(attempt: Parameters<ReturnType<typeof createMemoryStorage>[
 }
 
 describe('result of an attempt', () => {
-  // §24.5: the game tells the story of a level; the site shows how it went and leads there.
-  it('leads to the game for a level of the journey', async () => {
+  // §24.5: a level of the journey has a result of its own, which tells its story. An old address of
+  // the site leads here for a level as well.
+  it('opens a level of the journey in its own result', async () => {
     const attempt = levelAttempt('forest-ravens/1/1', 'win', '2026-10-29T17:42:00.000Z', '2026-10-29T22:00:00.000Z');
-    renderGame(`/result/${attempt.id}`, { storage: await saved(attempt) });
+    renderKozak(`/fight/result/${attempt.id}`, { storage: await saved(attempt) });
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Перемога' })).toBeTruthy();
-    expect(screen.getByText('Лісові круки')).toBeTruthy();
-    expect(screen.getByText('Перше випробування')).toBeTruthy();
-    expect(screen.getByText('3 / 3')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Відкрити в грі' }).getAttribute('href')).toBe(`/game/journey/result/${attempt.id}`);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Розбійника схоплено' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Повторити' })).toBeNull();
   });
 
   // §13.2: rounds, exercises and the counts of won, drawn and lost rounds.
   it('shows every round of a fight', async () => {
     const attempt = finishedAttempt('draw', '2026-10-29T17:42:00.000Z');
-    renderGame(`/result/${attempt.id}`, { storage: await saved(attempt) });
+    renderKozak(`/fight/result/${attempt.id}`, { storage: await saved(attempt) });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Нічия' })).toBeTruthy();
     expect(screen.getByText('0 : 0')).toBeTruthy();
@@ -51,7 +48,7 @@ describe('result of an attempt', () => {
   // §13.3: the top, the highest step passed, the steps and the way back down.
   it('shows the steps of a ladder', async () => {
     const attempt = finishedAttempt('win', '2026-10-29T17:42:00.000Z', 'ladder');
-    renderGame(`/result/${attempt.id}`, { storage: await saved(attempt) });
+    renderKozak(`/fight/result/${attempt.id}`, { storage: await saved(attempt) });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Перемога' })).toBeTruthy();
     expect(screen.getByText('1 / 1')).toBeTruthy();
@@ -64,16 +61,16 @@ describe('result of an attempt', () => {
   it('repeats an attempt with new results of the opponent', async () => {
     const attempt = finalize(play(createSession(randomOpponentConfig(), testDeps()), () => 30), new Date());
     const storage = await saved(attempt);
-    const { user, analytics } = renderGame(`/result/${attempt.id}`, { storage });
+    const { user, analytics } = renderKozak(`/fight/result/${attempt.id}`, { storage });
 
     expect(await screen.findByText('«Повторити» — ті самі налаштування, нові результати суперника.')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Повторити' }));
 
-    const session = storage.activeSession.load();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Віджимання' })).toBeTruthy();
+    const session = storage.gameSessions.fight.load();
     expect(session?.config).toEqual(attempt.config);
     expect(session?.id).not.toBe(attempt.id);
-    expect(screen.getByRole('heading', { level: 1, name: 'Віджимання' })).toBeTruthy();
     expect((await storage.attempts.get(attempt.id))?.attempt).toEqual(attempt);
     // §19 counts the repeats apart and the repeated workout among the starts.
     expect(analytics.events).toEqual([
@@ -82,42 +79,37 @@ describe('result of an attempt', () => {
     ]);
   });
 
-  // §21.3: a win with the settings of the page passes the challenge; «Повторити» tries it again.
-  it('says that a challenge is passed', async () => {
-    const challenge = { slug: '100-squats', title: '100 присідань' };
-    const attempt = finishedAttempt('win', '2026-10-29T17:42:00.000Z', 'target', challenge);
+  // §24.1: an old attempt that took a ready-made challenge shows it no more, and «Повторити» takes none.
+  it('leaves the challenge of an old attempt behind', async () => {
+    const attempt = finishedAttempt('win', '2026-10-29T17:42:00.000Z', 'target', { slug: '100-squats', title: '100 присідань' });
     const storage = await saved(attempt);
-    const { user } = renderGame(`/result/${attempt.id}`, { storage });
+    const { user } = renderKozak(`/fight/result/${attempt.id}`, { storage });
 
-    expect(await screen.findByText('Виклик «100 присідань» пройдено')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Сторінка виклику' }).getAttribute('href')).toBe('/challenges/100-squats');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Перемога' })).toBeTruthy();
+    expect(screen.queryByText(/100 присідань/)).toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Повторити' }));
 
-    expect(storage.activeSession.load()?.challenge).toEqual(challenge);
-  });
-
-  it('says that a challenge lost is not passed yet', async () => {
-    const attempt = finishedAttempt('draw', '2026-10-29T17:42:00.000Z', 'target', { slug: '100-squats', title: '100 присідань' });
-    renderGame(`/result/${attempt.id}`, { storage: await saved(attempt) });
-
-    expect(await screen.findByText('Виклик «100 присідань» ще не пройдено: переможи, щоб його зарахувати.')).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Віджимання' })).toBeTruthy();
+    expect(storage.gameSessions.fight.load()?.challenge).toBeNull();
   });
 
   // §15.4: an attempt that waits for the network says so.
   it('says when an attempt still waits for the server', async () => {
     const server = createFakeServer();
-    server.online = false;
     const storage = createApiStorage({ fetch: server.fetch, buffer: createBrowserBuffer(null) });
+    // The game knows who plays before the connection drops, so it opens without the network (§15.4).
+    await storage.account.current();
+    server.online = false;
     const attempt = finishedAttempt('win', '2026-10-29T17:42:00.000Z');
     await storage.attempts.save(attempt);
-    renderGame(`/result/${attempt.id}`, { storage });
+    renderKozak(`/fight/result/${attempt.id}`, { storage });
 
     expect(await screen.findByText("Спроба очікує надсилання: вона піде на сервер, щойно з'явиться зв'язок.")).toBeTruthy();
   });
 
   it('says when there is no such attempt', async () => {
-    renderGame('/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85');
+    renderKozak('/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Спробу не знайдено' })).toBeTruthy();
   });
@@ -128,14 +120,14 @@ describe('the offer to sign in', () => {
   it('comes after the first workout only', async () => {
     const first = finishedAttempt('win', '2026-10-29T17:42:00.000Z');
     const storage = await saved(first);
-    const view = renderGame(`/result/${first.id}`, { storage });
+    const view = renderKozak(`/fight/result/${first.id}`, { storage });
 
     expect(await screen.findByText(/^Перше тренування вже в історії/)).toBeTruthy();
 
     view.unmount();
     const second = finishedAttempt('loss', '2026-10-29T18:42:00.000Z');
     await storage.attempts.save(second);
-    renderGame(`/result/${second.id}`, { storage });
+    renderKozak(`/fight/result/${second.id}`, { storage });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Поразка' })).toBeTruthy();
     expect(screen.queryByText(/^Перше тренування вже в історії/)).toBeNull();
@@ -146,7 +138,7 @@ describe('the offer to sign in', () => {
     storage.signIn({ sub: '1001' });
     const attempt = finishedAttempt('win', '2026-10-29T17:42:00.000Z');
     await storage.attempts.save(attempt);
-    renderGame(`/result/${attempt.id}`, { storage });
+    renderKozak(`/fight/result/${attempt.id}`, { storage });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Перемога' })).toBeTruthy();
     expect(screen.queryByText(/^Перше тренування вже в історії/)).toBeNull();

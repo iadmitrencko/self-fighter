@@ -15,6 +15,4 @@ interface ExerciseRepository
      * @return list<Exercise> in the order of the catalog
      */
     public function all(): array;
-
-    public function find(string $slug): ?Exercise;
 }

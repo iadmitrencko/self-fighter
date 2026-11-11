@@ -48,91 +48,78 @@ final class SeoTest extends WebTestCase
             self::assertLessThanOrEqual(60, mb_strlen($title), $url);
             self::assertNotSame('', $description, $url);
             self::assertLessThanOrEqual(155, mb_strlen($description), $url);
-            // §21.2: the content is in the HTML of the server, the game is not loaded.
+            // The content is in the HTML of the server, the game is not loaded.
             self::assertCount(0, $crawler->filter('#root'), $url);
             $this->assertStructuredData($crawler, $url);
             $titles[$url] = $title;
             $descriptions[$url] = $description;
         }
 
-        self::assertGreaterThanOrEqual(45, \count($titles));
+        // §24.1: everything else is the game, which search engines do not index.
+        self::assertSame(
+            ['/', '/guides', '/guides/ladder-training', '/guides/motivation', '/about', '/privacy'],
+            array_map(static fn (string $url): string => substr($url, \strlen(self::SITE)), array_keys($titles)),
+        );
         self::assertSame(array_unique($titles), $titles);
         self::assertSame(array_unique($descriptions), $descriptions);
     }
 
-    // §21.4: a page that is not ready stays in the catalog, but search engines do not take it.
-    public function testDraftsStayInTheCatalogButOutOfTheIndex(): void
+    // A page that is not ready stays in its hub, but search engines do not take it.
+    public function testDraftsStayInTheHubButOutOfTheIndex(): void
     {
         $client = self::createClient();
         $this->reviewEverything();
-        $database = $this->database();
-        $database->executeStatement("UPDATE exercise SET reviewed = 0 WHERE slug = 'squats'");
-        $database->executeStatement("UPDATE content_page SET reviewed = 0 WHERE slug = 'motivation'");
-        $database->executeStatement("UPDATE challenge SET demand = 'unverified' WHERE slug = '100-push-ups'");
-        $database->executeStatement("UPDATE challenge SET note = '' WHERE slug = '200-push-ups'");
-        $database->executeStatement("UPDATE challenge SET reviewed = 0 WHERE slug = '50-push-ups'");
+        $this->database()->executeStatement("UPDATE content_page SET reviewed = 0 WHERE slug = 'motivation'");
         $sitemap = $this->sitemap($client);
-        $drafts = [
-            '/exercises/squats' => '/exercises',
-            '/guides/motivation' => '/guides',
-            '/challenges/100-push-ups' => '/challenges',
-            '/challenges/200-push-ups' => '/challenges',
-            '/challenges/50-push-ups' => '/challenges',
-        ];
 
-        foreach ($drafts as $path => $hub) {
-            self::assertNotContains(self::SITE.$path, $sitemap);
-            $crawler = $client->request('GET', $path);
-            self::assertResponseIsSuccessful($path);
-            self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'), $path);
-            self::assertCount(1, $client->request('GET', $hub)->filter(\sprintf('main a[href="%s"]', $path)), $path);
-        }
-        self::assertContains(self::SITE.'/challenges/300-squats', $sitemap);
+        self::assertNotContains(self::SITE.'/guides/motivation', $sitemap);
+        $crawler = $client->request('GET', '/guides/motivation');
+        self::assertResponseIsSuccessful();
+        self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
+        self::assertCount(1, $client->request('GET', '/guides')->filter('main a[href="/guides/motivation"]'));
+        self::assertContains(self::SITE.'/guides/ladder-training', $sitemap);
     }
 
-    // §21.4: every page is reachable through the hubs, not through the sitemap alone.
+    // Every page is reachable through the hubs, not through the sitemap alone.
     public function testHubsLeadToEveryPage(): void
     {
         $client = self::createClient();
         $links = [];
 
-        foreach (['/', '/challenges', '/exercises', '/modes', '/guides'] as $hub) {
+        foreach (['/', '/guides'] as $hub) {
             $links = [...$links, ...$client->request('GET', $hub)->filter('a')->each(
                 static fn (Crawler $link): string => (string) $link->attr('href'),
             )];
         }
-        $database = $this->database();
         $pages = [
-            ...array_map(static fn (string $slug): string => '/challenges/'.$slug, $database->fetchFirstColumn('SELECT slug FROM challenge')),
-            ...array_map(static fn (string $slug): string => '/exercises/'.$slug, $database->fetchFirstColumn('SELECT slug FROM exercise')),
-            ...array_map(static fn (string $slug): string => '/modes/'.$slug, $database->fetchFirstColumn("SELECT slug FROM content_page WHERE type = 'mode'")),
-            ...array_map(static fn (string $slug): string => '/guides/'.$slug, $database->fetchFirstColumn("SELECT slug FROM content_page WHERE type = 'guide'")),
+            ...array_map(static fn (string $slug): string => '/guides/'.$slug, $this->database()->fetchFirstColumn("SELECT slug FROM content_page WHERE type = 'guide'")),
+            '/guides',
             '/about',
             '/privacy',
         ];
 
-        self::assertGreaterThanOrEqual(43, \count($pages));
+        self::assertCount(5, $pages);
         self::assertSame([], array_values(array_diff($pages, $links)));
     }
 
-    public function testWorkoutIsNeverIndexed(): void
+    public function testTheGameIsNeverIndexed(): void
     {
         $client = self::createClient();
         $this->reviewEverything();
 
-        foreach (['/workout', '/workout/challenge/100-push-ups'] as $path) {
+        foreach (['/game', '/game/fight/setup/target'] as $path) {
             $crawler = $client->request('GET', $path);
 
             self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'), $path);
         }
-        self::assertSame([], array_filter($this->sitemap($client), static fn (string $url): bool => str_contains($url, '/workout')));
+        self::assertSame([], array_filter($this->sitemap($client), static fn (string $url): bool => str_contains($url, '/game')));
     }
 
     public function testSitemapTellsWhenEachPageChanged(): void
     {
         $client = self::createClient();
         $this->reviewEverything();
-        $this->database()->executeStatement("UPDATE challenge SET updated_at = '2026-12-01 00:00:00' WHERE slug = '100-squats'");
+        $this->database()->executeStatement("UPDATE content_page SET updated_at = '2026-12-01 00:00:00' WHERE slug = 'motivation'");
         $client->request('GET', '/sitemap.xml');
 
         self::assertResponseIsSuccessful();
@@ -143,10 +130,10 @@ final class SeoTest extends WebTestCase
             $changes[(string) $url->loc] = isset($url->lastmod) ? (string) $url->lastmod : null;
         }
         self::assertNull($changes[self::SITE.'/']);
-        self::assertSame('2026-12-01', $changes[self::SITE.'/challenges/100-squats']);
+        self::assertSame('2026-12-01', $changes[self::SITE.'/guides/motivation']);
         // A hub changes with the pages it lists.
-        self::assertSame('2026-12-01', $changes[self::SITE.'/challenges']);
-        self::assertSame('2026-11-03', $changes[self::SITE.'/exercises/push-ups']);
+        self::assertSame('2026-12-01', $changes[self::SITE.'/guides']);
+        self::assertSame('2026-11-11', $changes[self::SITE.'/guides/ladder-training']);
     }
 
     // Section 6.3: production opens the site to every crawler, AI search included.
@@ -172,7 +159,7 @@ final class SeoTest extends WebTestCase
 
         self::assertSame("User-agent: *\nDisallow: /\n", $client->getResponse()->getContent());
 
-        foreach (['/', '/challenges'] as $path) {
+        foreach (['/', '/guides'] as $path) {
             $crawler = $client->request('GET', $path);
 
             self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'), $path);
@@ -220,9 +207,7 @@ final class SeoTest extends WebTestCase
     private function reviewEverything(): void
     {
         $database = $this->database();
-        $database->executeStatement('UPDATE exercise SET reviewed = 1');
         $database->executeStatement('UPDATE content_page SET reviewed = 1');
-        $database->executeStatement("UPDATE challenge SET reviewed = 1, demand = 'verified'");
     }
 
     private function database(): Connection

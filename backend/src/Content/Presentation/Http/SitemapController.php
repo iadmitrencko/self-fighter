@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace App\Content\Presentation\Http;
 
-use App\Content\Domain\Challenge;
-use App\Content\Domain\ChallengeRepository;
-use App\Content\Domain\Exercise;
-use App\Content\Domain\ExerciseRepository;
 use App\Content\Domain\Page;
 use App\Content\Domain\PageRepository;
 use App\Content\Domain\PageType;
@@ -21,38 +17,24 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class SitemapController extends AbstractController
 {
-    public function __construct(
-        private readonly ExerciseRepository $exercises,
-        private readonly PageRepository $pages,
-        private readonly ChallengeRepository $challenges,
-    ) {
+    public function __construct(private readonly PageRepository $pages)
+    {
     }
 
     #[Route('/sitemap.xml', name: 'sitemap', methods: ['GET'], format: 'xml')]
     public function __invoke(): Response
     {
-        $challenges = $this->challenges->all();
-        $exercises = $this->exercises->all();
-        $modes = $this->pages->ofType(PageType::Mode);
         $guides = $this->pages->ofType(PageType::Guide);
         $urls = [
             ['path' => $this->generateUrl('home'), 'updated' => null],
-            ['path' => $this->generateUrl('challenges'), 'updated' => self::latest($challenges)],
-            ['path' => $this->generateUrl('exercises'), 'updated' => self::latest($exercises)],
-            ['path' => $this->generateUrl('modes'), 'updated' => self::latest($modes)],
             ['path' => $this->generateUrl('guides'), 'updated' => self::latest($guides)],
         ];
-        $add = function (array $items, string $route) use (&$urls): void {
-            foreach ($items as $item) {
-                if ($item->indexable()) {
-                    $urls[] = ['path' => $this->generateUrl($route, ['slug' => $item->slug()]), 'updated' => $item->updatedAt()];
-                }
+
+        foreach ($guides as $guide) {
+            if ($guide->indexable()) {
+                $urls[] = ['path' => $this->generateUrl('guide', ['slug' => $guide->slug()]), 'updated' => $guide->updatedAt()];
             }
-        };
-        $add($challenges, 'challenge');
-        $add($exercises, 'exercise');
-        $add($modes, 'mode');
-        $add($guides, 'guide');
+        }
         // The pages about the service are named after their routes.
         foreach (['about', 'privacy'] as $slug) {
             $page = $this->pages->find(PageType::Service, $slug);
@@ -69,10 +51,10 @@ final class SitemapController extends AbstractController
     }
 
     /**
-     * @param list<Challenge|Exercise|Page> $items
+     * @param list<Page> $pages
      */
-    private static function latest(array $items): ?\DateTimeImmutable
+    private static function latest(array $pages): ?\DateTimeImmutable
     {
-        return [] === $items ? null : max(array_map(static fn ($item): \DateTimeImmutable => $item->updatedAt(), $items));
+        return [] === $pages ? null : max(array_map(static fn (Page $page): \DateTimeImmutable => $page->updatedAt(), $pages));
     }
 }

@@ -14,8 +14,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 
 /**
- * §24: the section «Гра», the cossack game. React takes over in the browser, as on /workout, and
- * every screen has its own route here, so an unknown address is a real 404.
+ * §24: the section «Гра», the cossack game, where every workout happens. React takes over in the
+ * browser and reaches the data through /api. Every screen has its own route here, so an unknown
+ * address is a real 404 (section 3.4 of the plan).
  */
 final class KozakShellController extends AbstractController
 {

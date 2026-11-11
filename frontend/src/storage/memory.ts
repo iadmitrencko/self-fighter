@@ -43,7 +43,7 @@ export function createMemoryStorage(): MemoryStorage {
   // The user of this browser and the guest it keeps beside a signed-in account.
   let current: string | null = null;
   let kept: string | null = null;
-  // The workout of the site and the battles of the game in progress.
+  // The battles of the game in progress.
   const sessions = new Map<string, Session>();
   const sessionStore = <TSession extends Session>(
     key: string,
@@ -274,7 +274,6 @@ export function createMemoryStorage(): MemoryStorage {
       // Nothing waits: the memory is the server.
       unsent: () => Promise.resolve(0),
     },
-    activeSession: sessionStore('workout', isWorkoutSession),
     gameSessions: {
       fight: sessionStore('fight', isWorkoutSession),
       campaign: sessionStore('campaign', isCampaignSession),

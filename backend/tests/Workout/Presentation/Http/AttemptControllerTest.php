@@ -72,7 +72,7 @@ final class AttemptControllerTest extends ApiTestCase
         self::assertSame(['items' => [], 'nextCursor' => null], $this->responseData());
 
         $this->send('GET', '/api/v1/stats');
-        self::assertSame(['total' => 0, 'wins' => 0, 'draws' => 0, 'losses' => 0, 'challenges' => []], $this->responseData());
+        self::assertSame(['total' => 0, 'wins' => 0, 'draws' => 0, 'losses' => 0], $this->responseData());
     }
 
     /**
@@ -195,7 +195,7 @@ final class AttemptControllerTest extends ApiTestCase
 
         // The history still counts every attempt, the workouts of the site included.
         $this->send('GET', '/api/v1/stats');
-        self::assertSame(['total' => 8, 'wins' => 5, 'draws' => 1, 'losses' => 2, 'challenges' => []], $this->responseData());
+        self::assertSame(['total' => 8, 'wins' => 5, 'draws' => 1, 'losses' => 2], $this->responseData());
     }
 
     public function testGameRecordStartsEmpty(): void
@@ -342,24 +342,19 @@ final class AttemptControllerTest extends ApiTestCase
         }
 
         $this->send('GET', '/api/v1/stats');
-        self::assertSame(['total' => 4, 'wins' => 2, 'draws' => 1, 'losses' => 1, 'challenges' => []], $this->responseData());
+        self::assertSame(['total' => 4, 'wins' => 2, 'draws' => 1, 'losses' => 1], $this->responseData());
 
         $this->send('GET', '/api/v1/stats?mode=ladder');
-        self::assertSame(['total' => 1, 'wins' => 1, 'draws' => 0, 'losses' => 0, 'challenges' => []], $this->responseData());
+        self::assertSame(['total' => 1, 'wins' => 1, 'draws' => 0, 'losses' => 0], $this->responseData());
     }
 
-    // §21.3: a challenge is passed by a win and counts once, however often it is tried.
-    public function testStatisticsNameTheChallengesPassed(): void
+    // §24.1: the site offers no challenges any more; an attempt that took one counts like any other.
+    public function testStatisticsCountAnAttemptOfAChallengeLikeAnyOther(): void
     {
         $this->signUp();
-        $squats = ['challenge' => Documents::challenge('100-squats')];
-        $ladder = ['challenge' => Documents::challenge('pull-ups-ladder-to-3')];
         $attempts = [
-            Documents::fight('loss', overrides: $squats),
-            Documents::fight('win', overrides: $squats),
-            Documents::fight('win', overrides: $squats),
-            Documents::fight('draw', overrides: ['challenge' => Documents::challenge('100-push-ups')]),
-            Documents::ladder('win', overrides: $ladder),
+            Documents::fight('win', overrides: ['challenge' => Documents::challenge('100-squats')]),
+            Documents::ladder('loss', overrides: ['challenge' => Documents::challenge('pull-ups-ladder-to-3')]),
         ];
 
         foreach ($attempts as $attempt) {
@@ -367,16 +362,7 @@ final class AttemptControllerTest extends ApiTestCase
         }
 
         $this->send('GET', '/api/v1/stats');
-        self::assertSame(
-            ['total' => 5, 'wins' => 3, 'draws' => 1, 'losses' => 1, 'challenges' => ['100-squats', 'pull-ups-ladder-to-3']],
-            $this->responseData(),
-        );
-
-        $this->send('GET', '/api/v1/stats?mode=target');
-        self::assertSame(['total' => 4, 'wins' => 2, 'draws' => 1, 'losses' => 1, 'challenges' => ['100-squats']], $this->responseData());
-
-        $this->send('GET', '/api/v1/stats?outcome=loss');
-        self::assertSame(['total' => 1, 'wins' => 0, 'draws' => 0, 'losses' => 1, 'challenges' => []], $this->responseData());
+        self::assertSame(['total' => 2, 'wins' => 1, 'draws' => 0, 'losses' => 1], $this->responseData());
     }
 
     public function testWritesOfOneUserAreLimited(): void

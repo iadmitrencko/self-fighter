@@ -16,7 +16,6 @@
         <field name="owner" column="user_id" type="user_id"/>
         <field name="mode" length="20" enum-type="App\Workout\Domain\Mode"/>
         <field name="outcome" length="4" enum-type="App\Workout\Domain\Outcome"/>
-        <field name="challenge" length="80" nullable="true"/>
         <field name="pool" length="8" nullable="true" enum-type="App\Workout\Domain\GamePool"/>
         <field name="level" length="80" nullable="true"/>
         <field name="energyFullAt" type="datetime_immutable" nullable="true"/>

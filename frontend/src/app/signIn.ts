@@ -1,4 +1,5 @@
 import type { KeptGuest } from '../storage/contract';
+import { KOZAK_BASE } from './kozak/paths';
 
 // How the sign-in went, as the server tells it in the address of the screen it comes back to.
 export type SignInOutcome = 'done' | 'cancelled' | 'failed';
@@ -6,10 +7,9 @@ export type SignInOutcome = 'done' | 'cancelled' | 'failed';
 const OUTCOME = 'sign-in';
 const OUTCOMES: readonly SignInOutcome[] = ['done', 'cancelled', 'failed'];
 
-// The address of signing in with Google that brings the browser back to this screen (§23.2):
-// `base` is where the router of the page lives, /workout or /game.
-export function signInPath(base: string, screen: string): string {
-  return `/connect/google?to=${encodeURIComponent(screen === '/' ? base : `${base}${screen}`)}`;
+// The address of signing in with Google that brings the browser back to this screen of the game (§23.2).
+export function signInPath(screen: string): string {
+  return `/connect/google?to=${encodeURIComponent(screen === '/' ? KOZAK_BASE : `${KOZAK_BASE}${screen}`)}`;
 }
 
 export function readSignInOutcome(search: string): SignInOutcome | null {

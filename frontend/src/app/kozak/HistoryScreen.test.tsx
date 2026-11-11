@@ -47,10 +47,10 @@ describe('the history of the game', () => {
       'Тренування · 1 раунд · 2 вправи · 1\u00a0:\u00a00',
     ]);
     expect(items.map((item) => item.querySelector('.k-entry__outcome')?.textContent)).toEqual(['Поразка', 'Нічия', 'Перемога']);
-    // The fights and the levels open in the game, a workout of the site as a page of the site.
+    // A level opens its own result; a fight and an old workout of the site open as a fight (§24.1).
     expect(entry(/^Лісова варта/).getAttribute('href')).toBe(`/journey/result/${level.id}`);
     expect(entry(/^Ціль Нічия/).getAttribute('href')).toBe(`/fight/result/${fight.id}`);
-    expect(entry(/^Ціль Перемога/).getAttribute('href')).toBe(`/workout/result/${workout.id}`);
+    expect(entry(/^Ціль Перемога/).getAttribute('href')).toBe(`/fight/result/${workout.id}`);
   });
 
   it('opens the result of a fight of the game', async () => {
@@ -79,26 +79,15 @@ describe('the history of the game', () => {
     expect(within(newest).getByText('Поразка')).toBeTruthy();
   });
 
-  // §21.3: the challenges passed count once each, and the list says which challenge an attempt took.
-  it('counts the challenges passed', async () => {
-    const squats = { slug: '100-squats', title: '100 присідань' };
-    const storage = await storageWith(
-      finishedAttempt('loss', '2026-10-29T10:00:00.000Z', 'target', squats),
-      finishedAttempt('win', '2026-10-29T11:00:00.000Z', 'target', squats),
-      finishedAttempt('win', '2026-10-29T12:00:00.000Z', 'target', squats),
-    );
+  // §24.1: the site offers no ready-made challenges any more; an old attempt that took one counts
+  // like any other and names it no more.
+  it('counts an old attempt of a challenge like any other', async () => {
+    const storage = await storageWith(finishedAttempt('win', '2026-10-29T11:00:00.000Z', 'target', { slug: '100-squats', title: '100 присідань' }));
     renderKozak('/history', { storage });
 
-    expect(await screen.findAllByRole('listitem')).toHaveLength(3);
-    const stats = within(screen.getByRole('region', { name: 'Загальна статистика' }));
-    expect(stats.getByText('Пройдено викликів').closest('p')?.textContent).toBe('Пройдено викликів 1 Каталог викликів');
-    // The catalog is a page of the site.
-    expect(stats.getByRole('link', { name: 'Каталог викликів' }).getAttribute('href')).toBe('/challenges');
-    expect(screen.getAllByText(/^Виклик/).map((label) => label.textContent)).toEqual([
-      'Виклик пройдено · 100 присідань',
-      'Виклик пройдено · 100 присідань',
-      'Виклик · 100 присідань',
-    ]);
+    expect(await screen.findAllByRole('listitem')).toHaveLength(1);
+    expect(tally()).toEqual({ total: '1 тренування', counts: ['1', '0', '0'] });
+    expect(screen.queryByText(/Виклик|100 присідань/)).toBeNull();
   });
 
   // §14.3: filters by mode, the journey included, and by result.
@@ -133,7 +122,7 @@ describe('the history of the game', () => {
   it('leads to the first battle while the history is empty', async () => {
     renderKozak('/history');
 
-    expect(await screen.findByText('Історія ще порожня. Тут з’являться завершені бої, рівні походу й тренування.')).toBeTruthy();
+    expect(await screen.findByText('Історія ще порожня. Тут з’являться завершені бої й рівні походу.')).toBeTruthy();
     expect(tally()).toEqual({ total: '0 тренувань', counts: ['0', '0', '0'] });
     expect(screen.getByRole('link', { name: 'До бою' }).getAttribute('href')).toBe('/fight');
     expect(screen.getByRole('link', { name: 'У похід' }).getAttribute('href')).toBe('/journey');
@@ -174,7 +163,7 @@ describe('the history of the game', () => {
 
     await user.click(screen.getByRole('button', { name: 'Спробувати ще раз' }));
 
-    expect(await screen.findByText('Історія ще порожня. Тут з’являться завершені бої, рівні походу й тренування.')).toBeTruthy();
+    expect(await screen.findByText('Історія ще порожня. Тут з’являться завершені бої й рівні походу.')).toBeTruthy();
   });
 });
 

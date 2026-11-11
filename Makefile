@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down kill logs ps sh test test-backend test-frontend lint lint-backend lint-frontend lint-infra audit audit-backend audit-frontend bundle e2e fix migrate challenges content metrics
+.PHONY: help up down kill logs ps sh test test-backend test-frontend lint lint-backend lint-frontend lint-infra audit audit-backend audit-frontend bundle e2e fix migrate content metrics
 
 COMPOSE := docker compose
 APP := $(COMPOSE) exec -T app
@@ -92,9 +92,6 @@ fix: ## Виправити стиль коду
 
 migrate: ## Застосувати міграції
 	$(APP) php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing --allow-no-migration
-
-challenges: ## Перегенерувати готові виклики з матриці
-	$(NODE) npm run challenges
 
 content: ## Перенести контент із backend/content у базу
 	$(APP) php bin/console app:content:sync

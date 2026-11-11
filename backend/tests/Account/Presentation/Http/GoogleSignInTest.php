@@ -258,16 +258,17 @@ final class GoogleSignInTest extends ApiTestCase
      */
     public static function foreignReturns(): iterable
     {
-        yield 'another site' => ['https://evil.example/workout'];
-        yield 'a protocol-relative address' => ['//evil.example/workout'];
+        yield 'another site' => ['https://evil.example/game'];
+        yield 'a protocol-relative address' => ['//evil.example/game'];
         yield 'a page of the site' => ['/privacy'];
-        yield 'a path that climbs out' => ['/workout/../privacy'];
-        yield 'a path that climbs out of the cossack game' => ['/game/../privacy'];
-        yield 'a query' => ['/workout?next=https://evil.example'];
+        yield 'a path that climbs out' => ['/game/../privacy'];
+        yield 'a query' => ['/game?next=https://evil.example'];
         yield 'a section that only starts like the game' => ['/gameover'];
+        // §24.1: the workouts of /workout are gone, and so is the way back to them.
+        yield 'the removed workouts' => ['/workout/setup/ladder'];
     }
 
-    // §24.1: the screens of /workout and of the cossack game, the history among them, are a way back.
+    // §24.1: the screens of the cossack game, its fights and its history among them, are a way back.
     #[DataProvider('screens')]
     public function testReturnsToTheScreenItLeft(string $screen): void
     {
@@ -279,7 +280,7 @@ final class GoogleSignInTest extends ApiTestCase
      */
     public static function screens(): iterable
     {
-        yield 'a screen of /workout' => ['/workout/setup/ladder'];
+        yield 'the setup of a fight' => ['/game/fight/setup/ladder'];
         yield 'the history in the game' => ['/game/history'];
         yield 'the settings of the game' => ['/game/settings'];
         yield 'the result of a fight of the game' => ['/game/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85'];

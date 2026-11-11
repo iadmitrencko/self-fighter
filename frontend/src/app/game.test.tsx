@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { ladderConfig, targetConfig } from '../domain/testing/fixtures';
 import { readPage } from './game';
 
 function root(data?: unknown): HTMLElement {
@@ -25,29 +24,12 @@ describe('data of the page', () => {
 
     expect(readPage(root(data)).exercises).toEqual([{ id: 'push-ups', name: 'Віджимання' }]);
     expect(readPage(root({ exercises: {} })).exercises).toEqual([]);
-    expect(readPage(root())).toEqual({ exercises: [], signIn: [], challenge: null });
+    expect(readPage(root())).toEqual({ exercises: [], signIn: [] });
   });
 
   // §23.2: the page names the ways to sign in this server offers.
   it('reads the ways to sign in', () => {
     expect(readPage(root({ exercises: [], signIn: ['google', 7] })).signIn).toEqual(['google']);
     expect(readPage(root({ exercises: [], signIn: 'google' })).signIn).toEqual([]);
-  });
-
-  // §21.3: the page of /workout/challenge/{slug} carries the configuration of the challenge.
-  it('reads the challenge the page opens', () => {
-    const challenge = { slug: '100-push-ups', title: '100 віджимань', config: targetConfig() };
-
-    expect(readPage(root({ exercises: [], challenge })).challenge).toEqual(challenge);
-  });
-
-  // A challenge passes the same check as the settings of a player.
-  it('refuses a challenge the game cannot play', () => {
-    const challenge = (config: unknown) => readPage(root({ challenge: { slug: 'a', title: 'A', config } })).challenge;
-
-    expect(challenge({ ...ladderConfig(), max: 0 })).toBeNull();
-    expect(challenge({ mode: 'target', rule: 'meet', rounds: 2, exercises: 3 })).toBeNull();
-    expect(challenge('ladder')).toBeNull();
-    expect(readPage(root({ challenge: { slug: 'a', config: ladderConfig() } })).challenge).toBeNull();
   });
 });

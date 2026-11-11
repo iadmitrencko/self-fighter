@@ -4,7 +4,7 @@ import { enter, field, setRounds } from './helpers';
 // §18 «Продукт»: one catalog for every mode, custom exercises are created and edited;
 // §5.3: the history and «Повторити» keep the name an exercise had.
 test('custom exercises are created, reused, renamed and deleted', async ({ page }) => {
-  await page.goto('/workout/setup/target');
+  await page.goto('/game/fight/setup/target');
   await page.getByRole('button', { name: 'Власна вправа' }).click();
   const create = page.getByRole('dialog', { name: 'Власна вправа' });
   await create.getByRole('textbox', { name: 'Назва' }).fill('Бурпі');
@@ -18,7 +18,7 @@ test('custom exercises are created, reused, renamed and deleted', async ({ page 
   await enter(page, 6);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('▲ Перемога');
 
-  await page.goto('/workout/setup/random-opponent');
+  await page.goto('/game/fight/setup/random-opponent');
   await expect(page.getByRole('button', { name: 'Додати вправу Бурпі' })).toBeVisible();
   await page.getByRole('button', { name: 'Мої вправи' }).click();
   await page.getByRole('button', { name: 'Змінити вправу Бурпі' }).click();

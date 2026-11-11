@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { keepsChallenge } from '../../domain/catalog/challenge';
 import type { ExerciseRef } from '../../domain/catalog/exercise';
 import type { Mode, WorkoutConfig } from '../../domain/config/types';
 import { validateConfig } from '../../domain/config/validation';
@@ -9,9 +8,9 @@ import { commonTexts, setupTexts, validationMessages } from '../../i18n/uk';
 import type { CustomExercise } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
 import { useArena } from '../arena';
-import { Screen, ScreenHead, type Back } from '../components/Screen';
+import { Screen, ScreenHead } from '../components/Screen';
 import { Loading, MemoryWarning } from '../components/notices';
-import { useGame, type Challenge } from '../game';
+import { useGame } from '../game';
 import { useLoad } from '../useLoad';
 import { ExerciseFormDialog, ManageExercisesDialog } from './ExerciseDialogs';
 import { ExercisePicker } from './ExercisePicker';
@@ -38,25 +37,19 @@ import {
   toDraft,
 } from './setup';
 
-/**
- * §11: the setup of one mode. It starts from the last configuration of that mode, or from the
- * configuration of a ready-made challenge, which the player may change before the start (§21.3).
- */
-export function SetupScreen({ mode, challenge }: { mode: Mode; challenge?: Challenge }) {
+// §11: the setup of one mode. It starts from the last configuration of that mode.
+export function SetupScreen({ mode }: { mode: Mode }) {
   const { storage } = useGame();
   const listCustom = useCallback(() => storage.exercises.list(), [storage]);
   const [custom, reloadCustom] = useLoad(listCustom);
   // Without the last configuration the form simply starts empty.
-  const loadSaved = useCallback(
-    () => (challenge === undefined ? storage.settings.get(mode).catch(() => null) : Promise.resolve(challenge.config)),
-    [storage, mode, challenge],
-  );
+  const loadSaved = useCallback(() => storage.settings.get(mode).catch(() => null), [storage, mode]);
   const [saved] = useLoad(loadSaved);
 
   if (saved.status !== 'ready' || custom.status === 'loading') {
     return (
       <Screen title={setupTexts.title(mode)}>
-        <SetupHead mode={mode} challenge={challenge} />
+        <SetupHead mode={mode} />
         <Loading />
       </Screen>
     );
@@ -65,7 +58,6 @@ export function SetupScreen({ mode, challenge }: { mode: Mode; challenge?: Chall
   return (
     <SetupForm
       mode={mode}
-      challenge={challenge}
       saved={saved.value}
       custom={custom.status === 'ready' ? custom.value : []}
       customError={custom.status === 'failed' ? custom.error : null}
@@ -74,21 +66,10 @@ export function SetupScreen({ mode, challenge }: { mode: Mode; challenge?: Chall
   );
 }
 
-// A challenge came from its page on the site, so «back» returns there.
-function SetupHead({ mode, challenge }: { mode: Mode; challenge: Challenge | undefined }) {
+function SetupHead({ mode }: { mode: Mode }) {
   const arena = useArena();
-  const back: Back =
-    challenge === undefined
-      ? arena.back.modes
-      : { to: `/challenges/${challenge.slug}`, text: setupTexts.toChallenge, site: true };
 
-  return (
-    <ScreenHead
-      back={back}
-      eyebrow={challenge === undefined ? setupTexts.step(mode) : setupTexts.challengeStep(mode)}
-      title={setupTexts.title(mode)}
-    />
-  );
+  return <ScreenHead back={arena.back.modes} eyebrow={setupTexts.step(mode)} title={setupTexts.title(mode)} />;
 }
 
 type ExerciseDialog =
@@ -98,14 +79,12 @@ type ExerciseDialog =
 
 function SetupForm({
   mode,
-  challenge,
   saved,
   custom,
   customError,
   onCustomChanged,
 }: {
   mode: Mode;
-  challenge: Challenge | undefined;
   saved: WorkoutConfig | null;
   custom: readonly CustomExercise[];
   customError: StorageErrorCode | null;
@@ -123,11 +102,6 @@ function SetupForm({
   const validation = validateConfig(toDraft(setup));
   const errors = attempts > 0 && !validation.ok ? validation.errors : [];
   const ladder = mode === 'ladder';
-  // Only the settings of the page pass the challenge (§21.3).
-  const taken =
-    challenge !== undefined && validation.ok && keepsChallenge(validation.config, challenge.config)
-      ? { slug: challenge.slug, title: challenge.title }
-      : null;
 
   // After a refused start the list of problems takes the focus, so it is read out at once.
   useEffect(() => {
@@ -147,7 +121,7 @@ function SetupForm({
       return;
     }
     // §11.6: the configuration is fixed here; later changes of the catalog cannot touch it.
-    const session = arena.begin(createSession(validation.config, deps, taken));
+    const session = arena.begin(createSession(validation.config, deps));
 
     if (session === null) {
       setRefused(true);
@@ -166,14 +140,8 @@ function SetupForm({
 
   return (
     <Screen title={setupTexts.title(mode)}>
-      <SetupHead mode={mode} challenge={challenge} />
+      <SetupHead mode={mode} />
       <MemoryWarning />
-      {challenge !== undefined && (
-        <p className={`notice ${taken === null ? 'notice--warning' : 'notice--challenge'}`} aria-live="polite">
-          <span className="notice__title">{challenge.title}</span>
-          {taken === null ? setupTexts.challengeChanged : setupTexts.challengeFilled}
-        </p>
-      )}
       {/* On a desktop the common choices stand on the left, the values of the mode on the right. */}
       <form
         className="split split--setup"

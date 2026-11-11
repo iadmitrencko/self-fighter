@@ -203,11 +203,6 @@ h1:focus {
   border-color: var(--color-line-strong);
 }
 
-.notice--resume,
-.notice--challenge {
-  border-color: var(--color-accent);
-}
-
 .notice:focus {
   outline: none;
 }
@@ -220,12 +215,6 @@ h1:focus {
 .notice__list {
   margin: 0;
   padding-left: 1.25rem;
-}
-
-.notice__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
 }
 
 .field-error,
@@ -345,12 +334,6 @@ h1:focus {
   gap: 0.875rem;
 }
 
-.mode-guide__title {
-  font-family: var(--font-display);
-  font-size: 1.125rem;
-  font-weight: 700;
-}
-
 .mode-guide__facts {
   display: flex;
   flex-direction: column;
@@ -364,11 +347,6 @@ h1:focus {
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
-}
-
-.modes-catalog {
-  color: var(--color-text-muted);
-  font-size: var(--text-m);
 }
 
 /* Setup */
@@ -1346,32 +1324,6 @@ h1:focus {
   gap: var(--space-xs);
   color: var(--color-text-muted);
   font-size: var(--text-m);
-}
-
-/* §21.3: what the attempt did to its challenge. */
-.challenge-result {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-xs) var(--space-s);
-  padding: var(--space-s) var(--space-m);
-  border: 1px solid var(--color-line-strong);
-  border-radius: var(--radius-m);
-  color: var(--color-text-soft);
-  font-size: var(--text-m);
-}
-
-.challenge-result--passed {
-  border-color: var(--color-passed);
-  color: var(--color-text);
-  font-weight: 700;
-}
-
-.challenge-result__icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  flex: none;
-  color: var(--color-passed);
 }
 
 .rounds {

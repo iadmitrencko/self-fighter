@@ -24,7 +24,7 @@ final class ContentCommandsTest extends KernelTestCase
         $tester = $this->runCommand('app:content:sync');
 
         self::assertSame(0, $tester->getStatusCode());
-        self::assertMatchesRegularExpression('/Synced \d+ exercises, \d+ pages and \d+ challenges\./', $tester->getDisplay(true));
+        self::assertMatchesRegularExpression('/Synced 3 exercises and \d+ pages\./', $tester->getDisplay(true));
     }
 
     private function runCommand(string $command): CommandTester

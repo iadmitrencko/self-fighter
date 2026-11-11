@@ -12,7 +12,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 // Part of make lint: the content of Git must be ready for app:content:sync (section 6.6 of the plan).
-#[AsCommand(name: 'app:content:lint', description: 'Checks the content of backend/content: format, links, repeated titles and near-duplicate texts')]
+#[AsCommand(name: 'app:content:lint', description: 'Checks the content of backend/content: format, repeated titles and near-duplicate texts')]
 final readonly class LintContentCommand
 {
     public function __construct(private ContentSource $source, private ContentRules $rules)
@@ -35,15 +35,13 @@ final readonly class LintContentCommand
 
             return Command::FAILURE;
         }
-        $items = [...$content->exercises, ...$content->pages, ...$content->challenges];
-        $indexable = array_filter($items, static fn ($item): bool => $item->indexable());
-        $withoutText = array_filter($content->challenges, static fn ($challenge): bool => '' === $challenge->note());
+        $indexable = array_filter($content->pages, static fn ($page): bool => $page->indexable());
 
         $io->success(\sprintf(
-            'The content is fine. %d of %d pages can be indexed, %d challenges have no text of their own yet.',
+            'The content is fine. %d of %d pages can be indexed, the game has %d exercises.',
             \count($indexable),
-            \count($items),
-            \count($withoutText),
+            \count($content->pages),
+            \count($content->exercises),
         ));
 
         return Command::SUCCESS;

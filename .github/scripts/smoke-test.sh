@@ -27,8 +27,11 @@ expect_status() {
 
 expect_status 200 /healthz
 expect_status 200 /
-expect_status 200 /workout
-expect_status 404 /workout/unknown
+expect_status 200 /game
+expect_status 200 /game/fight
+expect_status 404 /game/unknown
+# §24.1: the workouts of /workout are gone, and their old addresses lead into the game.
+expect_status 302 /workout
 expect_status 404 /missing
 expect_status 200 /favicon.ico
 expect_status 200 /api/v1/me
@@ -55,23 +58,23 @@ case "$robots" in
 *) fail 'robots.txt closes the site from search engines' ;;
 esac
 expect_status 200 /sitemap.xml
-expect_status 200 /challenges
+expect_status 200 /guides
 expect_status 200 /og.png
 
 if [ -n "${SMOKE_WWW:-}" ]; then
-	redirect=$(request --output /dev/null --write-out '%{http_code} %{redirect_url}' "$SMOKE_WWW/challenges")
-	[ "$redirect" = "301 $base_url/challenges" ] || fail "$SMOKE_WWW/challenges answered \"$redirect\" instead of a redirect to $base_url"
+	redirect=$(request --output /dev/null --write-out '%{http_code} %{redirect_url}' "$SMOKE_WWW/guides")
+	[ "$redirect" = "301 $base_url/guides" ] || fail "$SMOKE_WWW/guides answered \"$redirect\" instead of a redirect to $base_url"
 	echo 'ok: the www address leads to the main one'
 fi
 
-workout=$(request "$base_url/workout")
-case "$workout" in
-*'noindex, follow'*) echo 'ok: the workout page is not indexed' ;;
-*) fail 'the workout page is missing noindex' ;;
+game=$(request "$base_url/game")
+case "$game" in
+*'noindex, follow'*) echo 'ok: the game is not indexed' ;;
+*) fail 'the game is missing noindex' ;;
 esac
 
-script=$(printf '%s' "$workout" | sed -n 's|.*src="\(/build/assets/[^"]*\.js\)".*|\1|p' | head -n 1)
-[ -n "$script" ] || fail 'the workout page does not reference a built script'
+script=$(printf '%s' "$game" | sed -n 's|.*src="\(/build/assets/[^"]*\.js\)".*|\1|p' | head -n 1)
+[ -n "$script" ] || fail 'the game does not reference a built script'
 expect_status 200 "$script"
 
 cache=$(request --head "$base_url$script" | tr -d '\r' | grep -i '^cache-control:' || true)

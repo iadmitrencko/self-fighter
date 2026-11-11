@@ -150,30 +150,8 @@ describe('storage over the API', () => {
         'pending',
         'saved',
       ]);
-      expect(await storage.attempts.stats()).toEqual({ total: 2, wins: 1, draws: 0, losses: 1, challenges: [] });
-      expect(await storage.attempts.stats({ outcome: 'win' })).toEqual({
-        total: 1,
-        wins: 1,
-        draws: 0,
-        losses: 0,
-        challenges: [],
-      });
-    });
-
-    // A challenge passed on the server and again while offline still counts once.
-    it('joins the challenges passed on the server and those waiting for it', async () => {
-      const squats = { slug: '100-squats', title: '100 присідань' };
-      const pushUps = { slug: '100-push-ups', title: '100 віджимань' };
-      await storage.attempts.save(finishedAttempt('win', '2026-11-02T09:00:00.000Z', 'target', squats));
-      await storage.attempts.flush();
-      // Each send stops at the oldest attempt: two saves and the flush meet one failure each.
-      server.failNext(503, 3);
-
-      await storage.attempts.save(finishedAttempt('win', '2026-11-02T10:00:00.000Z', 'target', squats));
-      await storage.attempts.save(finishedAttempt('win', '2026-11-02T11:00:00.000Z', 'target', pushUps));
-      await storage.attempts.flush();
-
-      expect((await storage.attempts.stats()).challenges).toEqual(['100-push-ups', '100-squats']);
+      expect(await storage.attempts.stats()).toEqual({ total: 2, wins: 1, draws: 0, losses: 1 });
+      expect(await storage.attempts.stats({ outcome: 'win' })).toEqual({ total: 1, wins: 1, draws: 0, losses: 0 });
     });
 
     it('marks an attempt the server refuses and stops sending it', async () => {
@@ -209,7 +187,7 @@ describe('storage over the API', () => {
     it('deletes the attempts waiting in the browser together with the data', async () => {
       const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
       await storage.settings.save(targetConfig());
-      storage.activeSession.save(createSession(targetConfig(), testDeps()));
+      storage.gameSessions.fight.save(createSession(targetConfig(), testDeps()));
       server.failNext(503, 2);
       await storage.attempts.save(attempt);
       await storage.attempts.flush();
@@ -217,7 +195,7 @@ describe('storage over the API', () => {
       await storage.account.deleteData();
 
       expect(await storage.attempts.get(attempt.id)).toBeNull();
-      expect(storage.activeSession.load()).toBeNull();
+      expect(storage.gameSessions.fight.load()).toBeNull();
       expect(server.guests).toBe(0);
     });
   });
@@ -243,11 +221,36 @@ describe('storage over the API', () => {
       });
     });
 
-    it('needs the server once before it can count without it', async () => {
+    // A guest made just now has nothing on the server yet, so its first battle ends without the network.
+    it('knows the record of a guest made just now', async () => {
       await storage.settings.save(targetConfig());
       server.online = false;
+      await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
 
-      await expect(storage.attempts.game()).rejects.toEqual(new StorageError('offline'));
+      expect(await storage.attempts.game()).toMatchObject({
+        campaign: { wins: 1, draws: 0, losses: 0 },
+        passed: ['forest-ravens/1/1'],
+      });
+    });
+
+    // §15.4: the network went away before the first write made the browser a guest.
+    it('counts the battles of a browser that lost the network before it became a guest', async () => {
+      await storage.attempts.game();
+      server.online = false;
+      await expect(storage.settings.save(targetConfig())).rejects.toEqual(new StorageError('offline'));
+      await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
+
+      expect((await storage.attempts.game()).passed).toEqual(['forest-ravens/1/1']);
+    });
+
+    it('needs the server once before it can count without it', async () => {
+      await storage.settings.save(targetConfig());
+      // The page opens again: the guest of the browser may have battles only the server knows.
+      const reopened = createApiStorage({ fetch: server.fetch, buffer: createBrowserBuffer(null) });
+      await reopened.account.current();
+      server.online = false;
+
+      await expect(reopened.attempts.game()).rejects.toEqual(new StorageError('offline'));
     });
 
     it('does not take a failure of the server for a missing network', async () => {
@@ -279,7 +282,7 @@ describe('storage over the API', () => {
       await storage.settings.save(targetConfig());
       server.online = false;
 
-      await expect(storage.attempts.game()).rejects.toEqual(new StorageError('offline'));
+      expect((await storage.attempts.game()).passed).toEqual([]);
     });
   });
 
@@ -412,14 +415,14 @@ describe('storage over the API', () => {
       expect(server.savedAttempts()).toEqual([attempt]);
     });
 
-    // The next person on this browser does not continue the workout of the account.
+    // The next person on this browser does not continue the fight of the account.
     it('forgets the attempt in progress on signing out', async () => {
       await signIn();
-      storage.activeSession.save(createSession(targetConfig(), testDeps()));
+      storage.gameSessions.fight.save(createSession(targetConfig(), testDeps()));
 
       await storage.account.signOut();
 
-      expect(storage.activeSession.load()).toBeNull();
+      expect(storage.gameSessions.fight.load()).toBeNull();
     });
 
     // The account has taken in the exercises of the guest, so the list loads again.

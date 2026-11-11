@@ -6,11 +6,7 @@
     <entity name="App\Content\Domain\Exercise" table="exercise">
         <id name="slug" length="80"/>
         <field name="name" length="60"/>
-        <field name="inGame" type="boolean"/>
         <field name="position" type="integer"/>
-        <embedded name="article" class="App\Content\Domain\Article" use-column-prefix="false"/>
-        <field name="reviewed" type="boolean"/>
-        <field name="updatedAt" type="datetime_immutable"/>
     </entity>
 
 </doctrine-mapping>

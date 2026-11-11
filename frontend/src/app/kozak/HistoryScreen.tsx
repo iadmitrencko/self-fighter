@@ -14,10 +14,9 @@ import { Title } from '../components/Screen';
 import { SignInPrompt } from '../components/SignIn';
 import { ErrorNotice, StatusBadge } from '../components/notices';
 import { useGame } from '../game';
-import { BASE, MODES, paths } from '../paths';
 import { errorCode, useLoad } from '../useLoad';
-import { kozakPaths } from './paths';
-import { KozakIcon, KozakScreen } from './parts';
+import { kozakPaths, MODES } from './paths';
+import { KozakScreen } from './parts';
 
 type HistoryMode = Attempt['mode'];
 
@@ -186,14 +185,6 @@ function Tally({ stats }: { stats: Statistics }) {
           </div>
         ))}
       </dl>
-      {/* §21.3: the challenges passed, each counted once. The catalog is a page of the site. */}
-      <p className="k-tally__challenges">
-        <KozakIcon name="check" className="k-tally__check" />
-        <span>{historyTexts.challenges}</span> <b>{stats.challenges.length}</b>{' '}
-        <a className="k-tally__catalog" href="/challenges">
-          {historyTexts.catalog}
-        </a>
-      </p>
     </section>
   );
 }
@@ -284,35 +275,22 @@ function details(attempt: Attempt): string {
   return historyTexts.fightDetails(attempt.config.rounds, attempt.config.exercises.length, attempt.result.won, attempt.result.lost);
 }
 
-// The whole card opens the result: in the game for its fights and levels, as a page of the site
-// for a workout of the site.
+// The whole card opens the result: a level has its own, a fight and an old workout of the site
+// open as a fight of the game.
 function EntryLink({ attempt, className, children }: { attempt: Attempt; className: string; children: ReactNode }) {
-  if (attempt.mode === 'campaign') {
-    return (
-      <Link className={className} to={kozakPaths.outcome(attempt.id)}>
-        {children}
-      </Link>
-    );
-  }
-  if (attempt.game !== null) {
-    return (
-      <Link className={className} to={kozakPaths.fightResult(attempt.id)}>
-        {children}
-      </Link>
-    );
-  }
-
   return (
-    <a className={className} href={`${BASE}${paths.result(attempt.id)}`}>
+    <Link
+      className={className}
+      to={attempt.mode === 'campaign' ? kozakPaths.outcome(attempt.id) : kozakPaths.fightResult(attempt.id)}
+    >
       {children}
-    </a>
+    </Link>
   );
 }
 
 function HistoryEntry({ stored: { attempt, status } }: { stored: StoredAttempt }) {
   const { outcome } = attempt.result;
   const { symbol, name } = outcomeTexts[outcome];
-  const passed = outcome === 'win';
 
   return (
     <li>
@@ -329,13 +307,6 @@ function HistoryEntry({ stored: { attempt, status } }: { stored: StoredAttempt }
           <span className="k-entry__details">
             {gameHistoryTexts.kinds[kindOf(attempt)]} · {details(attempt)}
           </span>{' '}
-          {attempt.challenge !== null && (
-            <>
-              <span className={passed ? 'k-entry__challenge k-entry__challenge--passed' : 'k-entry__challenge'}>
-                {historyTexts.challenge(attempt.challenge.title, passed)}
-              </span>{' '}
-            </>
-          )}
           <span className="k-entry__meta">
             <time dateTime={attempt.finishedAt}>{formatShortDateTime(attempt.finishedAt)}</time>{' '}
             <StatusBadge status={status} />

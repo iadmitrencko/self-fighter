@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Content\Application;
 
-use App\Content\Domain\ChallengeRepository;
 use App\Content\Domain\ExerciseRepository;
 use App\Content\Domain\PageRepository;
 use App\Shared\Application\Transaction;
@@ -20,7 +19,6 @@ final readonly class SyncContent
         private ContentRules $rules,
         private ExerciseRepository $exercises,
         private PageRepository $pages,
-        private ChallengeRepository $challenges,
         private Transaction $transaction,
     ) {
     }
@@ -40,7 +38,6 @@ final readonly class SyncContent
         $this->transaction->run(function () use ($content): void {
             $this->exercises->replaceAll($content->exercises);
             $this->pages->replaceAll($content->pages);
-            $this->challenges->replaceAll($content->challenges);
         });
 
         return $content;

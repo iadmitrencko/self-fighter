@@ -11,14 +11,15 @@ test('the landing explains the game and opens it without signing up', async ({ p
 
   await page.getByRole('main').getByRole('link', { name: 'Почати тренування' }).first().click();
 
-  await expect(page).toHaveURL('/workout');
-  await expect(page.getByRole('heading', { level: 1, name: 'Обери режим' })).toBeVisible();
+  // §24.1: everything is made for the game, so a workout starts with the choice of a fight in it.
+  await expect(page).toHaveURL('/game/fight');
+  await expect(page.getByRole('heading', { level: 1, name: 'Бій' })).toBeVisible();
   await expect(page.getByRole('radio')).toHaveCount(4);
   await expectAccessible(page);
 });
 
 test('an address the game does not have is a real 404', async ({ page }) => {
-  const response = await page.goto('/workout/unknown');
+  const response = await page.goto('/game/unknown');
 
   expect(response?.status()).toBe(404);
   await expect(page.getByRole('heading', { level: 1, name: 'Сторінку не знайдено' })).toBeVisible();
@@ -40,10 +41,8 @@ test('the header and the footer are the same everywhere and screens lead back', 
   expect(await page.locator('footer.site-footer').innerHTML()).toBe(footer);
   await expectAccessible(page);
 
-  await page.goto('/workout/setup/ladder');
+  await page.goto('/game/fight/setup/ladder');
   expect(await page.locator('header.site-header').innerHTML()).toBe(header);
-  await page.getByRole('link', { name: 'До вибору режиму' }).click();
-  await expect(page).toHaveURL('/workout');
-  await page.getByRole('link', { name: 'На головну' }).click();
-  await expect(page).toHaveURL('/');
+  await page.getByRole('link', { name: 'До вибору бою' }).click();
+  await expect(page).toHaveURL('/game/fight');
 });

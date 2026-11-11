@@ -4,7 +4,7 @@
     <div class="container score__inner">
         <p class="score__title" id="score-title">{{ 'site.score.title'|trans }}</p>
         <dl class="score__list">
-            {% for key in ['total', 'wins', 'draws', 'losses', 'challenges'] %}
+            {% for key in ['total', 'wins', 'draws', 'losses'] %}
                 <div class="score__item score__item--{{ key }}">
                     <dt class="score__label">{{ ('site.score.' ~ key)|trans }}</dt>
                     <dd class="score__value" data-score="{{ key }}">–</dd>

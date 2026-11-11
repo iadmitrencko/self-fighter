@@ -15,7 +15,6 @@ import {
 import { errorCode, useLoad } from '../useLoad';
 import { ConfirmDialog } from './Dialog';
 import { Icon } from './Icon';
-import { useRouterBase } from './routing';
 
 // The server offers signing in with Google only when it has a client of Google Cloud (§23.2).
 export function useCanSignIn(): boolean {
@@ -28,10 +27,9 @@ export function useCanSignIn(): boolean {
  */
 export function GoogleButton() {
   const { pathname } = useLocation();
-  const base = useRouterBase();
 
   return (
-    <a className="google-button" href={signInPath(base, pathname)}>
+    <a className="google-button" href={signInPath(pathname)}>
       <GoogleLogo />
       <span>{signInTexts.button}</span>
     </a>

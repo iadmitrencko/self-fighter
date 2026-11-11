@@ -18,21 +18,13 @@
             {{ include('site/_logo.html.twig') }}
             <nav class="site-nav" aria-label="{{ 'site.nav.label'|trans }}">
                 {#- §24: the game is a link of its own on every screen, a phone included. The history and
-                    the settings are its sections (§24.1), so the header leads to them through the game. #}
+                    the settings are its sections (§24.1), so the header leads to them through the game.
+                    Everything is made for the game, so a workout starts with a fight in it. #}
                 <a class="site-nav__link site-nav__link--game" href="{{ path('kozak') }}">
                     <svg class="site-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M9.5 17.5 21 6V3h-3L6.5 14.5M11 19l-6-6M8 16l-4 4M5 21l-2-2"/></svg>
                     <span class="site-nav__label">{{ 'site.nav.game'|trans }}</span>
                 </a>
-                <a class="site-nav__link site-nav__link--section" href="{{ path('challenges') }}">
-                    <span class="site-nav__label">{{ 'site.nav.challenges'|trans }}</span>
-                </a>
-                <a class="site-nav__link site-nav__link--section" href="{{ path('modes') }}">
-                    <span class="site-nav__label">{{ 'site.nav.modes'|trans }}</span>
-                </a>
-                <a class="site-nav__link site-nav__link--section" href="{{ path('exercises') }}">
-                    <span class="site-nav__label">{{ 'site.nav.exercises'|trans }}</span>
-                </a>
-                <a class="button button--primary site-nav__cta" href="{{ path('workout') }}">{{ 'site.start'|trans }}</a>
+                <a class="button button--primary site-nav__cta" href="{{ path('kozak_fight') }}">{{ 'site.start'|trans }}</a>
             </nav>
         </div>
     </header>
@@ -47,12 +39,9 @@
                     <ul class="site-footer__links" role="list">
                         <li><a class="site-footer__link" href="{{ path('home') }}">{{ 'site.footer.home'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('kozak') }}">{{ 'site.nav.game'|trans }}</a></li>
-                        <li><a class="site-footer__link" href="{{ path('challenges') }}">{{ 'site.nav.challenges'|trans }}</a></li>
-                        <li><a class="site-footer__link" href="{{ path('modes') }}">{{ 'site.nav.modes'|trans }}</a></li>
-                        <li><a class="site-footer__link" href="{{ path('exercises') }}">{{ 'site.nav.exercises'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('guides') }}">{{ 'site.nav.guides'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('about') }}">{{ 'site.nav.about'|trans }}</a></li>
-                        <li><a class="site-footer__link" href="{{ path('workout') }}">{{ 'site.start'|trans }}</a></li>
+                        <li><a class="site-footer__link" href="{{ path('kozak_fight') }}">{{ 'site.start'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('kozak_history') }}">{{ 'site.nav.history'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('kozak_settings') }}">{{ 'site.nav.settings'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('privacy') }}">{{ 'site.nav.privacy'|trans }}</a></li>

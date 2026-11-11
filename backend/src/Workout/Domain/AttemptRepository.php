@@ -31,11 +31,6 @@ interface AttemptRepository
     public function countByOutcome(UserId $owner, AttemptFilter $filter): array;
 
     /**
-     * @return list<string> the slugs of the ready-made challenges won at least once, in alphabetical order
-     */
-    public function passedChallenges(UserId $owner, AttemptFilter $filter): array;
-
-    /**
      * @return list<string> the levels of the journey won at least once, in alphabetical order (§24.5)
      */
     public function passedLevels(UserId $owner): array;

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 // Budgets for the JavaScript loaded on start, in gzip kilobytes (section 6.4 of the plan).
-const BUDGETS_KB = { site: 15, app: 150, kozak: 150 };
+const BUDGETS_KB = { site: 15, kozak: 150 };
 
 const [buildDirectory] = process.argv.slice(2);
 

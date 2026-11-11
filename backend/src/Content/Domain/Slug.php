@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Content\Domain;
 
-// Paths are English words joined by hyphens: /challenges/100-push-ups (section 3.4 of the plan).
+// Paths are English words joined by hyphens: /guides/ladder-training (section 3.4 of the plan).
 final class Slug
 {
     public const string PATTERN = '[a-z0-9]+(?:-[a-z0-9]+)*';

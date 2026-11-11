@@ -1,27 +1,17 @@
 import { createContext, use, type ReactNode } from 'react';
 import type { Analytics } from '../analytics/events';
-import type { ChallengeRef } from '../domain/catalog/challenge';
 import type { ExerciseRef } from '../domain/catalog/exercise';
-import type { WorkoutConfig, WorkoutDraft } from '../domain/config/types';
-import { validateConfig } from '../domain/config/validation';
 import type { SessionDeps } from '../domain/engine/session';
 import type { GameStorage } from '../storage/contract';
 
-// A ready-made challenge of the site, opened at /workout/challenge/{slug} (§21.3).
-export interface Challenge extends ChallengeRef {
-  readonly config: WorkoutConfig;
-}
-
 // What every screen may use: the data of the player, the events of §19, the ready-made exercises,
-// the ways to sign in and the challenge from the page, and the sources of randomness, time and
-// ids that tests replace.
+// the ways to sign in, and the sources of randomness, time and ids that tests replace.
 export interface Game {
   readonly storage: GameStorage;
   readonly analytics: Analytics;
   readonly exercises: readonly ExerciseRef[];
   // The ways to sign in this server offers (§23.2), such as ['google'].
   readonly signIn: readonly string[];
-  readonly challenge: Challenge | null;
   readonly deps: SessionDeps;
 }
 
@@ -41,9 +31,9 @@ export function useGame(): Game {
   return game;
 }
 
-// Symfony puts the ready-made exercises (§5.1), the ways to sign in and the opened challenge into
-// the page, so the game needs no request for them.
-export function readPage(root: HTMLElement): Pick<Game, 'exercises' | 'signIn' | 'challenge'> {
+// Symfony puts the ready-made exercises (§5.1) and the ways to sign in into the page, so the game
+// needs no request for them.
+export function readPage(root: HTMLElement): Pick<Game, 'exercises' | 'signIn'> {
   const data: unknown = JSON.parse(root.dataset.game ?? '{}');
   const exercises = isRecord(data) && Array.isArray(data.exercises) ? data.exercises : [];
   const signIn = isRecord(data) && Array.isArray(data.signIn) ? data.signIn : [];
@@ -54,29 +44,7 @@ export function readPage(root: HTMLElement): Pick<Game, 'exercises' | 'signIn' |
         isRecord(exercise) && typeof exercise.id === 'string' && typeof exercise.name === 'string',
     ),
     signIn: signIn.filter((method): method is string => typeof method === 'string'),
-    challenge: readChallenge(isRecord(data) ? data.challenge : undefined),
   };
-}
-
-// The configuration of a challenge passes the same check as the settings of a player (§21.3).
-function readChallenge(value: unknown): Challenge | null {
-  if (!isRecord(value) || typeof value.slug !== 'string' || typeof value.title !== 'string' || !isRecord(value.config)) {
-    return null;
-  }
-  const validation = validateDamaged(value.config);
-
-  return validation === null ? null : { slug: value.slug, title: value.title, config: validation };
-}
-
-// A configuration of a wrong shape is refused like an invalid one instead of breaking the game.
-function validateDamaged(config: Record<string, unknown>): WorkoutConfig | null {
-  try {
-    const validation = validateConfig(config as unknown as WorkoutDraft);
-
-    return validation.ok ? validation.config : null;
-  } catch {
-    return null;
-  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

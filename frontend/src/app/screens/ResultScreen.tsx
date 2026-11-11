@@ -1,11 +1,9 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { createSession } from '../../domain/engine/session';
-import type { Attempt, CampaignAttempt, FightAttempt, LadderAttempt, WorkoutAttempt } from '../../domain/history/attempt';
-import { levelPlace } from '../../domain/kozak/place';
+import type { FightAttempt, LadderAttempt, WorkoutAttempt } from '../../domain/history/attempt';
 import type { Outcome } from '../../domain/results/results';
 import { formatDateTime, formatDuration } from '../../i18n/format';
-import { campaignName, journeyHistoryTexts, levelName } from '../../i18n/kozak-names';
 import {
   commonTexts,
   historyTexts,
@@ -20,7 +18,7 @@ import {
 import type { AttemptStatus } from '../../storage/contract';
 import { useArena } from '../arena';
 import { Icon } from '../components/Icon';
-import { BackLink, PlaceLink, Screen, ScreenHead, Title } from '../components/Screen';
+import { BackLink, Screen, ScreenHead, Title } from '../components/Screen';
 import { SignInPrompt } from '../components/SignIn';
 import { ErrorNotice, Loading, OutcomeBadge, StatusBadge } from '../components/notices';
 import { useGame } from '../game';
@@ -42,8 +40,9 @@ export function ResultScreen() {
   if (stored.status === 'ready' && stored.value !== null) {
     const { attempt, status } = stored.value;
 
+    // §24.5: a level of the journey has a result of its own, which tells its story.
     return attempt.mode === 'campaign' ? (
-      <JourneyResult attempt={attempt} status={status} />
+      <Navigate to={arena.paths.levelResult(attempt.id)} replace />
     ) : (
       <Result attempt={attempt} status={status} />
     );
@@ -86,7 +85,7 @@ function Result({ attempt, status }: { attempt: WorkoutAttempt; status: AttemptS
 
   // §13.4: the same settings, new rolls of the opponent; the old attempt stays as it was.
   const repeat = () => {
-    const session = arena.begin(createSession(attempt.config, deps, attempt.challenge));
+    const session = arena.begin(createSession(attempt.config, deps));
 
     if (session === null) {
       setRefused(true);
@@ -111,8 +110,7 @@ function Result({ attempt, status }: { attempt: WorkoutAttempt; status: AttemptS
             <span>{formatDateTime(attempt.finishedAt)}</span>
             <span>{resultTexts.duration(formatDuration(attempt.durationMs))}</span>
           </p>
-          {attempt.challenge !== null && <ChallengeResult attempt={attempt} />}
-          {arena.resultNote?.(attempt)}
+          {arena.resultNote(attempt)}
           {status !== 'saved' && (
             <div className="notice notice--warning">
               <StatusBadge status={status} />
@@ -129,9 +127,9 @@ function Result({ attempt, status }: { attempt: WorkoutAttempt; status: AttemptS
               <Link className="button button--outline" to={arena.paths.modes}>
                 {commonTexts.newWorkout}
               </Link>
-              <PlaceLink className="button button--outline" place={{ ...arena.back.history, text: commonTexts.history }}>
+              <Link className="button button--outline" to={arena.back.history.to}>
                 {commonTexts.history}
-              </PlaceLink>
+              </Link>
             </div>
             <p className="hint result-note">{resultTexts.repeatNote(attempt.mode)}</p>
           </div>
@@ -140,75 +138,6 @@ function Result({ attempt, status }: { attempt: WorkoutAttempt; status: AttemptS
         {attempt.mode === 'ladder' ? <LadderDetails attempt={attempt} /> : <FightRounds attempt={attempt} />}
       </div>
     </Screen>
-  );
-}
-
-// §24.5: a level of the journey belongs to the game, which tells its story; the history of the
-// site shows how it went and leads there.
-function JourneyResult({ attempt, status }: { attempt: CampaignAttempt; status: AttemptStatus }) {
-  const arena = useArena();
-  const { outcome, sets } = attempt.result;
-  const { symbol, name } = outcomeTexts[outcome];
-  const campaign = campaignName(levelPlace(attempt.config.level)?.campaign ?? '');
-
-  return (
-    <Screen title={name}>
-      <BackLink back={arena.back.history} />
-      <div className="split split--result">
-        <div className="split__column">
-          <section className={`result-hero result-hero--${outcome}`}>
-            <p className="result-hero__meta">
-              <span>{journeyHistoryTexts.journey}</span>
-              {campaign !== null && <span>{campaign}</span>}
-            </p>
-            <Title className="result-hero__title">
-              <span aria-hidden="true">{symbol}</span> {name}
-            </Title>
-            <p className="result-hero__score">
-              <span className="result-hero__number">
-                {sets.filter(({ done }) => done).length} / {sets.length}
-              </span>
-              <span className="result-hero__unit">{levelName(attempt.config.level)}</span>
-            </p>
-          </section>
-          <p className="result-meta">
-            <span>{formatDateTime(attempt.finishedAt)}</span>
-            <span>{resultTexts.duration(formatDuration(attempt.durationMs))}</span>
-          </p>
-          {status !== 'saved' && (
-            <div className="notice notice--warning">
-              <StatusBadge status={status} />
-              <p>{status === 'pending' ? resultTexts.pending : resultTexts.rejected}</p>
-            </div>
-          )}
-          <div className="screen__actions">
-            {/* The game is a section of its own, so it opens as a page. */}
-            <a className="button button--primary button--large" href={`/game/journey/result/${attempt.id}`}>
-              {journeyHistoryTexts.openInGame}
-            </a>
-          </div>
-        </div>
-      </div>
-    </Screen>
-  );
-}
-
-// §21.3: a win with the settings of the page passes the challenge for good.
-function ChallengeResult({ attempt }: { attempt: Attempt }) {
-  const { challenge } = attempt;
-  const passed = attempt.result.outcome === 'win';
-
-  if (challenge === null) {
-    return null;
-  }
-
-  return (
-    <p className={`challenge-result${passed ? ' challenge-result--passed' : ''}`}>
-      {passed && <Icon name="check" className="challenge-result__icon" />}
-      <span>{passed ? resultTexts.challengePassed(challenge.title) : resultTexts.challengeFailed(challenge.title)}</span>
-      {/* The page of the challenge belongs to the site, so it opens as a page. */}
-      <a href={`/challenges/${challenge.slug}`}>{resultTexts.toChallenge}</a>
-    </p>
   );
 }
 

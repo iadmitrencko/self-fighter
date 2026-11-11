@@ -71,16 +71,11 @@ export function WorkoutScreen() {
     return false;
   };
 
+  // §24.6: a fight left in the middle is lost, so the energy it took stays spent.
   const interrupt = () => {
-    if (arena.leaving.kind === 'retreat') {
-      setInterrupting(false);
-      finishing.current = true;
-      finish(retreat(session));
-
-      return;
-    }
-    arena.session.clear();
-    void navigate(arena.paths.modes, { replace: true });
+    setInterrupting(false);
+    finishing.current = true;
+    finish(retreat(session));
   };
 
   return (

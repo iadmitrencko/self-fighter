@@ -160,9 +160,7 @@ export interface GameStorage {
   readonly exercises: ExerciseStore;
   readonly settings: SettingsStore;
   readonly attempts: AttemptStore;
-  // The workout of the site in progress.
-  readonly activeSession: ActiveSessionStore<WorkoutSession>;
   // The battles of the game in progress, one for each pool of energy (§24.4): a fight and a level
-  // of the journey wait apart from each other and from the workout of the site.
+  // of the journey wait apart from each other.
   readonly gameSessions: GameSessions;
 }

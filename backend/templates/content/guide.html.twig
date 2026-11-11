@@ -1,6 +1,6 @@
 {% extends 'content/layout.html.twig' %}
 
-{#- A guide answers a question people search for (§21.2) and leads to the game. #}
+{#- A guide answers a question people search for and leads to the game. #}
 
 {% set article = page.article %}
 {% set title = article.title %}
@@ -36,7 +36,7 @@
 {% block content %}
     <div class="prose">{{ article.html|raw }}</div>
     <div class="page-cta">
-        <a class="button button--primary button--large" href="{{ path('workout') }}">{{ 'site.start'|trans }}</a>
-        <a class="button button--outline button--large" href="{{ path('challenges') }}">{{ 'content.all_challenges'|trans }}</a>
+        <a class="button button--primary button--large" href="{{ path('kozak_fight') }}">{{ 'site.start'|trans }}</a>
+        <a class="button button--outline button--large" href="{{ path('kozak') }}">{{ 'site.nav.game'|trans }}</a>
     </div>
 {% endblock %}

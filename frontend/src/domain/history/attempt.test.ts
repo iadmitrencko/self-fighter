@@ -40,10 +40,10 @@ describe('finalize', () => {
     expect(attempt.result.outcome).toBe('win');
   });
 
-  // §21.3: the history knows which challenge the attempt took.
-  it('keeps the challenge of the session', () => {
+  // §24.1: a session kept from the time of the ready-made challenges ends with its challenge.
+  it('keeps the challenge of an old session', () => {
     const challenge = { slug: 'pull-ups-ladder-to-3', title: 'Драбина підтягувань до 3' };
-    const session = play(createSession(ladderConfig({ max: 3 }), testDeps(), challenge), () => 9);
+    const session = { ...play(createSession(ladderConfig({ max: 3 }), testDeps()), () => 9), challenge };
 
     expect(finalize(session, FINISHED_AT).challenge).toEqual(challenge);
   });

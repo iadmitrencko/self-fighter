@@ -21,7 +21,6 @@ final class Attempt
         private readonly UserId $owner,
         private readonly Mode $mode,
         private readonly Outcome $outcome,
-        private readonly ?string $challenge,
         private readonly ?GamePool $pool,
         private readonly ?string $level,
         private readonly ?\DateTimeImmutable $energyFullAt,
@@ -45,8 +44,6 @@ final class Attempt
         $outcome = Outcome::tryFrom(self::text($result['outcome'] ?? null));
         $finishedAt = Instant::parse(self::text($document['finishedAt'] ?? null));
         $schemaVersion = $document['schemaVersion'] ?? null;
-        // The slug of a ready-made challenge, so the statistics can count the ones passed (§21.3).
-        $challenge = \is_array($document['challenge'] ?? null) ? self::text($document['challenge']['slug'] ?? null) : '';
         // §24: a battle of the game names its pool of energy and the moment that pool is full again,
         // and a level of the journey names its level, so the record of the game is counted in SQL.
         $game = $document['game'] ?? null;
@@ -67,7 +64,6 @@ final class Attempt
             $owner,
             $mode,
             $outcome,
-            '' === $challenge ? null : $challenge,
             $pool,
             '' === $level ? null : $level,
             $energyFullAt,
@@ -85,11 +81,6 @@ final class Attempt
     public function finishedAt(): \DateTimeImmutable
     {
         return $this->finishedAt;
-    }
-
-    public function challenge(): ?string
-    {
-        return $this->challenge;
     }
 
     public function pool(): ?GamePool

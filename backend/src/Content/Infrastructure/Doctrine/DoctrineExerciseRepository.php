@@ -27,9 +27,4 @@ final readonly class DoctrineExerciseRepository implements ExerciseRepository
     {
         return $this->entityManager->getRepository(Exercise::class)->findBy([], ['position' => 'ASC', 'slug' => 'ASC']);
     }
-
-    public function find(string $slug): ?Exercise
-    {
-        return $this->entityManager->find(Exercise::class, $slug);
-    }
 }

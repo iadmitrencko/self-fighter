@@ -3,7 +3,7 @@ import { enter, expectAccessible, field } from './helpers';
 
 // §18 «Режими»: one exercise per attempt and a plain climb. R2: the top is passed by reaching it.
 test('a ladder takes one exercise and climbs to its top', async ({ page }) => {
-  await page.goto('/workout/setup/ladder');
+  await page.goto('/game/fight/setup/ladder');
   await page.getByRole('radio', { name: 'Віджимання' }).check();
   await page.getByRole('radio', { name: 'Підтягування' }).check();
 
@@ -29,7 +29,7 @@ test('a ladder takes one exercise and climbs to its top', async ({ page }) => {
 
 // §18 «Режими»: up to the top and back down.
 test('a ladder goes back down after its top', async ({ page }) => {
-  await page.goto('/workout/setup/ladder');
+  await page.goto('/game/fight/setup/ladder');
   await page.getByRole('radio', { name: 'Присідання' }).check();
   await field(page, /Максимум драбини/).fill('2');
   await page.getByRole('checkbox', { name: 'Повернення вниз після максимуму' }).check();

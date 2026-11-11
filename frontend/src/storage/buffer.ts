@@ -7,7 +7,8 @@ import type { ActiveSessionStore, AttemptStatus, CurrentUser } from './contract'
 
 const PREFIX = 'self-fighter:';
 const PROBE = `${PREFIX}probe`;
-export const ACTIVE_SESSION = `${PREFIX}active-session`;
+// The workout of /workout in progress. §24.1: that section is gone, so the game drops what it left.
+export const SITE_SESSION = `${PREFIX}active-session`;
 // The battles of the game in progress, one for each pool of energy (§24.4).
 export const GAME_SESSION = `${PREFIX}game-session:`;
 const OUTBOX = `${PREFIX}outbox:`;

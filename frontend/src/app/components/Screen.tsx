@@ -1,7 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { commonTexts } from '../../i18n/uk';
-import { HISTORY_PAGE, paths } from '../paths';
 import { Icon } from './Icon';
 
 // One screen of the game inside the frame of the site. The browser tab shows its title.
@@ -32,44 +30,13 @@ export function Title({ children, className }: { children: ReactNode; className?
 export interface Back {
   readonly to: string;
   readonly text: string;
-  // The address lies outside this router, such as the landing or the history in the game: it opens as a page.
-  readonly site?: boolean;
-}
-
-export const BACK = {
-  home: { to: '/', text: commonTexts.toHome, site: true },
-  modes: { to: paths.modes, text: commonTexts.toModes },
-  history: { to: HISTORY_PAGE, text: commonTexts.toHistory, site: true },
-} satisfies Record<string, Back>;
-
-// A link to a screen of this game or to a page of the site, which opens as a page.
-export function PlaceLink({ place, className, children }: { place: Back; className: string; children: ReactNode }) {
-  return place.site === true ? (
-    <a className={className} href={place.to}>
-      {children}
-    </a>
-  ) : (
-    <Link className={className} to={place.to}>
-      {children}
-    </Link>
-  );
 }
 
 export function BackLink({ back }: { back: Back }) {
-  const content = (
-    <>
+  return (
+    <Link className="back-link" to={back.to}>
       <Icon name="back" className="back-link__icon" />
       {back.text}
-    </>
-  );
-
-  return back.site === true ? (
-    <a className="back-link" href={back.to}>
-      {content}
-    </a>
-  ) : (
-    <Link className="back-link" to={back.to}>
-      {content}
     </Link>
   );
 }

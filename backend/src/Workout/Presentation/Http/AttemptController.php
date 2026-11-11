@@ -89,7 +89,6 @@ final readonly class AttemptController
             'wins' => $statistics->wins,
             'draws' => $statistics->draws,
             'losses' => $statistics->losses,
-            'challenges' => $statistics->challenges,
         ]);
     }
 

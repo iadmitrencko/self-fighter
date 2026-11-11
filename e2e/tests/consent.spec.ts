@@ -22,7 +22,7 @@ function banner(page: Page) {
 test('no event leaves the browser before a choice and after a refusal', async ({ page }) => {
   const events = sentEvents(page);
 
-  await page.goto('/workout/setup/target');
+  await page.goto('/game/fight/setup/target');
 
   await expect(banner(page)).toBeVisible();
   await expect(banner(page).getByRole('button')).toHaveText(['Дозволити', 'Відхилити']);
@@ -57,7 +57,7 @@ test('allowed events reach the server and stop once the decision changes', async
 
   await expect(banner(page)).toBeHidden();
 
-  await page.goto('/workout/setup/target');
+  await page.goto('/game/fight/setup/target');
   await page.getByRole('button', { name: 'Почати бій' }).click();
 
   await expect.poll(() => events).toEqual(['setup_error']);

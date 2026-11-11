@@ -4,7 +4,6 @@ import { levelConfig } from '../domain/kozak/battle';
 import { findLevel, SICH } from '../domain/kozak/journey';
 import { ladderConfig, pullUps, testDeps } from '../domain/testing/fixtures';
 import {
-  ACTIVE_SESSION,
   createActiveSessionStore,
   createBrowserBuffer,
   createOutbox,
@@ -89,10 +88,10 @@ describe('browser buffer', () => {
   });
 });
 
-describe('active session', () => {
+describe('fight in progress', () => {
   const session = createSession(ladderConfig(), testDeps());
 
-  const store = () => createActiveSessionStore(createBrowserBuffer(localStorage), ACTIVE_SESSION, isWorkoutSession);
+  const store = () => createActiveSessionStore(createBrowserBuffer(localStorage), `${GAME_SESSION}fight`, isWorkoutSession);
 
   it('survives a reload', () => {
     store().save(session);
@@ -100,7 +99,7 @@ describe('active session', () => {
     expect(store().load()).toEqual(session);
   });
 
-  // §24.4: a level of the journey waits in its own place and never opens as a workout.
+  // §24.4: a level of the journey waits in its own place and never opens as a fight.
   it('keeps each kind of session in its own place', () => {
     const level = findLevel(SICH, 'forest-ravens/1/1');
     const battle = createSession(levelConfig(level ?? (undefined as never), pullUps), testDeps());
@@ -111,11 +110,11 @@ describe('active session', () => {
     );
 
     campaign.save(battle);
-    localStorage.setItem(ACTIVE_SESSION, JSON.stringify(battle));
+    localStorage.setItem(`${GAME_SESSION}fight`, JSON.stringify(battle));
 
     expect(campaign.load()).toEqual(battle);
     expect(store().load()).toBeNull();
-    expect(localStorage.getItem(ACTIVE_SESSION)).toBeNull();
+    expect(localStorage.getItem(`${GAME_SESSION}fight`)).toBeNull();
   });
 
   // A release that changes the format drops the attempt in progress instead of migrating it.
@@ -123,10 +122,10 @@ describe('active session', () => {
     ['another format version', JSON.stringify({ ...session, schemaVersion: 0 })],
     ['damaged data', '{"schemaVersion":'],
   ])('forgets a session in %s', (_, stored) => {
-    localStorage.setItem('self-fighter:active-session', stored);
+    localStorage.setItem(`${GAME_SESSION}fight`, stored);
 
     expect(store().load()).toBeNull();
-    expect(localStorage.getItem('self-fighter:active-session')).toBeNull();
+    expect(localStorage.getItem(`${GAME_SESSION}fight`)).toBeNull();
   });
 });
 
