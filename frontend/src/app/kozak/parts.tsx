@@ -21,6 +21,8 @@ const ICONS = {
   play: 'M8 5v14l11-7z',
   bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
   glory: 'M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.6z',
+  plus: 'M12 5v14M5 12h14',
+  close: 'M6 6l12 12M18 6 6 18',
 } as const;
 
 export type KozakIconName = keyof typeof ICONS;

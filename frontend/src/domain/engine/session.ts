@@ -1,15 +1,11 @@
-import type { ChallengeRef } from '../catalog/challenge';
 import type { ExerciseRef } from '../catalog/exercise';
-import type { CampaignConfig, FightConfig, FightMode, LadderConfig, WorkoutConfig } from '../config/types';
-import { isValidReps } from '../config/validation';
+import { roundsOf } from '../config/grid';
+import type { CampaignConfig, FightConfig } from '../config/types';
 import type { EnergyPool } from '../kozak/energy';
-import { ladderSequence } from './ladder';
-import { randomInt, rollLevelOpponent, type Rng } from './opponents';
-import { ladderStageRule, stagePassed, type FightStage, type Stage } from './rules';
 
-// Version 2 remembered the ready-made challenge of the attempt, version 3 the battle of the game
-// and the levels of the journey (section 3.7 of the plan, §24).
-export const SCHEMA_VERSION = 3 as const;
+// Version 4 puts a fight together from exercises and rounds (§6) instead of the modes of the site;
+// version 3 marked the battles of the game, version 2 a ready-made challenge (section 3.7 of the plan).
+export const SCHEMA_VERSION = 4 as const;
 
 // A battle of the game: the pool of energy it took and when that pool is full again (§24.4).
 export interface GameMark {
@@ -17,114 +13,78 @@ export interface GameMark {
   readonly energyFullAt: string;
 }
 
+// One set of a battle: its repetitions and, once its turn has passed, whether they were done.
+export interface SetStage {
+  readonly target: number;
+  // null while the set waits, false once the player retreated before doing it.
+  readonly done: boolean | null;
+}
+
+// A set of a fight: one exercise in one round.
+export interface FightStage extends SetStage {
+  readonly round: number;
+  readonly exercise: ExerciseRef;
+}
+
 interface SessionBase {
   readonly schemaVersion: typeof SCHEMA_VERSION;
   readonly id: string;
   readonly startedAt: string;
-  // null for a workout of the player's own settings.
-  readonly challenge: ChallengeRef | null;
-  // null for a workout of the site.
+  // The site offers no ready-made challenges any more (§21.3), so a battle never takes one.
+  readonly challenge: null;
+  // The pool of energy the battle took, set as it starts (§24.4).
   readonly game: GameMark | null;
 }
 
 export interface FightSession extends SessionBase {
-  readonly mode: FightMode;
+  readonly mode: 'fight';
   readonly config: FightConfig;
   readonly stages: readonly FightStage[];
 }
 
-export interface LadderSession extends SessionBase {
-  readonly mode: 'ladder';
-  readonly config: LadderConfig;
-  readonly stages: readonly Stage[];
-}
-
-// A level of the journey: a stage per set, done or not.
+// A level of the journey: a stage per set.
 export interface CampaignSession extends SessionBase {
   readonly mode: 'campaign';
   readonly config: CampaignConfig;
-  readonly stages: readonly Stage[];
+  readonly stages: readonly SetStage[];
 }
 
-export type Session = FightSession | LadderSession | CampaignSession;
-export type WorkoutSession = FightSession | LadderSession;
+export type Session = FightSession | CampaignSession;
+
+export function isFightSession(session: Session): session is FightSession {
+  return session.mode === 'fight';
+}
 
 export function isCampaignSession(session: Session): session is CampaignSession {
   return session.mode === 'campaign';
 }
 
-export function isWorkoutSession(session: Session): session is WorkoutSession {
-  return session.mode !== 'campaign';
-}
-
 export interface SessionDeps {
-  readonly rng: Rng;
   readonly now: () => Date;
   readonly newId: () => string;
 }
 
-interface ExerciseTargets {
-  readonly exercise: ExerciseRef;
-  readonly targets: readonly number[];
+// A fight goes round by round: every exercise of the first round, then every one of the second (§6).
+function fightStages(config: FightConfig): FightStage[] {
+  return Array.from({ length: roundsOf(config) }, (_, round) =>
+    config.exercises.flatMap(({ id, name, sets }) => {
+      const target = sets[round];
+
+      return target === undefined ? [] : [{ round, exercise: { id, name }, target, done: null }];
+    }),
+  ).flat();
 }
 
-function exerciseTargets(config: FightConfig, rng: Rng): ExerciseTargets[] {
-  const rollRounds = (roll: () => number) => Array.from({ length: config.rounds }, roll);
-
-  switch (config.mode) {
-    case 'target':
-      return config.exercises.map(({ id, name, targets }) => ({
-        exercise: { id, name },
-        targets,
-      }));
-    case 'random-opponent':
-      return config.exercises.map(({ id, name, min, max }) => ({
-        exercise: { id, name },
-        targets: rollRounds(() => randomInt(rng, { min, max })),
-      }));
-    case 'opponent-levels':
-      return config.exercises.map(({ id, name, upperBound }) => ({
-        exercise: { id, name },
-        targets: rollRounds(() => rollLevelOpponent(rng, upperBound, config.difficulty)),
-      }));
-  }
-}
-
-function fightStages(config: FightConfig, rng: Rng): FightStage[] {
-  return exerciseTargets(config, rng)
-    .flatMap(({ exercise, targets }) =>
-      targets.map((target, round) => ({
-        round,
-        exercise,
-        target,
-        rule: config.rule,
-        actual: null,
-      })),
-    )
-    .sort((a, b) => a.round - b.round);
-}
-
-function ladderStages({ max, returnDown, rule }: LadderConfig): Stage[] {
-  return ladderSequence(max, returnDown).map((target) => ({
-    target,
-    rule: ladderStageRule(target, max, rule),
-    actual: null,
-  }));
-}
-
-// A set is done once all its repetitions are (§24.5).
-function campaignStages({ sets }: CampaignConfig): Stage[] {
-  return sets.map((target) => ({ target, rule: 'meet', actual: null }));
+function campaignStages({ sets }: CampaignConfig): SetStage[] {
+  return sets.map((target) => ({ target, done: null }));
 }
 
 export function createSession(config: FightConfig, deps: SessionDeps): FightSession;
-export function createSession(config: LadderConfig, deps: SessionDeps): LadderSession;
 export function createSession(config: CampaignConfig, deps: SessionDeps): CampaignSession;
-export function createSession(config: WorkoutConfig, deps: SessionDeps): WorkoutSession;
-// Everything the attempt depends on is fixed here, so a reload cannot change it (§7.3, §11.6).
-// The site offers no ready-made challenges any more (§24.1), so a new attempt takes none.
-export function createSession(source: WorkoutConfig | CampaignConfig, { rng, now, newId }: SessionDeps): Session {
-  const config = JSON.parse(JSON.stringify(source)) as WorkoutConfig | CampaignConfig;
+export function createSession(config: FightConfig | CampaignConfig, deps: SessionDeps): Session;
+// Everything the battle depends on is fixed here, so a reload or a change of the catalog cannot change it.
+export function createSession(source: FightConfig | CampaignConfig, { now, newId }: SessionDeps): Session {
+  const config = JSON.parse(JSON.stringify(source)) as FightConfig | CampaignConfig;
   const base = {
     schemaVersion: SCHEMA_VERSION,
     id: newId(),
@@ -133,51 +93,31 @@ export function createSession(source: WorkoutConfig | CampaignConfig, { rng, now
     game: null,
   };
 
-  switch (config.mode) {
-    case 'ladder':
-      return { ...base, mode: config.mode, config, stages: ladderStages(config) };
-    case 'campaign':
-      return { ...base, mode: config.mode, config, stages: campaignStages(config) };
-    default:
-      return { ...base, mode: config.mode, config, stages: fightStages(config, rng) };
-  }
+  return config.mode === 'campaign'
+    ? { ...base, mode: config.mode, config, stages: campaignStages(config) }
+    : { ...base, mode: config.mode, config, stages: fightStages(config) };
 }
 
-// Returns null when the attempt is over: a failed step of a ladder or a set of a level of the
-// journey not done ends it early (§9.5, §24.5).
+// The set to do now, or null once the battle is over: every set is done or the player retreated.
 export function nextStageIndex(session: Session): number | null {
-  const next = session.stages.findIndex((stage) => stage.actual === null);
-  const failed = session.stages.some((stage) => stage.actual !== null && !stagePassed(stage));
-  const endsOnFailure = session.mode === 'ladder' || session.mode === 'campaign';
+  if (session.stages.some(({ done }) => done === false)) {
+    return null;
+  }
+  const next = session.stages.findIndex(({ done }) => done === null);
 
-  return next === -1 || (endsOnFailure && failed) ? null : next;
+  return next === -1 ? null : next;
 }
 
-// A repeated call for a filled stage returns the same session, so a double tap records nothing.
-export function submitResult<TSession extends Session>(
-  session: TSession,
-  stageIndex: number,
-  reps: number,
-): TSession {
-  const stage = session.stages[stageIndex];
+// Marks the set to do now. A battle that is over stays as it was, so a second tap records nothing.
+export function markSet<TSession extends Session>(session: TSession, done: boolean): TSession {
+  const index = nextStageIndex(session);
 
-  if (stage === undefined) {
-    throw new RangeError(`Stage ${stageIndex} does not exist`);
-  }
-  if (stage.actual !== null) {
+  if (index === null) {
     return session;
-  }
-  if (stageIndex !== nextStageIndex(session)) {
-    throw new RangeError(`Stage ${stageIndex} is not the current one`);
-  }
-  if (!isValidReps(reps)) {
-    throw new RangeError(`Invalid number of repetitions: ${reps}`);
   }
 
   return {
     ...session,
-    stages: session.stages.map((item, index) =>
-      index === stageIndex ? { ...item, actual: reps } : item,
-    ),
+    stages: session.stages.map((stage, position) => (position === index ? { ...stage, done } : stage)),
   };
 }

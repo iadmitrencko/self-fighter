@@ -1,59 +1,51 @@
 import type { ChallengeRef } from '../../domain/catalog/challenge';
 import { createSession } from '../../domain/engine/session';
-import { finalize, type Attempt, type CampaignAttempt } from '../../domain/history/attempt';
+import { finalize, type Attempt, type CampaignAttempt, type FightAttempt } from '../../domain/history/attempt';
 import { levelConfig, retreat } from '../../domain/kozak/battle';
 import { findLevel, SICH } from '../../domain/kozak/journey';
-import type { Outcome } from '../../domain/results/results';
+import type { BattleOutcome, Outcome } from '../../domain/results/results';
 import {
-  ladderConfig,
+  fightConfig,
+  legacyLadderAttempt,
+  legacyTargetAttempt,
   play,
   pullUps,
-  pushUps,
-  squats,
-  targetConfig,
   testDeps,
 } from '../../domain/testing/fixtures';
 import { newId } from '../ids';
 
-// Reps for push-ups and squats against a target of 10: a draw wins one exercise and loses the other.
-const TARGET_REPS: Record<Outcome, readonly number[]> = { win: [11, 11], draw: [11, 9], loss: [9, 9] };
-
-// A finished attempt as the game stores it. A ladder knows only a win or a loss. An attempt kept
-// from the time of the ready-made challenges may name one (§24.1).
+/**
+ * A workout of the old site (§24.1): «Ціль» or a ladder as the server stored them, before a fight
+ * was put together freely (§6). It may name a ready-made challenge of that time.
+ */
 export function finishedAttempt(
   outcome: Outcome,
   finishedAt: string,
   mode: 'target' | 'ladder' = 'target',
   challenge: ChallengeRef | null = null,
 ): Attempt {
-  const deps = testDeps({ newId: () => newId(Date.parse(finishedAt)) });
+  const options = { id: newId(Date.parse(finishedAt)), finishedAt: new Date(finishedAt), challenge };
 
-  if (mode === 'ladder') {
-    const config = ladderConfig({ max: 1, returnDown: false, rule: 'meet' });
-
-    return { ...finalize(play(createSession(config, deps), () => (outcome === 'win' ? 1 : 0)), new Date(finishedAt)), challenge };
-  }
-  const config = targetConfig({
-    rounds: 1,
-    exercises: [
-      { ...pushUps, targets: [10] },
-      { ...squats, targets: [10] },
-    ],
-  });
-  const reps = [...TARGET_REPS[outcome]];
-
-  return { ...finalize(play(createSession(config, deps), () => reps.shift() ?? 0), new Date(finishedAt)), challenge };
+  return mode === 'ladder' ? legacyLadderAttempt(outcome === 'win' ? 'win' : 'loss', options) : legacyTargetAttempt(outcome, options);
 }
 
-// §24: a fight of the game that took the energy of fights.
-export function gameFight(outcome: Outcome, finishedAt: string, energyFullAt: string): Attempt {
+// §24: a fight of «Ціль» the game played before §6, with the energy of fights. It could end in a draw.
+export function oldGameFight(outcome: Outcome, finishedAt: string, energyFullAt: string): Attempt {
   return { ...finishedAttempt(outcome, finishedAt), game: { pool: 'fight', energyFullAt } };
 }
 
-// §24.5: a level of the journey, won or left after its first set.
+// §6: a fight of the game, every set done or left before its last one.
+export function gameFight(outcome: BattleOutcome, finishedAt: string, energyFullAt: string): FightAttempt {
+  const session = createSession(fightConfig(), testDeps({ newId: () => newId(Date.parse(finishedAt)) }));
+  const played = play(session, outcome === 'win' ? null : session.stages.length - 1);
+
+  return { ...finalize(played, new Date(finishedAt)), game: { pool: 'fight', energyFullAt } };
+}
+
+// §24.5: a level of the journey, won or left before its first set.
 export function levelAttempt(
   level: string,
-  outcome: 'win' | 'loss',
+  outcome: BattleOutcome,
   finishedAt: string,
   energyFullAt: string,
 ): CampaignAttempt {
@@ -63,7 +55,7 @@ export function levelAttempt(
     throw new Error(`The journey has no level ${level}`);
   }
   const session = createSession(levelConfig(definition, pullUps), testDeps({ newId: () => newId(Date.parse(finishedAt)) }));
-  const played = outcome === 'win' ? play(session, (stage) => stage.target) : retreat(session);
+  const played = outcome === 'win' ? play(session) : retreat(session);
 
   return { ...finalize(played, new Date(finishedAt)), game: { pool: 'campaign', energyFullAt } };
 }

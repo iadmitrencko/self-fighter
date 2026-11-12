@@ -1,70 +1,33 @@
 import fc from 'fast-check';
+import type { ChallengeRef } from '../catalog/challenge';
 import type { ExerciseRef } from '../catalog/exercise';
-import {
-  LADDER_MAX,
-  OPPONENT_BOUND_MAX,
-  OPPONENT_BOUND_MIN,
-  REPS_MAX,
-} from '../config/limits';
-import type {
-  Difficulty,
-  LadderConfig,
-  OpponentLevelsConfig,
-  RandomOpponentConfig,
-  TargetConfig,
-  WinRule,
-  WorkoutConfig,
-} from '../config/types';
-import type { Rng } from '../engine/opponents';
-import type { FightStage, Stage } from '../engine/rules';
+import { EXERCISES_MAX, ROUNDS_MAX, SET_REPS_MAX, SET_REPS_MIN } from '../config/limits';
+import type { FightConfig } from '../config/types';
 import {
   createSession,
   nextStageIndex,
-  submitResult,
+  SCHEMA_VERSION,
   type GameMark,
   type Session,
   type SessionDeps,
 } from '../engine/session';
 import { finalize, type CampaignAttempt, type FightAttempt } from '../history/attempt';
-import { levelConfig, retreat } from '../kozak/battle';
+import type { LadderAttempt, RoundsAttempt } from '../history/legacy';
+import { completeSet, levelConfig, retreat } from '../kozak/battle';
 import { findLevel, SICH } from '../kozak/journey';
-import type { Outcome } from '../results/results';
+import type { BattleOutcome, Outcome } from '../results/results';
 
 export const pushUps: ExerciseRef = { id: 'push-ups', name: 'Віджимання' };
 export const squats: ExerciseRef = { id: 'squats', name: 'Присідання' };
 export const pullUps: ExerciseRef = { id: 'pull-ups', name: 'Підтягування' };
 
 export const STARTED_AT = new Date('2026-10-30T10:00:00.000Z');
-
-// Mulberry32: statistical tests always see the same numbers.
-export function seededRng(seed: number): Rng {
-  let state = seed;
-
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let mixed = Math.imul(state ^ (state >>> 15), 1 | state);
-    mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
-
-    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-export function sequenceRng(...values: number[]): Rng {
-  let index = 0;
-
-  return () => {
-    const value = values[index % values.length] as number;
-    index += 1;
-
-    return value;
-  };
-}
+const FINISHED_AT = new Date(STARTED_AT.getTime() + 600_000);
 
 export function testDeps(overrides: Partial<SessionDeps> = {}): SessionDeps {
   let created = 0;
 
   return {
-    rng: seededRng(1),
     now: () => STARTED_AT,
     newId: () => {
       created += 1;
@@ -85,10 +48,8 @@ export function deepFreeze<T>(value: T): T {
   return value;
 }
 
-export function play<TSession extends Session>(
-  session: TSession,
-  repsFor: (stage: Stage) => number,
-): TSession {
+// Does every set, or retreats when the set `retreatAt` comes (§6, §24.5).
+export function play<TSession extends Session>(session: TSession, retreatAt: number | null = null): TSession {
   let current = session;
 
   // Bounded, so a broken engine fails the test instead of hanging it.
@@ -98,162 +59,53 @@ export function play<TSession extends Session>(
     if (index === null) {
       break;
     }
-    current = submitResult(current, index, repsFor(current.stages[index] as Stage));
+    current = index === retreatAt ? retreat(current) : completeSet(current);
   }
 
   return current;
 }
 
-export function targetConfig(overrides: Partial<TargetConfig> = {}): TargetConfig {
+// §6: push-ups and squats in three rounds.
+export function fightConfig(overrides: Partial<FightConfig> = {}): FightConfig {
   return {
-    mode: 'target',
-    rule: 'over',
-    rounds: 2,
+    mode: 'fight',
     exercises: [
-      { ...pushUps, targets: [10, 12] },
-      { ...squats, targets: [20, 25] },
+      { ...pushUps, sets: [10, 12, 10] },
+      { ...squats, sets: [15, 15, 20] },
     ],
     ...overrides,
   };
 }
 
-export function randomOpponentConfig(
-  overrides: Partial<RandomOpponentConfig> = {},
-): RandomOpponentConfig {
-  return {
-    mode: 'random-opponent',
-    rule: 'over',
-    rounds: 2,
-    exercises: [
-      { ...pushUps, min: 20, max: 40 },
-      { ...squats, min: 30, max: 50 },
-    ],
-    ...overrides,
-  };
+const repsArbitrary = fc.integer({ min: SET_REPS_MIN, max: SET_REPS_MAX });
+
+// Any fight the grid lets the player put together.
+export const fightConfigArbitrary: fc.Arbitrary<FightConfig> = fc
+  .record({ rounds: fc.integer({ min: 1, max: ROUNDS_MAX }), count: fc.integer({ min: 1, max: EXERCISES_MAX }) })
+  .chain(({ rounds, count }) =>
+    fc.array(fc.array(repsArbitrary, { minLength: rounds, maxLength: rounds }), { minLength: count, maxLength: count }),
+  )
+  .map((rows) => ({
+    mode: 'fight' as const,
+    exercises: rows.map((sets, index) => ({ id: `exercise-${index + 1}`, name: `Вправа ${index + 1}`, sets })),
+  }));
+
+export function fightGame(energyFullAt = '2026-10-30T12:00:00.000Z'): GameMark {
+  return { pool: 'fight', energyFullAt };
 }
 
-export function opponentLevelsConfig(
-  overrides: Partial<OpponentLevelsConfig> = {},
-): OpponentLevelsConfig {
-  return {
-    mode: 'opponent-levels',
-    rule: 'over',
-    rounds: 2,
-    difficulty: 'medium',
-    exercises: [
-      { ...pushUps, upperBound: 100 },
-      { ...squats, upperBound: 90 },
-    ],
-    ...overrides,
-  };
+// §6: a fight of the game, every set done, or left before its last set.
+export function fightAttempt(outcome: BattleOutcome, game: GameMark = fightGame()): FightAttempt {
+  const session = createSession(fightConfig(), testDeps());
+  const played = play(session, outcome === 'win' ? null : session.stages.length - 1);
+
+  return { ...finalize(played, FINISHED_AT), game };
 }
 
-export function ladderConfig(overrides: Partial<LadderConfig> = {}): LadderConfig {
-  return {
-    mode: 'ladder',
-    rule: 'over',
-    exercise: pullUps,
-    max: 5,
-    returnDown: true,
-    ...overrides,
-  };
-}
-
-const ruleArbitrary = fc.constantFrom<WinRule>('over', 'meet');
-const opponentBoundArbitrary = fc.integer({ min: OPPONENT_BOUND_MIN, max: OPPONENT_BOUND_MAX });
-const exerciseRefArbitrary = {
-  id: fc.uuid(),
-  name: fc.string({ minLength: 1, maxLength: 60 }),
-};
-
-function uniqueExercises<T extends ExerciseRef>(exercise: fc.Arbitrary<T>): fc.Arbitrary<T[]> {
-  return fc.uniqueArray(exercise, { minLength: 1, maxLength: 5, selector: ({ id }) => id });
-}
-
-const roundsArbitrary = fc.integer({ min: 1, max: 6 });
-
-export const targetConfigArbitrary: fc.Arbitrary<TargetConfig> = roundsArbitrary.chain((rounds) =>
-  fc.record({
-    mode: fc.constant('target'),
-    rule: ruleArbitrary,
-    rounds: fc.constant(rounds),
-    exercises: uniqueExercises(
-      fc.record({
-        ...exerciseRefArbitrary,
-        targets: fc.array(fc.integer({ min: 0, max: REPS_MAX }), {
-          minLength: rounds,
-          maxLength: rounds,
-        }),
-      }),
-    ),
-  }),
-);
-
-export const randomOpponentConfigArbitrary: fc.Arbitrary<RandomOpponentConfig> = fc.record({
-  mode: fc.constant('random-opponent'),
-  rule: ruleArbitrary,
-  rounds: roundsArbitrary,
-  exercises: uniqueExercises(
-    fc
-      .record({ ...exerciseRefArbitrary, a: opponentBoundArbitrary, b: opponentBoundArbitrary })
-      .map(({ id, name, a, b }) => ({ id, name, min: Math.min(a, b), max: Math.max(a, b) })),
-  ),
-});
-
-export const difficultyArbitrary = fc.constantFrom<Difficulty>('easy', 'medium', 'hard');
-
-export const opponentLevelsConfigArbitrary: fc.Arbitrary<OpponentLevelsConfig> = fc.record({
-  mode: fc.constant('opponent-levels'),
-  rule: ruleArbitrary,
-  rounds: roundsArbitrary,
-  difficulty: difficultyArbitrary,
-  exercises: uniqueExercises(
-    fc.record({ ...exerciseRefArbitrary, upperBound: opponentBoundArbitrary }),
-  ),
-});
-
-export const ladderConfigArbitrary: fc.Arbitrary<LadderConfig> = fc.record({
-  mode: fc.constant('ladder'),
-  rule: ruleArbitrary,
-  exercise: fc.record(exerciseRefArbitrary),
-  max: fc.integer({ min: 1, max: LADDER_MAX }),
-  returnDown: fc.boolean(),
-});
-
-export const workoutConfigArbitrary: fc.Arbitrary<WorkoutConfig> = fc.oneof(
-  targetConfigArbitrary,
-  randomOpponentConfigArbitrary,
-  opponentLevelsConfigArbitrary,
-  ladderConfigArbitrary,
-);
-
-// Results close to the target reach every outcome, unlike uniform numbers up to 9999.
-export function nearTarget(stage: Stage, offset: number): number {
-  return Math.min(REPS_MAX, Math.max(0, stage.target + offset));
-}
-
-export const offsetsArbitrary = fc.array(fc.integer({ min: -1, max: 1 }), {
-  minLength: 1,
-  maxLength: 30,
-});
-
-export function cycleOffsets(offsets: readonly number[]): (stage: Stage) => number {
-  let index = 0;
-
-  return (stage) => {
-    const offset = offsets[index % offsets.length] as number;
-    index += 1;
-
-    return nearTarget(stage, offset);
-  };
-}
-
-const FINISHED_AT = new Date(STARTED_AT.getTime() + 600_000);
-
-// §24.5: a level of the journey, won or left after its first set.
+// §24.5: a level of the journey, won or left before its first set.
 export function campaignAttempt(
   id: string,
-  outcome: 'win' | 'loss' = 'win',
+  outcome: BattleOutcome = 'win',
   energyFullAt = '2026-10-30T15:00:00.000Z',
 ): CampaignAttempt {
   const level = findLevel(SICH, id);
@@ -262,16 +114,81 @@ export function campaignAttempt(
     throw new Error(`The journey has no level ${id}`);
   }
   const session = createSession(levelConfig(level, pullUps), testDeps());
-  const played = outcome === 'win' ? play(session, (stage) => stage.target) : retreat(session);
+  const played = outcome === 'win' ? play(session) : retreat(session);
 
   return { ...finalize(played, FINISHED_AT), game: { pool: 'campaign', energyFullAt } };
 }
 
-// A fight of «Ціль» with the given outcome: rounds won, lost, or one of each for a draw.
-export function fightAttempt(outcome: Outcome, game: GameMark | null = null): FightAttempt {
-  const session = createSession(targetConfig(), testDeps());
-  const reps = (stage: FightStage) =>
-    outcome === 'win' || (outcome === 'draw' && stage.round === 0) ? REPS_MAX : 0;
+interface LegacyOptions {
+  readonly id?: string;
+  readonly finishedAt?: Date;
+  readonly game?: GameMark | null;
+  readonly challenge?: ChallengeRef | null;
+}
 
-  return { ...finalize(play(session, (stage) => reps(stage as FightStage)), FINISHED_AT), game };
+function legacyBase({ id = 'legacy-1', finishedAt = FINISHED_AT, game = null, challenge = null }: LegacyOptions) {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    id,
+    startedAt: new Date(finishedAt.getTime() - 600_000).toISOString(),
+    finishedAt: finishedAt.toISOString(),
+    durationMs: 600_000,
+    challenge,
+    game,
+  };
+}
+
+// Push-ups and squats against 10 in one round: a draw wins one exercise and loses the other.
+const LEGACY_REPS: Record<Outcome, readonly [number, number]> = { win: [11, 11], draw: [11, 9], loss: [9, 9] };
+
+/**
+ * An attempt of «Ціль», a mode of the site before a fight was put together freely (§6). The
+ * history keeps such attempts as the server stored them, the draws among them.
+ */
+export function legacyTargetAttempt(outcome: Outcome, options: LegacyOptions = {}): RoundsAttempt {
+  const exercises = [pushUps, squats].map((exercise, index) => {
+    const actual = LEGACY_REPS[outcome][index] ?? 0;
+
+    return { exercise, target: 10, actual, outcome: actual > 10 ? ('win' as const) : ('loss' as const) };
+  });
+  const won = exercises.filter((exercise) => exercise.outcome === 'win').length;
+  const lost = exercises.length - won;
+
+  return {
+    ...legacyBase(options),
+    mode: 'target',
+    config: {
+      mode: 'target',
+      rule: 'over',
+      rounds: 1,
+      exercises: [
+        { ...pushUps, targets: [10] },
+        { ...squats, targets: [10] },
+      ],
+    },
+    result: {
+      rounds: [{ exercises, won, lost, outcome }],
+      won: outcome === 'win' ? 1 : 0,
+      drawn: outcome === 'draw' ? 1 : 0,
+      lost: outcome === 'loss' ? 1 : 0,
+      outcome,
+    },
+  };
+}
+
+// A ladder of one step, the other old mode of the site with a result of its own.
+export function legacyLadderAttempt(outcome: BattleOutcome, options: LegacyOptions = {}): LadderAttempt {
+  const passed = outcome === 'win';
+
+  return {
+    ...legacyBase(options),
+    mode: 'ladder',
+    config: { mode: 'ladder', rule: 'meet', exercise: pullUps, max: 1, returnDown: false },
+    result: {
+      stages: [{ target: 1, actual: passed ? 1 : 0, passed }],
+      maxPassed: passed ? 1 : 0,
+      passedCount: passed ? 1 : 0,
+      outcome,
+    },
+  };
 }

@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createSession, isCampaignSession, isWorkoutSession } from '../domain/engine/session';
+import { createSession, isCampaignSession, isFightSession } from '../domain/engine/session';
 import { levelConfig } from '../domain/kozak/battle';
 import { findLevel, SICH } from '../domain/kozak/journey';
-import { ladderConfig, pullUps, testDeps } from '../domain/testing/fixtures';
+import { fightConfig, pullUps, testDeps } from '../domain/testing/fixtures';
 import {
   createActiveSessionStore,
   createBrowserBuffer,
@@ -89,9 +89,9 @@ describe('browser buffer', () => {
 });
 
 describe('fight in progress', () => {
-  const session = createSession(ladderConfig(), testDeps());
+  const session = createSession(fightConfig(), testDeps());
 
-  const store = () => createActiveSessionStore(createBrowserBuffer(localStorage), `${GAME_SESSION}fight`, isWorkoutSession);
+  const store = () => createActiveSessionStore(createBrowserBuffer(localStorage), `${GAME_SESSION}fight`, isFightSession);
 
   it('survives a reload', () => {
     store().save(session);

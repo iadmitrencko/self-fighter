@@ -68,8 +68,8 @@ final class AccountTest extends ApiTestCase
         $this->signInWithGoogle(['sub' => '1001']);
         $accountBurpees = ExerciseId::generate()->value;
         $this->send('PUT', '/api/v1/exercises/'.$accountBurpees, ['name' => 'Бурпі', 'description' => 'Як у залі']);
-        $this->send('PUT', '/api/v1/settings/target', Documents::targetConfig());
-        $accountAttempt = Documents::fight('win', '2026-11-03T10:00:00.000Z');
+        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
+        $accountAttempt = Documents::target('win', '2026-11-03T10:00:00.000Z');
         $this->send('PUT', '/api/v1/attempts/'.$accountAttempt['id'], $accountAttempt);
         $account = $this->user()['id'] ?? null;
 
@@ -78,8 +78,7 @@ final class AccountTest extends ApiTestCase
         $plank = ExerciseId::generate()->value;
         $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'бурпі', 'description' => 'Вдома']);
         $this->send('PUT', '/api/v1/exercises/'.$plank, ['name' => 'Планка', 'description' => '']);
-        $this->send('PUT', '/api/v1/settings/target', [...Documents::targetConfig(), 'rounds' => 1]);
-        $this->send('PUT', '/api/v1/settings/ladder', Documents::ladderConfig());
+        $this->send('PUT', '/api/v1/settings/fight', ['mode' => 'fight', 'exercises' => [['id' => 'pull-ups', 'name' => 'Підтягування', 'sets' => [3]]]]);
         $guestAttempt = Documents::ladder('loss', '2026-11-04T09:00:00.000Z');
         $this->send('PUT', '/api/v1/attempts/'.$guestAttempt['id'], $guestAttempt);
         $this->send('POST', '/api/v1/events', ['name' => 'workout_completed', 'mode' => 'ladder', 'outcome' => 'loss']);
@@ -97,7 +96,7 @@ final class AccountTest extends ApiTestCase
             $this->responseData(),
         );
         $this->send('GET', '/api/v1/settings');
-        self::assertEquals(['target' => Documents::targetConfig(), 'ladder' => Documents::ladderConfig()], $this->responseData());
+        self::assertEquals(['fight' => Documents::fightConfig()], $this->responseData());
         self::assertSame(1, $this->rowCount('user'));
         self::assertSame(1, (int) $this->database()->fetchOne('SELECT COUNT(*) FROM analytics_event WHERE user_id IS NOT NULL'));
 
@@ -177,7 +176,7 @@ final class AccountTest extends ApiTestCase
     private function accountWithGuestOnThisBrowser(): array
     {
         $this->signInWithGoogle(['sub' => '1001']);
-        $accountAttempt = Documents::fight('win', '2026-11-03T10:00:00.000Z');
+        $accountAttempt = Documents::target('win', '2026-11-03T10:00:00.000Z');
         $this->send('PUT', '/api/v1/attempts/'.$accountAttempt['id'], $accountAttempt);
         $account = $this->user()['id'] ?? null;
 

@@ -1,4 +1,4 @@
-import { isCampaignSession, isWorkoutSession } from '../domain/engine/session';
+import { isCampaignSession, isFightSession } from '../domain/engine/session';
 import { computeStatistics } from '../domain/history/statistics';
 import { addGameRecords, computeGameRecord, EMPTY_RECORD, type GameRecord } from '../domain/kozak/record';
 import {
@@ -70,7 +70,7 @@ export function createBrowserStorage(): GameStorage {
 export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStorage {
   const outbox = createOutbox(buffer);
   const gameSessions = {
-    fight: createActiveSessionStore(buffer, `${GAME_SESSION}fight`, isWorkoutSession),
+    fight: createActiveSessionStore(buffer, `${GAME_SESSION}fight`, isFightSession),
     campaign: createActiveSessionStore(buffer, `${GAME_SESSION}campaign`, isCampaignSession),
   };
   // Nothing in progress goes on with the next person on this browser.

@@ -1,11 +1,11 @@
 import { useId, useState, type FormEvent } from 'react';
-import { validateExerciseDraft, type ExerciseRef } from '../../domain/catalog/exercise';
-import { commonTexts, exerciseFormTexts, storageMessages, validationMessages } from '../../i18n/uk';
-import type { CustomExercise } from '../../storage/contract';
-import type { StorageErrorCode } from '../../storage/errors';
-import { Dialog } from '../components/Dialog';
-import { useGame } from '../game';
-import { errorCode } from '../useLoad';
+import { validateExerciseDraft, type ExerciseRef } from '../../../domain/catalog/exercise';
+import { commonTexts, exerciseFormTexts, storageMessages, validationMessages } from '../../../i18n/uk';
+import type { CustomExercise } from '../../../storage/contract';
+import type { StorageErrorCode } from '../../../storage/errors';
+import { Dialog } from '../../components/Dialog';
+import { useGame } from '../../game';
+import { errorCode } from '../../useLoad';
 
 // §5.2: a custom exercise has a name, unique in the whole catalog, and an optional description.
 export function ExerciseFormDialog({

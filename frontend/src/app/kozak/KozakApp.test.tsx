@@ -5,17 +5,17 @@ import { finishedAttempt } from '../../storage/testing/attempts';
 import { renderKozak } from '../testing/render';
 
 describe('the game', () => {
-  // The setup shows its form after the cossack has loaded: the heading of the form takes the focus then.
+  // The hall shows the fight after the cossack has loaded: its heading takes the focus then.
   it('puts the focus on the heading of a new screen', async () => {
-    renderKozak('/fight/setup/ladder');
-    await screen.findByRole('button', { name: 'Почати драбину' });
+    renderKozak('/fight');
+    await screen.findByRole('button', { name: /^До бою/ });
 
     await waitFor(() => {
-      expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Налаштуй драбину' }));
+      expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Бій' }));
     });
   });
 
-  it('returns to the choice of a fight when none is in progress', async () => {
+  it('returns to the hall when no fight is in progress', async () => {
     renderKozak('/fight/battle');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Бій' })).toBeTruthy();
@@ -28,13 +28,13 @@ describe('the links of the site', () => {
     const { user } = renderKozak('/');
     await screen.findByRole('heading', { level: 1, name: /^Звання/ });
     const header = document.createElement('a');
-    header.href = '/game/fight/setup/ladder';
-    header.textContent = 'Драбина в шапці';
+    header.href = '/game/fight';
+    header.textContent = 'Почати тренування';
     document.body.append(header);
 
     await user.click(header);
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Налаштуй драбину' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Бій' })).toBeTruthy();
     header.remove();
   });
 
@@ -42,12 +42,12 @@ describe('the links of the site', () => {
     const { user } = renderKozak('/');
     await screen.findByRole('heading', { level: 1, name: /^Звання/ });
     const landing = document.createElement('a');
-    landing.href = '/#modes';
-    landing.textContent = 'Режими';
+    landing.href = '/#game';
+    landing.textContent = 'Гра';
     const tab = document.createElement('a');
-    tab.href = '/game/fight/setup/ladder';
+    tab.href = '/game/fight';
     tab.target = '_blank';
-    tab.textContent = 'Драбина в новій вкладці';
+    tab.textContent = 'Бій у новій вкладці';
     // §24.1: an old address of the site, which the server leads into the game.
     const removed = document.createElement('a');
     removed.href = '/workout/setup/ladder';

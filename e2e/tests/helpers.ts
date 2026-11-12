@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 // Every screen passes axe: the rules of WCAG 2.2 AA and the best practices (section 7 of the plan).
 export async function expectAccessible(page: Page): Promise<void> {
@@ -10,50 +10,32 @@ export async function expectAccessible(page: Page): Promise<void> {
   ).toEqual([]);
 }
 
-export function field(page: Page, name: string | RegExp): Locator {
-  return page.getByRole('textbox', { name, exact: typeof name === 'string' });
-}
+// §6: says every set of the fight on the screen is done and ends it.
+export async function finishSets(page: Page): Promise<void> {
+  const battle = page.getByRole('dialog', { name: 'Бій' });
+  const sets = Number(await battle.getByRole('progressbar', { name: 'Підходи' }).getAttribute('aria-valuemax'));
 
-// Five rounds by default (§4.2), so fewer rounds are taken away one by one.
-export async function setRounds(page: Page, rounds: number): Promise<void> {
-  for (let current = 5; current > rounds; current -= 1) {
-    await page.getByRole('button', { name: 'Менше раундів' }).click();
+  for (let set = 0; set < sets; set += 1) {
+    await battle.getByRole('button', { name: 'Підхід виконано' }).click();
   }
-  await expect(page.locator('.stepper__value')).toHaveText(String(rounds));
+  await expect(battle.getByText('Усі підходи виконано')).toBeVisible();
+  await battle.getByRole('button', { name: 'Завершити тренування' }).click();
 }
 
-export async function addExercises(page: Page, ...names: string[]): Promise<void> {
-  for (const name of names) {
-    await page.getByRole('button', { name: `Додати вправу ${name}` }).click();
+// §6: the fight the hall offers, every set done, or left at once, which loses it (§24.6).
+export async function playFight(page: Page, outcome: 'win' | 'loss' = 'win'): Promise<void> {
+  await page.goto('/game/fight');
+  await page.getByRole('button', { name: /^До бою/ }).click();
+  const battle = page.getByRole('dialog', { name: 'Бій' });
+  await expect(battle).toBeVisible();
+
+  if (outcome === 'win') {
+    await finishSets(page);
+  } else {
+    await battle.getByRole('button', { name: 'Завершити', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Відступити з бою?' }).getByRole('button', { name: 'Відступити' }).click();
   }
-}
-
-// Enters a result and confirms it, as the player does after each exercise.
-export async function enter(page: Page, reps: number, button = 'Зафіксувати результат'): Promise<void> {
-  await field(page, 'Твій результат').fill(String(reps));
-  await page.getByRole('button', { name: button }).click();
-}
-
-// After the feedback of an exercise the next stage waits for the player (§12.3).
-export async function proceed(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /^(Наступна вправа|Почати раунд \d+)$/ }).click();
-  // The same tap must not send the form of the next stage.
-  await expect(page.getByRole('alert')).toHaveCount(0);
-}
-
-export async function targetValue(page: Page): Promise<number> {
-  return Number(await page.locator('.target-box__value').textContent());
-}
-
-// One exercise, one round: the shortest «Ціль» there is.
-export async function playShortTarget(page: Page, reps: number, target = 5): Promise<void> {
-  await page.goto('/game/fight/setup/target');
-  await addExercises(page, 'Віджимання');
-  await setRounds(page, 1);
-  await field(page, 'Віджимання, раунд 1').fill(String(target));
-  await page.getByRole('button', { name: 'Почати бій' }).click();
-  await enter(page, reps);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(reps > target ? '▲ Перемога' : '▼ Поразка');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(outcome === 'win' ? 'Бій виграно' : 'Бій програно');
 }
 
 export async function savedAttempts(page: Page): Promise<number> {

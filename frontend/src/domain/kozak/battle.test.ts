@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createSession,
-  isCampaignSession,
-  isWorkoutSession,
-  nextStageIndex,
-  submitResult,
-} from '../engine/session';
+import { createSession, nextStageIndex } from '../engine/session';
 import { finalize } from '../history/attempt';
-import { deepFreeze, ladderConfig, pullUps, STARTED_AT, targetConfig, testDeps } from '../testing/fixtures';
+import { deepFreeze, fightConfig, pullUps, STARTED_AT, testDeps } from '../testing/fixtures';
 import { completeSet, enterBattle, levelConfig, retreat } from './battle';
 import { findLevel, SICH, type LevelDefinition } from './journey';
 
@@ -24,21 +18,15 @@ describe('a level of the journey', () => {
     });
   });
 
-  // §24.5: one stage per set, done once all its repetitions are.
+  // §24.5: one set after another, each done when the player says so.
   it('plays set by set', () => {
     const session = deepFreeze(start());
 
-    expect(session).toMatchObject({ mode: 'campaign', schemaVersion: 3, challenge: null, game: null });
-    expect(session.stages).toEqual([
-      { target: 1, rule: 'meet', actual: null },
-      { target: 2, rule: 'meet', actual: null },
-      { target: 3, rule: 'meet', actual: null },
-    ]);
+    expect(session).toMatchObject({ mode: 'campaign', schemaVersion: 4, challenge: null, game: null });
 
     const done = completeSet(completeSet(completeSet(session)));
 
     expect(nextStageIndex(done)).toBeNull();
-    expect(completeSet(done)).toBe(done);
     expect(finalize(done, STARTED_AT).result).toEqual({
       sets: [
         { target: 1, done: true },
@@ -49,12 +37,10 @@ describe('a level of the journey', () => {
     });
   });
 
-  // §24.5: leaving in the middle loses the level, and the sets after it are never asked.
   it('is lost when the player retreats', () => {
     const left = retreat(completeSet(start()));
 
     expect(nextStageIndex(left)).toBeNull();
-    expect(retreat(left)).toBe(left);
     expect(finalize(left, STARTED_AT).result).toEqual({
       sets: [
         { target: 1, done: true },
@@ -64,41 +50,34 @@ describe('a level of the journey', () => {
       outcome: 'loss',
     });
   });
+});
 
-  it('ends early when a set falls short', () => {
-    expect(nextStageIndex(submitResult(start(), 0, 0))).toBeNull();
-  });
+describe('a fight', () => {
+  // §6: the same sets one after another, and a retreat loses what is left.
+  it('is won set by set and lost by a retreat', () => {
+    let won = createSession(fightConfig(), testDeps());
 
-  // §24.6: a fight left in the middle gives the rounds ahead to the opponent.
-  it('loses what is left of a fight', () => {
-    const fight = submitResult(createSession(targetConfig(), testDeps()), 0, 99);
-    const left = retreat(fight);
+    while (nextStageIndex(won) !== null) {
+      won = completeSet(won);
+    }
 
-    expect(nextStageIndex(left)).toBeNull();
-    expect(left.stages.map(({ actual }) => actual)).toEqual([99, 0, 0, 0]);
-    expect(finalize(left, STARTED_AT).result).toMatchObject({ won: 0, lost: 1, drawn: 1, outcome: 'loss' });
-  });
-
-  it('is told apart from a workout', () => {
-    expect(isCampaignSession(start())).toBe(true);
-    expect(isWorkoutSession(start())).toBe(false);
-    expect(isWorkoutSession(createSession(ladderConfig(), testDeps()))).toBe(true);
+    expect(finalize(won, STARTED_AT).result.outcome).toBe('win');
+    expect(finalize(retreat(completeSet(createSession(fightConfig(), testDeps()))), STARTED_AT).result.outcome).toBe('loss');
   });
 });
 
 describe('entering a battle', () => {
-  // §24.4: the battle takes a unit of its pool at its start and keeps the new state of the pool.
+  // §24.4: a start takes a unit of the pool and keeps the new state of the pool in the session.
   it('marks the session with its pool of energy', () => {
-    const fight = enterBattle(createSession(targetConfig(), testDeps()), 'fight', null);
+    const session = start();
 
-    expect(fight?.game).toEqual({ pool: 'fight', energyFullAt: '2026-10-30T12:00:00.000Z' });
-    expect(enterBattle(start(), 'campaign', '2026-10-30T11:00:00.000Z')?.game).toEqual({
+    expect(enterBattle(session, 'campaign', null)?.game).toEqual({
       pool: 'campaign',
-      energyFullAt: '2026-10-30T16:00:00.000Z',
+      energyFullAt: '2026-10-30T15:00:00.000Z',
     });
   });
 
   it('is refused with no energy left', () => {
-    expect(enterBattle(start(), 'campaign', '2026-10-31T11:00:00.000Z')).toBeNull();
+    expect(enterBattle(createSession(fightConfig(), testDeps()), 'fight', '2026-10-31T06:00:00.000Z')).toBeNull();
   });
 });

@@ -63,7 +63,7 @@ final class GoogleSignInTest extends ApiTestCase
     {
         self::mockTime('2026-11-04 10:00:00');
         $guest = $this->signUp();
-        $attempt = Documents::fight();
+        $attempt = Documents::target();
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
         $guestCookie = $this->deviceCookie();
 
@@ -133,7 +133,7 @@ final class GoogleSignInTest extends ApiTestCase
 
         $this->switchBrowser();
         $guest = $this->signUp();
-        $attempt = Documents::fight();
+        $attempt = Documents::target();
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
         $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'Бурпі', 'description' => '']);
 
@@ -150,12 +150,11 @@ final class GoogleSignInTest extends ApiTestCase
     public function testGuestWithNothingToMissJoinsAtOnce(): void
     {
         $this->signInWithGoogle(['sub' => '1001']);
-        $this->send('PUT', '/api/v1/settings/target', Documents::targetConfig());
         $account = $this->me()['user']['id'] ?? null;
 
         $this->switchBrowser();
         $this->signUp();
-        $this->send('PUT', '/api/v1/settings/ladder', Documents::ladderConfig());
+        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
         $this->send('POST', '/api/v1/events', ['name' => 'setup_error', 'mode' => 'ladder', 'error' => 'ladder-max-required']);
 
         $this->signInWithGoogle(['sub' => '1001']);
@@ -163,7 +162,7 @@ final class GoogleSignInTest extends ApiTestCase
         $me = $this->me();
         self::assertSame([$account, null], [$me['user']['id'] ?? null, $me['guest']]);
         $this->send('GET', '/api/v1/settings');
-        self::assertEquals(['target' => Documents::targetConfig(), 'ladder' => Documents::ladderConfig()], $this->responseData());
+        self::assertEquals(['fight' => Documents::fightConfig()], $this->responseData());
         self::assertSame(1, $this->rowCount('user'));
         self::assertSame([$account], $this->eventUsers());
     }
@@ -280,7 +279,7 @@ final class GoogleSignInTest extends ApiTestCase
      */
     public static function screens(): iterable
     {
-        yield 'the setup of a fight' => ['/game/fight/setup/ladder'];
+        yield 'the hall of fights' => ['/game/fight'];
         yield 'the history in the game' => ['/game/history'];
         yield 'the settings of the game' => ['/game/settings'];
         yield 'the result of a fight of the game' => ['/game/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85'];

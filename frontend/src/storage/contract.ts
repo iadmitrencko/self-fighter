@@ -1,6 +1,6 @@
 import type { ExerciseRef } from '../domain/catalog/exercise';
-import type { Mode, WorkoutConfig } from '../domain/config/types';
-import type { CampaignSession, Session, WorkoutSession } from '../domain/engine/session';
+import type { FightConfig } from '../domain/config/types';
+import type { CampaignSession, FightSession, Session } from '../domain/engine/session';
 import type { Attempt } from '../domain/history/attempt';
 import type { Statistics } from '../domain/history/statistics';
 import type { EnergyPool } from '../domain/kozak/energy';
@@ -46,7 +46,10 @@ export interface CustomExercise extends ExerciseRef {
   readonly description: string;
 }
 
-export type Settings = Partial<Record<Mode, WorkoutConfig>>;
+// §6: the last fight of the player, so the next one starts from it. The journey sets its levels itself.
+export interface Settings {
+  readonly fight?: FightConfig;
+}
 
 // History filters (§14.3). Times are UTC instants: the period includes `from` and excludes `to`.
 // The levels of the journey (§24.5) have a mode of their own.
@@ -120,10 +123,10 @@ export interface ExerciseStore {
   remove(id: string): Promise<void>;
 }
 
-// The last configuration of each mode, so the next workout starts from it.
+// The last fight of the player, so the next one starts from it (§6).
 export interface SettingsStore {
-  get(mode: Mode): Promise<WorkoutConfig | null>;
-  save(config: WorkoutConfig): Promise<void>;
+  get(mode: 'fight'): Promise<FightConfig | null>;
+  save(config: FightConfig): Promise<void>;
 }
 
 export interface AttemptStore {
@@ -149,7 +152,7 @@ export interface ActiveSessionStore<TSession extends Session = Session> {
 }
 
 export interface GameSessions extends Readonly<Record<EnergyPool, ActiveSessionStore>> {
-  readonly fight: ActiveSessionStore<WorkoutSession>;
+  readonly fight: ActiveSessionStore<FightSession>;
   readonly campaign: ActiveSessionStore<CampaignSession>;
 }
 

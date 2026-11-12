@@ -1,334 +1,130 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { ROUNDS_MAX, EXERCISES_MAX } from '../config/limits';
-import type { RandomOpponentConfig, TargetConfig } from '../config/types';
+import { completeSet, levelConfig, retreat } from '../kozak/battle';
+import { findLevel, SICH, type LevelDefinition } from '../kozak/journey';
 import {
-  cycleOffsets,
   deepFreeze,
-  ladderConfig,
-  offsetsArbitrary,
-  opponentLevelsConfig,
-  play,
+  fightConfig,
+  fightConfigArbitrary,
+  pullUps,
   pushUps,
-  randomOpponentConfig,
-  seededRng,
   squats,
   STARTED_AT,
-  targetConfig,
   testDeps,
-  workoutConfigArbitrary,
 } from '../testing/fixtures';
-import { levelRange, overshootRange } from './opponents';
-import { createSession, nextStageIndex, submitResult } from './session';
+import { createSession, isCampaignSession, isFightSession, markSet, nextStageIndex, SCHEMA_VERSION } from './session';
 
 describe('createSession', () => {
   it('fixes the id, the start time and the schema version', () => {
-    const session = createSession(targetConfig(), testDeps());
+    const session = createSession(fightConfig(), testDeps());
 
-    expect(session.id).toBe('attempt-1');
-    expect(session.startedAt).toBe(STARTED_AT.toISOString());
-    expect(session.schemaVersion).toBe(3);
-    expect(session.mode).toBe('target');
-    expect(session.challenge).toBeNull();
-    // §24.4: only the game marks its battles.
-    expect(session.game).toBeNull();
+    expect(session).toMatchObject({
+      schemaVersion: 4,
+      id: 'attempt-1',
+      startedAt: STARTED_AT.toISOString(),
+      challenge: null,
+      game: null,
+      mode: 'fight',
+    });
+    expect(SCHEMA_VERSION).toBe(4);
   });
 
-  // §6.3: every cell of the table is an independent target.
-  it('turns the target table into stages, round by round', () => {
-    const config: TargetConfig = {
-      mode: 'target',
-      rule: 'over',
-      rounds: 3,
-      exercises: [
-        { ...pushUps, targets: [10, 12, 15] },
-        { ...squats, targets: [20, 25, 30] },
-      ],
-    };
+  // §6: every exercise of the first round, then every one of the second.
+  it('turns the grid into sets, round by round', () => {
+    const session = createSession(fightConfig(), testDeps());
 
-    const { stages } = createSession(config, testDeps());
-
-    expect(stages).toEqual([
-      { round: 0, exercise: pushUps, target: 10, rule: 'over', actual: null },
-      { round: 0, exercise: squats, target: 20, rule: 'over', actual: null },
-      { round: 1, exercise: pushUps, target: 12, rule: 'over', actual: null },
-      { round: 1, exercise: squats, target: 25, rule: 'over', actual: null },
-      { round: 2, exercise: pushUps, target: 15, rule: 'over', actual: null },
-      { round: 2, exercise: squats, target: 30, rule: 'over', actual: null },
+    expect(session.stages).toEqual([
+      { round: 0, exercise: pushUps, target: 10, done: null },
+      { round: 0, exercise: squats, target: 15, done: null },
+      { round: 1, exercise: pushUps, target: 12, done: null },
+      { round: 1, exercise: squats, target: 15, done: null },
+      { round: 2, exercise: pushUps, target: 10, done: null },
+      { round: 2, exercise: squats, target: 20, done: null },
     ]);
   });
 
-  it('applies the rule of the configuration to every fight stage', () => {
-    const { stages } = createSession(targetConfig({ rule: 'meet' }), testDeps());
+  it('turns a level of the journey into its sets', () => {
+    const level = findLevel(SICH, 'forest-ravens/2/3') as LevelDefinition;
+    const session = createSession(levelConfig(level, pullUps), testDeps());
 
-    expect(stages.every(({ rule }) => rule === 'meet')).toBe(true);
-  });
-
-  // §7.3: a separate value for each exercise in each round.
-  it('rolls a separate opponent result for every stage', () => {
-    const config: RandomOpponentConfig = {
-      ...randomOpponentConfig(),
-      rounds: ROUNDS_MAX,
-      exercises: [{ ...pushUps, min: 1, max: 100 }],
-    };
-
-    const { stages } = createSession(config, testDeps());
-    const results = stages.map(({ target }) => target);
-
-    expect(results).toHaveLength(ROUNDS_MAX);
-    expect(new Set(results).size).toBeGreaterThan(1);
-    expect(results.every((result) => result >= 1 && result <= 100)).toBe(true);
-  });
-
-  it('uses the range of each exercise for the opponent', () => {
-    const { stages } = createSession(randomOpponentConfig({ rounds: 20 }), testDeps());
-
-    for (const { exercise, target } of stages) {
-      const { min, max } = exercise.id === pushUps.id ? { min: 20, max: 40 } : { min: 30, max: 50 };
-
-      expect(target).toBeGreaterThanOrEqual(min);
-      expect(target).toBeLessThanOrEqual(max);
-    }
-  });
-
-  it('uses the upper bound of each exercise and the chosen difficulty', () => {
-    const config = opponentLevelsConfig({ rounds: 20, difficulty: 'easy' });
-    const { stages } = createSession(config, testDeps());
-
-    for (const { exercise, target } of stages) {
-      const { min, max } = levelRange(exercise.id === pushUps.id ? 100 : 90, 'easy');
-
-      expect(target).toBeGreaterThanOrEqual(min);
-      expect(target).toBeLessThanOrEqual(max);
-    }
-  });
-
-  it('lets a hard opponent exceed the upper bound', () => {
-    const config = opponentLevelsConfig({
-      rounds: ROUNDS_MAX,
-      difficulty: 'hard',
-      exercises: Array.from({ length: EXERCISES_MAX }, (_, index) => ({
-        id: `exercise-${index}`,
-        name: `Вправа ${index}`,
-        upperBound: 100,
-      })),
-    });
-
-    const { stages } = createSession(config, testDeps());
-    const { min, max } = overshootRange(100);
-    const overshoots = stages.filter(({ target }) => target > 100);
-
-    expect(overshoots.length).toBeGreaterThan(0);
-    expect(overshoots.every(({ target }) => target >= min && target <= max)).toBe(true);
-  });
-
-  // 400 stages is the largest fight: 20 rounds of 20 exercises.
-  it('builds the largest fight in round order', () => {
-    const config = opponentLevelsConfig({
-      rounds: ROUNDS_MAX,
-      exercises: Array.from({ length: EXERCISES_MAX }, (_, index) => ({
-        id: `exercise-${index}`,
-        name: `Вправа ${index}`,
-        upperBound: 100,
-      })),
-    });
-
-    const { stages } = createSession(config, testDeps());
-
-    expect(stages.map(({ round }) => round)).toEqual(
-      Array.from({ length: 400 }, (_, index) => Math.floor(index / EXERCISES_MAX)),
-    );
-  });
-
-  // R2: only the top stage ignores the over rule.
-  it('applies the top-stage rule to a ladder', () => {
-    const { stages } = createSession(ladderConfig(), testDeps());
-
-    expect(stages.map(({ target }) => target)).toEqual([1, 2, 3, 4, 5, 4, 3, 2, 1]);
-    expect(stages.map(({ rule }) => rule)).toEqual([
-      'over',
-      'over',
-      'over',
-      'over',
-      'meet',
-      'over',
-      'over',
-      'over',
-      'over',
+    expect(session.stages).toEqual([
+      { target: 1, done: null },
+      { target: 2, done: null },
+      { target: 3, done: null },
     ]);
+    expect(isCampaignSession(session)).toBe(true);
+    expect(isFightSession(session)).toBe(false);
   });
 
-  // §11.6: later changes of the form must not reach a started workout.
+  // A row shorter than the others leaves out the rounds it does not have.
+  it('skips the rounds an exercise does not have', () => {
+    const session = createSession(fightConfig({ exercises: [{ ...pushUps, sets: [10, 12] }, { ...squats, sets: [15] }] }), testDeps());
+
+    expect(session.stages.map(({ round, exercise }) => `${round}:${exercise.id}`)).toEqual(['0:push-ups', '0:squats', '1:push-ups']);
+  });
+
   it('does not share the configuration with the caller', () => {
-    const targets = [10, 12];
-    const exercise = { ...pushUps, targets };
-    const config = targetConfig({ exercises: [exercise] });
-
+    const config = fightConfig();
     const session = createSession(config, testDeps());
-    targets[0] = 999;
-    exercise.name = 'Нова назва';
 
-    expect(session.config).toEqual(
-      targetConfig({ exercises: [{ ...pushUps, targets: [10, 12] }] }),
-    );
-    expect(session.stages[0]?.target).toBe(10);
+    expect(session.config).toEqual(config);
+    expect(session.config).not.toBe(config);
+    expect(session.config.exercises[0]).not.toBe(config.exercises[0]);
   });
 
-  it('gives the same session for the same random sequence', () => {
+  it('has a set for every cell of any grid', () => {
     fc.assert(
-      fc.property(workoutConfigArbitrary, fc.integer(), (config, seed) => {
-        const first = createSession(config, testDeps({ rng: seededRng(seed) }));
-        const second = createSession(config, testDeps({ rng: seededRng(seed) }));
+      fc.property(fightConfigArbitrary, (config) => {
+        const session = createSession(config, testDeps());
+        const cells = config.exercises.reduce((total, { sets }) => total + sets.length, 0);
 
-        expect(second).toEqual(first);
-      }),
-    );
-  });
-
-  it('builds the expected number of stages for any configuration', () => {
-    fc.assert(
-      fc.property(workoutConfigArbitrary, (config) => {
-        const { stages } = createSession(config, testDeps());
-
-        if (config.mode === 'ladder') {
-          expect(stages).toHaveLength(config.returnDown ? 2 * config.max - 1 : config.max);
-        } else {
-          expect(stages).toHaveLength(config.rounds * config.exercises.length);
-        }
+        expect(session.stages).toHaveLength(cells);
+        expect(session.stages.map(({ round }) => round)).toEqual([...session.stages.map(({ round }) => round)].sort((a, b) => a - b));
       }),
     );
   });
 });
 
-describe('nextStageIndex', () => {
-  it('walks through the stages in order', () => {
-    const session = createSession(targetConfig(), testDeps());
+describe('the sets of a battle', () => {
+  it('go one after another', () => {
+    const session = deepFreeze(createSession(fightConfig(), testDeps()));
 
     expect(nextStageIndex(session)).toBe(0);
-    expect(nextStageIndex(submitResult(session, 0, 11))).toBe(1);
+    expect(nextStageIndex(markSet(session, true))).toBe(1);
+    expect(nextStageIndex(markSet(markSet(session, true), true))).toBe(2);
   });
 
-  it('is null when every stage is filled', () => {
-    const session = play(createSession(targetConfig(), testDeps()), () => 0);
+  it('are over once every set is done', () => {
+    let session = createSession(fightConfig(), testDeps());
+
+    for (let set = 0; set < 6; set += 1) {
+      session = completeSet(session);
+    }
 
     expect(nextStageIndex(session)).toBeNull();
+    expect(session.stages.every(({ done }) => done === true)).toBe(true);
   });
 
-  // §6.7: a lost exercise does not stop a fight, unlike a ladder.
-  it('continues a fight after a lost stage', () => {
-    const session = createSession(targetConfig(), testDeps());
+  // §6, §24.5: a set not done ends the battle.
+  it('are over at a set not done', () => {
+    const session = markSet(completeSet(createSession(fightConfig(), testDeps())), false);
 
-    expect(nextStageIndex(submitResult(session, 0, 0))).toBe(1);
+    expect(nextStageIndex(session)).toBeNull();
+    expect(session.stages.map(({ done }) => done)).toEqual([true, false, null, null, null, null]);
   });
 
-  // §9.5: a failed stage ends the ladder.
-  it('stops a ladder at the first failed stage', () => {
-    const session = createSession(ladderConfig(), testDeps());
+  // A second tap after the last set records nothing.
+  it('stay as they were once the battle is over', () => {
+    const over = retreat(createSession(fightConfig(), testDeps()));
 
-    expect(nextStageIndex(submitResult(session, 0, 1))).toBeNull();
-  });
-});
-
-describe('submitResult', () => {
-  it('records the result of the stage and nothing else', () => {
-    const session = createSession(targetConfig(), testDeps());
-
-    const updated = submitResult(session, 0, 11);
-
-    expect(updated.stages[0]?.actual).toBe(11);
-    expect(updated.stages.slice(1)).toEqual(session.stages.slice(1));
+    expect(markSet(over, true)).toBe(over);
   });
 
-  // §12.2: zero is a valid result.
-  it('accepts zero', () => {
-    const session = createSession(targetConfig(), testDeps());
+  it('never change the session they are given', () => {
+    const session = deepFreeze(createSession(fightConfig(), testDeps()));
 
-    expect(submitResult(session, 0, 0).stages[0]?.actual).toBe(0);
-  });
-
-  // §12.2: a repeated tap must not duplicate or change the result.
-  it('ignores a repeated submission of a filled stage', () => {
-    const session = submitResult(createSession(targetConfig(), testDeps()), 0, 11);
-
-    expect(submitResult(session, 0, 11)).toBe(session);
-    expect(submitResult(session, 0, 99)).toBe(session);
-  });
-
-  it.each([-1, 4, 100])('rejects the unknown stage %i', (stageIndex) => {
-    const session = createSession(targetConfig(), testDeps());
-
-    expect(() => submitResult(session, stageIndex, 1)).toThrow(RangeError);
-  });
-
-  it('rejects a stage that is not the current one', () => {
-    const session = createSession(targetConfig(), testDeps());
-
-    expect(() => submitResult(session, 2, 1)).toThrow(RangeError);
-  });
-
-  it('rejects a stage after a failed ladder stage', () => {
-    const session = submitResult(createSession(ladderConfig(), testDeps()), 0, 0);
-
-    expect(() => submitResult(session, 1, 5)).toThrow(RangeError);
-  });
-
-  // §4.3 and §12.2.
-  it.each([-1, 1.5, 10_000, Number.NaN, Number.POSITIVE_INFINITY])(
-    'rejects the invalid result %d',
-    (reps) => {
-      const session = createSession(targetConfig(), testDeps());
-
-      expect(() => submitResult(session, 0, reps)).toThrow(RangeError);
-    },
-  );
-
-  // §7.3: opponent results never change once shown, whatever the user enters.
-  it('never changes targets, the configuration or the input session', () => {
-    fc.assert(
-      fc.property(workoutConfigArbitrary, offsetsArbitrary, (config, offsets) => {
-        const session = deepFreeze(createSession(config, testDeps()));
-        const finished = play(session, cycleOffsets(offsets));
-
-        expect(finished.config).toEqual(session.config);
-        expect(finished.stages.map(({ target }) => target)).toEqual(
-          session.stages.map(({ target }) => target),
-        );
-      }),
-    );
-  });
-
-  // Plan §8: a reload during a fight restores the same stages and carries on from the same place.
-  it('survives a reload at any moment of the attempt', () => {
-    fc.assert(
-      fc.property(
-        workoutConfigArbitrary,
-        offsetsArbitrary,
-        fc.nat(),
-        (config, offsets, reloadPoint) => {
-          const repsFor = cycleOffsets(offsets);
-          let session = createSession(config, testDeps());
-          const stageCount = session.stages.length;
-
-          for (let step = 0; step < stageCount; step += 1) {
-            const index = nextStageIndex(session);
-
-            if (index === null) {
-              break;
-            }
-            session = submitResult(session, index, repsFor(session.stages[index]!));
-
-            if (step === reloadPoint % stageCount) {
-              const restored = JSON.parse(JSON.stringify(session)) as typeof session;
-
-              expect(restored).toEqual(session);
-              expect(nextStageIndex(restored)).toBe(nextStageIndex(session));
-              session = restored;
-            }
-          }
-
-          expect(nextStageIndex(session)).toBeNull();
-        },
-      ),
-    );
+    expect(() => completeSet(session)).not.toThrow();
+    expect(() => retreat(session)).not.toThrow();
+    expect(session.stages.every(({ done }) => done === null)).toBe(true);
   });
 });

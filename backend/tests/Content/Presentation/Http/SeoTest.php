@@ -107,7 +107,7 @@ final class SeoTest extends WebTestCase
         $client = self::createClient();
         $this->reviewEverything();
 
-        foreach (['/game', '/game/fight/setup/target'] as $path) {
+        foreach (['/game', '/game/fight'] as $path) {
             $crawler = $client->request('GET', $path);
 
             self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'), $path);

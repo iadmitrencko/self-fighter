@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test';
-import { expectAccessible, playShortTarget, savedAttempts } from './helpers';
+import { expectAccessible, playFight, savedAttempts } from './helpers';
 
 interface GoogleAccount {
   readonly sub: string;
@@ -60,7 +60,7 @@ async function historyItems(page: Page): Promise<number> {
 // §18 «Вхід через Google»: the first sign-in keeps the data of the guest, and another device sees it.
 test('the history of an account opens on another device', async ({ page, browser }, testInfo) => {
   const account = googleAccount();
-  await playShortTarget(page, 6);
+  await playFight(page);
   await page.goto('/game/settings');
   await expectAccessible(page);
 
@@ -83,9 +83,9 @@ test('a guest joins the account it signs into once', async ({ page, browser }, t
   const laptop = await anotherDevice(browser, testInfo);
   await laptop.goto('/game/settings');
   await signIn(laptop, account);
-  await playShortTarget(laptop, 6);
+  await playFight(laptop);
 
-  await playShortTarget(page, 4);
+  await playFight(page, 'loss');
   await page.goto('/game/history');
   await signIn(page, account);
 
@@ -118,9 +118,9 @@ test('a guest left apart comes back after signing out', async ({ page, browser }
   const laptop = await anotherDevice(browser, testInfo);
   await laptop.goto('/game/settings');
   await signIn(laptop, account);
-  await playShortTarget(laptop, 6);
+  await playFight(laptop);
 
-  await playShortTarget(page, 4);
+  await playFight(page, 'loss');
   await page.goto('/game/history');
   await signIn(page, account);
   await page.getByRole('dialog').getByRole('button', { name: 'Не переносити' }).click();
@@ -140,7 +140,7 @@ test('a guest left apart comes back after signing out', async ({ page, browser }
 
 // The person changed their mind on the page of Google: the game works on as a guest.
 test('a cancelled sign-in leaves the guest as it was', async ({ page }) => {
-  await playShortTarget(page, 6);
+  await playFight(page);
   await page.goto('/game/history');
 
   await signIn(page, googleAccount(), 'Cancel');

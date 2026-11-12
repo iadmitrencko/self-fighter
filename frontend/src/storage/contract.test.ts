@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createSession } from '../domain/engine/session';
-import { ladderConfig, pullUps, targetConfig, testDeps } from '../domain/testing/fixtures';
+import { fightConfig, pullUps, testDeps } from '../domain/testing/fixtures';
 import { createApiStorage } from './api';
 import { createBrowserBuffer } from './buffer';
 import type { GameStorage } from './contract';
@@ -9,7 +9,7 @@ import { newId } from './ids';
 import { createMemoryStorage, type TestGoogleAccount } from './memory';
 import { levelConfig } from '../domain/kozak/battle';
 import { findLevel, SICH } from '../domain/kozak/journey';
-import { finishedAttempt, gameFight, levelAttempt } from './testing/attempts';
+import { finishedAttempt, gameFight, levelAttempt, oldGameFight } from './testing/attempts';
 import { createFakeServer } from './testing/fakeServer';
 
 // Screens rely on these rules whichever storage runs underneath (section 3.7 of the plan).
@@ -31,7 +31,7 @@ describe.each([
     // §15.1: visitors who only look leave nothing behind.
     it('has no user until something is saved', async () => {
       await storage.exercises.list();
-      await storage.settings.get('target');
+      await storage.settings.get('fight');
       await storage.attempts.list();
       await storage.attempts.stats();
 
@@ -40,7 +40,7 @@ describe.each([
     });
 
     it('becomes a guest with the first write', async () => {
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
 
       expect(await storage.account.current()).toMatchObject({ kind: 'guest' });
     });
@@ -51,7 +51,7 @@ describe.each([
       const earlier = finishedAttempt('win', '2026-11-01T10:00:00.000Z');
       const later = finishedAttempt('loss', '2026-11-02T10:00:00.000Z', 'ladder');
       await storage.exercises.save(exercise);
-      await storage.settings.save(ladderConfig());
+      await storage.settings.save(fightConfig());
       await storage.attempts.save(later);
       await storage.attempts.save(earlier);
       await storage.attempts.flush();
@@ -59,7 +59,7 @@ describe.each([
       expect(await storage.account.exportData()).toMatchObject({
         user: await storage.account.current(),
         exercises: [exercise],
-        settings: { ladder: ladderConfig() },
+        settings: { fight: fightConfig() },
         attempts: [earlier, later],
         events: [],
       });
@@ -69,7 +69,7 @@ describe.each([
       await storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
       await storage.attempts.save(finishedAttempt('win', '2026-11-02T10:00:00.000Z'));
       await storage.attempts.flush();
-      storage.gameSessions.fight.save(createSession(targetConfig(), testDeps()));
+      storage.gameSessions.fight.save(createSession(fightConfig(), testDeps()));
 
       await storage.account.deleteData();
 
@@ -108,14 +108,14 @@ describe.each([
   });
 
   describe('settings', () => {
-    it('keeps the last configuration of each mode', async () => {
-      await storage.settings.save(targetConfig({ rounds: 3 }));
-      await storage.settings.save(ladderConfig());
-      await storage.settings.save(targetConfig({ rounds: 7 }));
+    // §6: the last fight of the player, so the next one starts from it.
+    it('keeps the last fight', async () => {
+      expect(await storage.settings.get('fight')).toBeNull();
 
-      expect(await storage.settings.get('target')).toEqual(targetConfig({ rounds: 7 }));
-      expect(await storage.settings.get('ladder')).toEqual(ladderConfig());
-      expect(await storage.settings.get('random-opponent')).toBeNull();
+      await storage.settings.save(fightConfig({ exercises: [{ ...pullUps, sets: [3] }] }));
+      await storage.settings.save(fightConfig());
+
+      expect(await storage.settings.get('fight')).toEqual(fightConfig());
     });
   });
 
@@ -206,7 +206,7 @@ describe.each([
     it('counts the battles of the game apart from the workouts of the site', async () => {
       await storage.attempts.save(finishedAttempt('win', '2026-11-01T10:00:00.000Z'));
       await storage.attempts.save(gameFight('win', '2026-11-01T11:00:00.000Z', '2026-11-01T13:00:00.000Z'));
-      await storage.attempts.save(gameFight('draw', '2026-11-01T12:00:00.000Z', '2026-11-01T15:00:00.000Z'));
+      await storage.attempts.save(oldGameFight('draw', '2026-11-01T12:00:00.000Z', '2026-11-01T15:00:00.000Z'));
       await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'loss', '2026-11-02T09:00:00.000Z', '2026-11-02T14:00:00.000Z'));
       await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'win', '2026-11-02T10:00:00.000Z', '2026-11-02T19:00:00.000Z'));
       await storage.attempts.flush();
@@ -231,7 +231,7 @@ describe.each([
 
     // §24.4: a fight and a level wait apart from each other.
     it('keeps a battle in progress for each pool of energy', async () => {
-      const fight = createSession(targetConfig(), testDeps());
+      const fight = createSession(fightConfig(), testDeps());
       const level = createSession(levelConfig(findLevel(SICH, 'forest-ravens/1/1') ?? (undefined as never), pullUps), testDeps());
 
       storage.gameSessions.fight.save(fight);
@@ -240,7 +240,7 @@ describe.each([
       expect(storage.gameSessions.fight.load()).toEqual(fight);
       expect(storage.gameSessions.campaign.load()).toEqual(level);
 
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       await storage.account.deleteData();
 
       expect(storage.gameSessions.fight.load()).toBeNull();
@@ -251,7 +251,7 @@ describe.each([
   describe('fight in progress', () => {
     // §12.4: a reload does not lose the attempt in progress or change the opponent.
     it('keeps the attempt in progress until it is cleared', () => {
-      const session = createSession(ladderConfig({ exercise: pullUps }), testDeps());
+      const session = createSession(fightConfig({ exercises: [{ ...pullUps, sets: [3, 3] }] }), testDeps());
 
       storage.gameSessions.fight.save(session);
 
@@ -358,7 +358,7 @@ describe.each([
 
   // A guest has no other way to its data.
   it('refuses to sign out a guest', async () => {
-    await browser.storage.settings.save(targetConfig());
+    await browser.storage.settings.save(fightConfig());
 
     await expect(browser.storage.account.signOut()).rejects.toEqual(new StorageError('rejected'));
     expect(await browser.storage.account.current()).toMatchObject({ kind: 'guest' });
@@ -383,15 +383,14 @@ describe.each([
   it('joins the kept guest once', async () => {
     browser.signIn(OLENA);
     const burpees = await browser.storage.exercises.save({ id: newId(), name: 'Бурпі', description: 'Як у залі' });
-    await browser.storage.settings.save(targetConfig({ rounds: 3 }));
+    await browser.storage.settings.save(fightConfig());
     await browser.storage.account.signOut();
     const guestAttempt = finishedAttempt('loss', '2026-11-02T10:00:00.000Z');
     await browser.storage.attempts.save(guestAttempt);
     await browser.storage.attempts.flush();
     await browser.storage.exercises.save({ id: newId(), name: 'бурпі', description: 'Вдома' });
     const plank = await browser.storage.exercises.save({ id: newId(), name: 'Планка', description: '' });
-    await browser.storage.settings.save(targetConfig({ rounds: 7 }));
-    await browser.storage.settings.save(ladderConfig());
+    await browser.storage.settings.save(fightConfig({ exercises: [{ ...pullUps, sets: [5] }] }));
     browser.signIn(OLENA);
 
     await browser.storage.account.joinGuest();
@@ -400,8 +399,7 @@ describe.each([
     expect(await browser.storage.account.keptGuest()).toBeNull();
     expect((await browser.storage.attempts.list()).items.map(({ attempt }) => attempt.id)).toEqual([guestAttempt.id]);
     expect(await browser.storage.exercises.list()).toEqual([burpees, plank]);
-    expect(await browser.storage.settings.get('target')).toEqual(targetConfig({ rounds: 3 }));
-    expect(await browser.storage.settings.get('ladder')).toEqual(ladderConfig());
+    expect(await browser.storage.settings.get('fight')).toEqual(fightConfig());
   });
 
   // §23.3: a person who did not join the guest finds it after signing out.
@@ -421,12 +419,12 @@ describe.each([
   // §23.3: nothing to miss, nothing to ask.
   it('joins a guest with nothing to miss at once', async () => {
     await accountElsewhere();
-    await browser.storage.settings.save(ladderConfig());
+    await browser.storage.settings.save(fightConfig());
 
     browser.signIn(OLENA);
 
     expect(await browser.storage.account.keptGuest()).toBeNull();
-    expect(await browser.storage.settings.get('ladder')).toEqual(ladderConfig());
+    expect(await browser.storage.settings.get('fight')).toEqual(fightConfig());
   });
 
   // §15.5: the file names the way to sign in as well.

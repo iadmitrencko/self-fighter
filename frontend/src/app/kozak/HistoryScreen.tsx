@@ -1,5 +1,6 @@
 import { useCallback, useId, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
+import { roundsOf } from '../../domain/config/grid';
 import type { Attempt } from '../../domain/history/attempt';
 import type { Statistics } from '../../domain/history/statistics';
 import { levelPlace } from '../../domain/kozak/place';
@@ -15,13 +16,13 @@ import { SignInPrompt } from '../components/SignIn';
 import { ErrorNotice, StatusBadge } from '../components/notices';
 import { useGame } from '../game';
 import { errorCode, useLoad } from '../useLoad';
-import { kozakPaths, MODES } from './paths';
+import { kozakPaths } from './paths';
 import { KozakScreen } from './parts';
 
-type HistoryMode = Attempt['mode'];
+type HistoryMode = Extract<Attempt['mode'], 'fight' | 'campaign'>;
 
-// The modes of the site and the journey of the game.
-const MODE_FILTERS: readonly HistoryMode[] = [...MODES, 'campaign'];
+// §6, §24.5: the fights and the journey of the game. The attempts of the old modes of the site show among all.
+const MODE_FILTERS: readonly HistoryMode[] = ['fight', 'campaign'];
 const OUTCOMES: readonly Outcome[] = ['win', 'draw', 'loss'];
 
 // Pages loaded with «Показати ще» belong to the filter they were loaded for.
@@ -94,7 +95,7 @@ export function HistoryScreen() {
             value={mode}
             options={MODE_FILTERS.map((item) => ({
               value: item,
-              label: item === 'campaign' ? gameHistoryTexts.journey : historyTexts.modeShort[item],
+              label: item === 'campaign' ? gameHistoryTexts.journey : gameHistoryTexts.kinds.fight,
             }))}
             onChange={setMode}
           />
@@ -250,8 +251,16 @@ function kindOf(attempt: Attempt): keyof typeof gameHistoryTexts.kinds {
   return attempt.game === null ? 'workout' : 'fight';
 }
 
+// A level by its name, a fight by its exercises, an attempt of an old mode by the mode.
 function nameOf(attempt: Attempt): string {
-  return attempt.mode === 'campaign' ? levelName(attempt.config.level) : modeNames[attempt.mode];
+  switch (attempt.mode) {
+    case 'campaign':
+      return levelName(attempt.config.level);
+    case 'fight':
+      return attempt.config.exercises.map(({ name }) => name).join(', ');
+    default:
+      return modeNames[attempt.mode];
+  }
 }
 
 function details(attempt: Attempt): string {
@@ -265,6 +274,11 @@ function details(attempt: Attempt): string {
       sets.filter(({ done }) => done).length,
       sets.length,
     );
+  }
+  if (attempt.mode === 'fight') {
+    const sets = attempt.result.exercises.flatMap((exercise) => exercise.sets);
+
+    return historyTexts.setsDetails(roundsOf(attempt.config), attempt.config.exercises.length, sets.filter(({ done }) => done).length, sets.length);
   }
   if (attempt.mode === 'ladder') {
     const { config, result } = attempt;

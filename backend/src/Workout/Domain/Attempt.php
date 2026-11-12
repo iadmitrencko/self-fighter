@@ -55,7 +55,11 @@ final class Attempt
         if (null === $id || null === $mode || null === $outcome || null === $finishedAt || !\is_int($schemaVersion)) {
             return null;
         }
-        if ((\is_array($game) && (null === $pool || null === $energyFullAt)) || (Mode::Campaign === $mode && (GamePool::Campaign !== $pool || '' === $level))) {
+        if ((\is_array($game) && (null === $pool || null === $energyFullAt))
+            || (Mode::Campaign === $mode && (GamePool::Campaign !== $pool || '' === $level))
+            // §6: a fight of the game always takes the energy of fights.
+            || (Mode::Fight === $mode && GamePool::Fight !== $pool)
+        ) {
             return null;
         }
 

@@ -120,15 +120,15 @@ final class MeControllerTest extends ApiTestCase
     {
         $this->signUp();
         $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'Бурпі', 'description' => '']);
-        $this->send('PUT', '/api/v1/settings/ladder', Documents::ladderConfig());
+        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
         $attempt = Documents::ladder();
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
         $mine = $this->deviceCookie();
 
         $this->switchBrowser();
         $this->signUp();
-        $this->send('PUT', '/api/v1/settings/target', Documents::targetConfig());
-        $foreign = Documents::fight();
+        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
+        $foreign = Documents::target();
         $this->send('PUT', '/api/v1/attempts/'.$foreign['id'], $foreign);
 
         $this->switchBrowser($mine);
@@ -164,8 +164,8 @@ final class MeControllerTest extends ApiTestCase
         self::mockTime('2026-11-02 12:00:00');
         $this->signUp();
         $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'Віджимання', 'description' => '']);
-        $this->send('PUT', '/api/v1/settings/target', Documents::targetConfig());
-        $foreign = Documents::fight();
+        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
+        $foreign = Documents::target();
         $this->send('PUT', '/api/v1/attempts/'.$foreign['id'], $foreign);
         $this->send('POST', '/api/v1/events', ['name' => 'workout_started', 'mode' => 'target']);
 
@@ -173,8 +173,8 @@ final class MeControllerTest extends ApiTestCase
         $userId = $this->signUp();
         $exerciseId = ExerciseId::generate()->value;
         $this->send('PUT', '/api/v1/exercises/'.$exerciseId, ['name' => 'Бурпі', 'description' => 'Зі стрибком']);
-        $this->send('PUT', '/api/v1/settings/ladder', Documents::ladderConfig());
-        $later = Documents::fight('loss', '2026-11-02T11:00:00.000Z');
+        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
+        $later = Documents::target('loss', '2026-11-02T11:00:00.000Z');
         $earlier = Documents::ladder('win', '2026-11-02T09:00:00.000Z');
         $this->send('PUT', '/api/v1/attempts/'.$later['id'], $later);
         $this->send('PUT', '/api/v1/attempts/'.$earlier['id'], $earlier);
@@ -189,7 +189,7 @@ final class MeControllerTest extends ApiTestCase
             'user' => ['id' => $userId, 'kind' => 'guest', 'createdAt' => '2026-11-02T12:00:00.000Z'],
             'identities' => [],
             'exercises' => [['id' => $exerciseId, 'name' => 'Бурпі', 'description' => 'Зі стрибком']],
-            'settings' => ['ladder' => Documents::ladderConfig()],
+            'settings' => ['fight' => Documents::fightConfig()],
             'attempts' => [$earlier, $later],
             'events' => [['name' => 'workout_completed', 'mode' => 'ladder', 'outcome' => 'win', 'occurredAt' => '2026-11-02T12:00:00.000Z']],
         ], $this->responseData());

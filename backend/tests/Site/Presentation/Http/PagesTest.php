@@ -20,16 +20,15 @@ final class PagesTest extends WebTestCase
         self::assertCount(1, $crawler->filter('h1'));
         self::assertSelectorTextSame('h1', "Перетвори тренування на\u{A0}гру.");
         self::assertSelectorTextContains('.logo', 'Self-Fighter');
+        // §6: a fight is put together freely, so the landing tells the game instead of modes.
         self::assertSame(
-            ['Ціль', 'Випадковий суперник', 'Рівні суперників', 'Драбина'],
-            $crawler->filter('#modes h3')->each(static fn (Crawler $title): string => $title->text()),
+            ['Вправи й раунди', 'Підхід за підходом', 'Слава й звання', 'Похід «Січ»'],
+            $crawler->filter('#game h3')->each(static fn (Crawler $title): string => $title->text()),
         );
         self::assertCount(3, $crawler->filter('#how li'));
         self::assertCount(4, $crawler->filter('.benefit'));
         // §24.1: a workout starts with a fight of the game.
         self::assertGreaterThanOrEqual(2, $crawler->filter('main a[href="/game/fight"]')->count());
-        // §24.1: the modes have no pages of their own any more.
-        self::assertCount(0, $crawler->filter('#modes a'));
     }
 
     // Section 6.3 of the plan: search engines learn the name of the site and how people say it.
@@ -122,7 +121,7 @@ final class PagesTest extends WebTestCase
         $site = $client->request('GET', '/');
         $header = $site->filter('header')->html();
         $footer = $site->filter('footer')->html();
-        $game = $client->request('GET', '/game/fight/setup/target');
+        $game = $client->request('GET', '/game/fight');
 
         self::assertSame($header, $game->filter('header')->html());
         self::assertSame($footer, $game->filter('footer')->html());
@@ -165,8 +164,6 @@ final class PagesTest extends WebTestCase
             '/game/history',
             '/game/settings',
             '/game/fight',
-            '/game/fight/setup/target',
-            '/game/fight/setup/ladder',
             '/game/fight/battle',
             '/game/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
             '/game/journey',
@@ -186,7 +183,6 @@ final class PagesTest extends WebTestCase
         }
 
         $unknown = [
-            '/game/fight/setup/boxing',
             '/game/fight/result/42',
             '/game/journey/white-swans',
             '/game/journey/forest-ravens/0',
@@ -236,15 +232,17 @@ final class PagesTest extends WebTestCase
         $client = self::createClient();
         $moved = [
             '/workout' => '/game/fight',
-            '/workout/setup/ladder' => '/game/fight/setup/ladder',
+            '/workout/setup/ladder' => '/game/fight',
+            // §6: a fight has no modes any more, so their setup leads to the hall where a fight is put together.
+            '/game/fight/setup/ladder' => '/game/fight',
             '/workout/fight' => '/game/fight',
             '/workout/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85' => '/game/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
             '/workout/history' => '/game/history',
             '/workout/history?sign-in=done' => '/game/history?sign-in=done',
             '/workout/account?sign-in=cancelled' => '/game/settings?sign-in=cancelled',
-            '/workout/setup/target?sign-in=failed' => '/game/fight/setup/target?sign-in=failed',
+            '/workout/setup/target?sign-in=failed' => '/game/fight?sign-in=failed',
             // The query cannot change where the screen leads.
-            '/workout/setup/ladder?mode=boxing' => '/game/fight/setup/ladder',
+            '/workout/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85?id=42' => '/game/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
         ];
 
         foreach ($moved as $address => $screen) {
@@ -253,7 +251,7 @@ final class PagesTest extends WebTestCase
             self::assertResponseRedirects($screen, 302, $address);
         }
 
-        foreach (['/workout/setup/boxing', '/workout/result/42', '/workout/unknown'] as $address) {
+        foreach (['/workout/setup/boxing', '/game/fight/setup/boxing', '/workout/result/42', '/workout/unknown'] as $address) {
             $client->request('GET', $address);
 
             self::assertResponseStatusCodeSame(404, $address);

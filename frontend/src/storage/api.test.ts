@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSession } from '../domain/engine/session';
-import { ladderConfig, targetConfig, testDeps } from '../domain/testing/fixtures';
+import { fightConfig, testDeps } from '../domain/testing/fixtures';
 import { createApiStorage, createBrowserStorage } from './api';
 import { createBrowserBuffer, type BrowserBuffer } from './buffer';
 import type { GameStorage } from './contract';
@@ -39,19 +39,19 @@ describe('storage over the API', () => {
     it('asks the server who the user is only once', async () => {
       await storage.account.current();
       await storage.exercises.list();
-      await storage.settings.get('target');
+      await storage.settings.get('fight');
 
       expect(server.requests).toEqual(['GET /api/v1/me']);
     });
 
     // Each module of the server answers for its own data, and the browser asks it once.
     it('loads each kind of data once', async () => {
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       const requests = server.requests.length;
 
       await Promise.all([storage.exercises.list(), storage.exercises.list()]);
-      await storage.settings.get('target');
-      await storage.settings.get('ladder');
+      await storage.settings.get('fight');
+      await storage.settings.get('fight');
 
       expect(server.requests.slice(requests)).toEqual(['GET /api/v1/exercises', 'GET /api/v1/settings']);
     });
@@ -60,25 +60,25 @@ describe('storage over the API', () => {
     it('keeps the loaded data up to date after changes', async () => {
       const burpees = await storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
       await storage.exercises.list();
-      await storage.settings.get('target');
+      await storage.settings.get('fight');
       const requests = server.requests.length;
 
       const pullUps = await storage.exercises.save({ id: newId(), name: 'Підтягування', description: '' });
       const renamed = await storage.exercises.save({ ...burpees, name: 'Бурпі зі стрибком' });
-      await storage.settings.save(ladderConfig());
+      await storage.settings.save(fightConfig());
 
       expect(await storage.exercises.list()).toEqual([renamed, pullUps]);
-      expect(await storage.settings.get('ladder')).toEqual(ladderConfig());
+      expect(await storage.settings.get('fight')).toEqual(fightConfig());
       expect(server.requests.slice(requests)).toEqual([
         `PUT /api/v1/exercises/${pullUps.id}`,
         `PUT /api/v1/exercises/${burpees.id}`,
-        'PUT /api/v1/settings/ladder',
+        'PUT /api/v1/settings/fight',
       ]);
     });
 
     it('creates one guest when two writes start together', async () => {
       await Promise.all([
-        storage.settings.save(targetConfig()),
+        storage.settings.save(fightConfig()),
         storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' }),
       ]);
 
@@ -87,14 +87,14 @@ describe('storage over the API', () => {
 
     // The cookie is gone, for example because the browser cleared site data.
     it('starts over as a new guest when the server no longer knows the browser', async () => {
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       const first = await storage.account.current();
       server.clearCookie();
 
-      await storage.settings.save(ladderConfig());
+      await storage.settings.save(fightConfig());
 
       expect(await storage.account.current()).not.toEqual(first);
-      expect(await storage.settings.get('ladder')).toEqual(ladderConfig());
+      expect(await storage.settings.get('fight')).toEqual(fightConfig());
       expect(server.guests).toBe(2);
     });
   });
@@ -156,7 +156,7 @@ describe('storage over the API', () => {
 
     it('marks an attempt the server refuses and stops sending it', async () => {
       const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       server.failNext(422);
 
       await storage.attempts.save(attempt);
@@ -170,7 +170,7 @@ describe('storage over the API', () => {
 
     // A browser has one guest at a time: the attempts of the guest it lost belong to the next one.
     it('gives the attempts of a lost guest to the new one', async () => {
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
       server.online = false;
       await storage.attempts.save(attempt);
@@ -186,8 +186,8 @@ describe('storage over the API', () => {
 
     it('deletes the attempts waiting in the browser together with the data', async () => {
       const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
-      await storage.settings.save(targetConfig());
-      storage.gameSessions.fight.save(createSession(targetConfig(), testDeps()));
+      await storage.settings.save(fightConfig());
+      storage.gameSessions.fight.save(createSession(fightConfig(), testDeps()));
       server.failNext(503, 2);
       await storage.attempts.save(attempt);
       await storage.attempts.flush();
@@ -223,7 +223,7 @@ describe('storage over the API', () => {
 
     // A guest made just now has nothing on the server yet, so its first battle ends without the network.
     it('knows the record of a guest made just now', async () => {
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       server.online = false;
       await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
 
@@ -237,14 +237,14 @@ describe('storage over the API', () => {
     it('counts the battles of a browser that lost the network before it became a guest', async () => {
       await storage.attempts.game();
       server.online = false;
-      await expect(storage.settings.save(targetConfig())).rejects.toEqual(new StorageError('offline'));
+      await expect(storage.settings.save(fightConfig())).rejects.toEqual(new StorageError('offline'));
       await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
 
       expect((await storage.attempts.game()).passed).toEqual(['forest-ravens/1/1']);
     });
 
     it('needs the server once before it can count without it', async () => {
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       // The page opens again: the guest of the browser may have battles only the server knows.
       const reopened = createApiStorage({ fetch: server.fetch, buffer: createBrowserBuffer(null) });
       await reopened.account.current();
@@ -254,7 +254,7 @@ describe('storage over the API', () => {
     });
 
     it('does not take a failure of the server for a missing network', async () => {
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       await storage.attempts.game();
       server.failNext(500);
 
@@ -279,7 +279,7 @@ describe('storage over the API', () => {
       await storage.attempts.flush();
       await storage.attempts.game();
       await storage.account.deleteData();
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       server.online = false;
 
       expect((await storage.attempts.game()).passed).toEqual([]);
@@ -314,7 +314,7 @@ describe('storage over the API', () => {
     });
 
     it('sends the attempts of a guest to the account it became', async () => {
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       const attempt = await finishOffline();
 
       await signIn();
@@ -326,14 +326,14 @@ describe('storage over the API', () => {
     // The guest became the account, so its waiting attempts are the account's and wait for it.
     it('keeps the attempts of a guest that became the account for the account', async () => {
       vi.useFakeTimers();
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       const attempt = await finishOffline();
       await signIn();
       server.failNext(503);
       await storage.attempts.flush();
 
       await storage.account.signOut();
-      await storage.settings.save(ladderConfig());
+      await storage.settings.save(fightConfig());
       await storage.attempts.flush();
 
       expect(server.savedAttempts()).toEqual([]);
@@ -348,7 +348,7 @@ describe('storage over the API', () => {
       expect(await storage.attempts.unsent()).toBe(1);
 
       await storage.account.signOut();
-      await storage.settings.save(ladderConfig());
+      await storage.settings.save(fightConfig());
       await storage.attempts.flush();
 
       expect(server.savedAttempts()).toEqual([]);
@@ -366,12 +366,12 @@ describe('storage over the API', () => {
     it('gives the account the attempts of a guest that joined it', async () => {
       await signIn();
       await storage.account.signOut();
-      await storage.settings.save(ladderConfig());
+      await storage.settings.save(fightConfig());
       const attempt = await finishOffline();
       await signIn();
 
       await storage.account.signOut();
-      await storage.settings.save(targetConfig());
+      await storage.settings.save(fightConfig());
       await storage.attempts.flush();
 
       expect(server.savedAttempts()).toEqual([]);
@@ -418,7 +418,7 @@ describe('storage over the API', () => {
     // The next person on this browser does not continue the fight of the account.
     it('forgets the attempt in progress on signing out', async () => {
       await signIn();
-      storage.gameSessions.fight.save(createSession(targetConfig(), testDeps()));
+      storage.gameSessions.fight.save(createSession(fightConfig(), testDeps()));
 
       await storage.account.signOut();
 
@@ -477,7 +477,7 @@ describe('storage over the API', () => {
       await storage.account.current();
       failure();
 
-      await expect(storage.settings.save(targetConfig())).rejects.toEqual(new StorageError(code));
+      await expect(storage.settings.save(fightConfig())).rejects.toEqual(new StorageError(code));
     });
 
     it.each([
@@ -498,7 +498,7 @@ describe('storage over the API', () => {
         (s: GameStorage) => s.account.exportData(),
       ],
       ['an exercise without a name', '/api/v1/exercises', [{ id: 'a' }], (s: GameStorage) => s.exercises.list()],
-      ['settings as a list', '/api/v1/settings', [], (s: GameStorage) => s.settings.get('target')],
+      ['settings as a list', '/api/v1/settings', [], (s: GameStorage) => s.settings.get('fight')],
       ['a page without items', '/api/v1/attempts', { nextCursor: null }, (s: GameStorage) => s.attempts.list()],
       ['an attempt without an id', '/api/v1/attempts', { items: [{}], nextCursor: null }, (s: GameStorage) => s.attempts.list()],
       ['statistics without numbers', '/api/v1/stats', { total: '1' }, (s: GameStorage) => s.attempts.stats()],
@@ -537,13 +537,13 @@ describe('storage over the API', () => {
     const fetch = vi.fn(server.fetch);
     const tracked = createApiStorage({ fetch, buffer: createBrowserBuffer(null) });
 
-    await tracked.settings.save(ladderConfig());
+    await tracked.settings.save(fightConfig());
 
-    expect(fetch).toHaveBeenLastCalledWith('/api/v1/settings/ladder', {
+    expect(fetch).toHaveBeenLastCalledWith('/api/v1/settings/fight', {
       method: 'PUT',
       credentials: 'same-origin',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(ladderConfig()),
+      body: JSON.stringify(fightConfig()),
       signal: expect.any(AbortSignal) as AbortSignal,
     });
   });

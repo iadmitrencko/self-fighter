@@ -22,7 +22,7 @@ final class DoctrineUserTransactionTest extends KernelTestCase
     {
         $user = $this->service(SignUpGuest::class)()->user->id();
         $this->service(DeleteUser::class)($user);
-        $attempt = Documents::fight();
+        $attempt = Documents::target();
 
         try {
             $this->service(SaveAttempt::class)($user, AttemptId::fromString((string) $attempt['id']), json_encode($attempt, \JSON_THROW_ON_ERROR));

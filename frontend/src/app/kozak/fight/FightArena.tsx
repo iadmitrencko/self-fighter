@@ -1,119 +1,74 @@
-import { useMemo, useState } from 'react';
+import { createContext, use, useMemo, useState } from 'react';
 import { Outlet } from 'react-router';
-import type { WorkoutSession } from '../../../domain/engine/session';
-import type { WorkoutAttempt } from '../../../domain/history/attempt';
+import type { FightConfig } from '../../../domain/config/types';
+import { createSession } from '../../../domain/engine/session';
 import { enterBattle } from '../../../domain/kozak/battle';
 import { laterFullAt } from '../../../domain/kozak/energy';
-import { FIGHT_GLORY } from '../../../domain/kozak/glory';
-import { standingOf } from '../../../domain/kozak/ranks';
-import { battleTexts, fightHallTexts, rankNames, victoryTexts } from '../../../i18n/kozak';
-import { commonTexts } from '../../../i18n/uk';
-import { ArenaProvider, type Arena } from '../../arena';
 import { useGame } from '../../game';
-import { kozakPaths } from '../paths';
 import { WithCossack } from '../parts';
-import { useCossack, useFresh } from '../record';
+import { useCossack } from '../record';
+
+// Why a fight does not start: the pool of fights is empty, or another fight is in progress.
+export type FightRefusal = 'no-energy' | 'busy';
+
+interface FightStart {
+  // Starts the fight and keeps it in the browser, or says why it cannot start now.
+  readonly start: (config: FightConfig) => FightRefusal | null;
+}
+
+const FightStartContext = createContext<FightStart | null>(null);
 
 /**
- * §24.6: the fights of the game run the screens of a workout in the colors of the game. Every
- * start takes a unit of the energy of fights, a fight left in the middle is lost, and a win adds
- * glory to the cossack.
+ * §6, §24.4: the fights of the game. Every start takes a unit of the energy of fights, and one
+ * fight goes at a time, so its energy is never lost. The hall and the result start fights here.
  */
 export function FightArena() {
-  const { storage } = useGame();
+  const { storage, deps } = useGame();
   const { cossack } = useCossack();
-  // The record of the server learns of a battle a moment after it starts: until then the screen
+  // The record of the server learns of a fight a moment after it starts: until then the screen
   // remembers the energy it has spent itself.
   const [spent, setSpent] = useState<string | null>(null);
   const record = cossack.status === 'ready' ? cossack.value.record : null;
-  const arena = useMemo<Arena | null>(
+  const fights = useMemo<FightStart | null>(
     () =>
       record === null
         ? null
         : {
-            paths: {
-              modes: kozakPaths.fight,
-              setup: kozakPaths.fightSetup,
-              fight: kozakPaths.fightBattle,
-              result: kozakPaths.fightResult,
-              levelResult: kozakPaths.outcome,
-            },
-            back: {
-              modes: { to: kozakPaths.fight, text: fightHallTexts.toHall },
-              history: { to: kozakPaths.history, text: commonTexts.toHistory },
-            },
-            session: storage.gameSessions.fight,
-            leaving: {
-              button: battleTexts.retreatConfirm,
-              title: battleTexts.retreatTitle,
-              text: fightHallTexts.retreatText,
-              confirm: battleTexts.retreatConfirm,
-              cancel: battleTexts.keepGoing,
-            },
-            begin(session: WorkoutSession) {
-              // A fight in progress is finished or left first, so its energy is never lost.
+            start(config) {
               if (storage.gameSessions.fight.load() !== null) {
-                return null;
+                return 'busy';
               }
-              const marked = enterBattle(session, 'fight', laterFullAt(record.energy.fight, spent));
+              const session = enterBattle(createSession(config, deps), 'fight', laterFullAt(record.energy.fight, spent));
 
-              if (marked?.game != null) {
-                setSpent(marked.game.energyFullAt);
+              if (session === null) {
+                return 'no-energy';
               }
+              setSpent(session.game?.energyFullAt ?? null);
+              storage.gameSessions.fight.save(session);
 
-              return marked;
+              return null;
             },
-            refusal: (
-              <p className="notice notice--warning" role="alert">
-                {storage.gameSessions.fight.load() === null ? fightHallTexts.refusal : fightHallTexts.busy}
-              </p>
-            ),
-            resultNote: (attempt: WorkoutAttempt) => <FightGlory attempt={attempt} />,
           },
-    [record, storage, spent],
+    [record, storage, deps, spent],
   );
 
-  if (arena === null) {
+  if (fights === null) {
     return <WithCossack>{() => null}</WithCossack>;
   }
 
   return (
-    <ArenaProvider arena={arena}>
+    <FightStartContext value={fights}>
       <Outlet />
-    </ArenaProvider>
+    </FightStartContext>
   );
 }
 
-// §24.3: a fight of the game won adds glory, and the result says when it brings a new rank.
-function FightGlory({ attempt }: { attempt: WorkoutAttempt }) {
-  const { cossack, current } = useCossack();
-  const fresh = useFresh();
+export function useFightStart(): FightStart {
+  const fights = use(FightStartContext);
 
-  if (attempt.game === null) {
-    return null;
+  if (fights === null) {
+    throw new Error('A fight starts inside the FightArena.');
   }
-  const won = attempt.result.outcome === 'win';
-  const glory = cossack.status === 'ready' && current ? cossack.value.glory : null;
-  const promoted =
-    won && fresh && glory !== null && standingOf(glory - FIGHT_GLORY).rank.id !== standingOf(glory).rank.id
-      ? standingOf(glory).rank.id
-      : null;
 
-  return (
-    <div className={won ? 'k-glory-note k-glory-note--won' : 'k-glory-note'}>
-      {won ? (
-        <>
-          <p className="k-glory-note__value">{fightHallTexts.glory(FIGHT_GLORY)}</p>
-          <p className="k-glory-note__text">{fightHallTexts.gloryNote}</p>
-        </>
-      ) : (
-        <p className="k-glory-note__text">{fightHallTexts.noGlory}</p>
-      )}
-      {promoted !== null && (
-        <p className="k-glory-note__rank">
-          {victoryTexts.newRank}: <b>{rankNames[promoted]}</b>
-        </p>
-      )}
-    </div>
-  );
+  return fights;
 }

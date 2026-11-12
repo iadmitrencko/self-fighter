@@ -1,5 +1,5 @@
 import { exerciseNameKey } from '../domain/catalog/exercise';
-import { isCampaignSession, isWorkoutSession, type Session } from '../domain/engine/session';
+import { isCampaignSession, isFightSession, type Session } from '../domain/engine/session';
 import type { Attempt } from '../domain/history/attempt';
 import { computeStatistics } from '../domain/history/statistics';
 import { computeGameRecord } from '../domain/kozak/record';
@@ -275,7 +275,7 @@ export function createMemoryStorage(): MemoryStorage {
       unsent: () => Promise.resolve(0),
     },
     gameSessions: {
-      fight: sessionStore('fight', isWorkoutSession),
+      fight: sessionStore('fight', isFightSession),
       campaign: sessionStore('campaign', isCampaignSession),
     },
   };

@@ -1,6 +1,5 @@
 import { exerciseNameKey } from '../../domain/catalog/exercise';
-import type { Mode } from '../../domain/config/types';
-import type { Attempt } from '../../domain/history/attempt';
+import type { Attempt, AttemptMode } from '../../domain/history/attempt';
 import { computeStatistics } from '../../domain/history/statistics';
 import { computeGameRecord } from '../../domain/kozak/record';
 import type { Outcome } from '../../domain/results/results';
@@ -11,7 +10,8 @@ import { newId } from '../ids';
 import type { Fetch } from '../http';
 import type { TestGoogleAccount } from '../memory';
 
-const MODES: readonly string[] = ['target', 'random-opponent', 'opponent-levels', 'ladder'];
+// §6: the fight keeps the last settings of the player; the journey has none.
+const MODES: readonly string[] = ['fight'];
 
 interface User {
   readonly id: string;
@@ -173,7 +173,7 @@ export function createFakeServer(): FakeServer {
         if (id === undefined || !MODES.includes(id) || !isRecord(body) || body.mode !== id) {
           return reply(422, { error: 'invalid-settings' });
         }
-        user.settings = { ...user.settings, [id as Mode]: body };
+        user.settings = { ...user.settings, [id]: body };
 
         return reply(204);
       case 'GET attempts':
@@ -310,7 +310,7 @@ export function createFakeServer(): FakeServer {
 
 function filterOf(params: URLSearchParams): AttemptFilter {
   return {
-    mode: (params.get('mode') ?? undefined) as Mode | undefined,
+    mode: (params.get('mode') ?? undefined) as AttemptMode | undefined,
     outcome: (params.get('outcome') ?? undefined) as Outcome | undefined,
     from: params.get('from') ?? undefined,
     to: params.get('to') ?? undefined,

@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { createMemoryStorage } from '../../storage/memory';
-import { finishedAttempt, gameFight, levelAttempt } from '../../storage/testing/attempts';
+import { finishedAttempt, gameFight, levelAttempt, oldGameFight } from '../../storage/testing/attempts';
 import { renderKozak } from '../testing/render';
 
 describe('the cossack', () => {
@@ -63,7 +63,8 @@ describe('the cossack', () => {
     const storage = createMemoryStorage();
     await storage.attempts.save(finishedAttempt('win', '2026-10-30T08:00:00.000Z'));
     await storage.attempts.save(gameFight('win', '2026-10-30T08:10:00.000Z', '2026-10-30T10:10:00.000Z'));
-    await storage.attempts.save(gameFight('draw', '2026-10-30T08:20:00.000Z', '2026-10-30T12:10:00.000Z'));
+    // A fight of «Ціль» the game played before §6 could end in a draw.
+    await storage.attempts.save(oldGameFight('draw', '2026-10-30T08:20:00.000Z', '2026-10-30T12:10:00.000Z'));
     await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'loss', '2026-10-30T08:30:00.000Z', '2026-10-30T13:30:00.000Z'));
     await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'win', '2026-10-30T08:40:00.000Z', '2026-10-30T18:30:00.000Z'));
     renderKozak('/', { storage });

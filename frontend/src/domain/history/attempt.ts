@@ -1,64 +1,60 @@
 import type { ChallengeRef } from '../catalog/challenge';
-import type { CampaignConfig, FightConfig, FightMode, LadderConfig } from '../config/types';
+import type { CampaignConfig, FightConfig } from '../config/types';
 import {
   nextStageIndex,
   SCHEMA_VERSION,
   type CampaignSession,
   type FightSession,
   type GameMark,
-  type LadderSession,
   type Session,
-  type WorkoutSession,
 } from '../engine/session';
 import {
   computeCampaignResult,
   computeFightResult,
-  computeLadderResult,
   type CampaignResult,
   type FightResult,
-  type LadderResult,
 } from '../results/results';
+import { isLegacyMode, type LegacyAttempt } from './legacy';
 
-interface AttemptBase {
+export interface AttemptBase {
   readonly schemaVersion: typeof SCHEMA_VERSION;
   readonly id: string;
   readonly startedAt: string;
   readonly finishedAt: string;
   readonly durationMs: number;
+  // The ready-made challenge an attempt of the old site took (§21.3), or null.
   readonly challenge: ChallengeRef | null;
-  // null for a workout of the site (§24.4).
+  // The pool of energy a battle of the game took, or null for a workout of the old site (§24.4).
   readonly game: GameMark | null;
 }
 
+// §6: a fight of the game.
 export interface FightAttempt extends AttemptBase {
-  readonly mode: FightMode;
+  readonly mode: 'fight';
   readonly config: FightConfig;
   readonly result: FightResult;
 }
 
-export interface LadderAttempt extends AttemptBase {
-  readonly mode: 'ladder';
-  readonly config: LadderConfig;
-  readonly result: LadderResult;
-}
-
-// A level of the journey (§24.5): the game always marks it.
+// §24.5: a level of the journey.
 export interface CampaignAttempt extends AttemptBase {
   readonly mode: 'campaign';
   readonly config: CampaignConfig;
   readonly result: CampaignResult;
 }
 
-export type WorkoutAttempt = FightAttempt | LadderAttempt;
-export type Attempt = WorkoutAttempt | CampaignAttempt;
+export type BattleAttempt = FightAttempt | CampaignAttempt;
+export type Attempt = BattleAttempt | LegacyAttempt;
+export type AttemptMode = Attempt['mode'];
+
+export function isLegacy(attempt: Attempt): attempt is LegacyAttempt {
+  return isLegacyMode(attempt.mode);
+}
 
 export function finalize(session: FightSession, finishedAt: Date): FightAttempt;
-export function finalize(session: LadderSession, finishedAt: Date): LadderAttempt;
 export function finalize(session: CampaignSession, finishedAt: Date): CampaignAttempt;
-export function finalize(session: WorkoutSession, finishedAt: Date): WorkoutAttempt;
-export function finalize(session: Session, finishedAt: Date): Attempt;
+export function finalize(session: Session, finishedAt: Date): BattleAttempt;
 // The attempt keeps the id of the session, so saving it twice cannot create a second record.
-export function finalize(session: Session, finishedAt: Date): Attempt {
+export function finalize(session: Session, finishedAt: Date): BattleAttempt {
   if (nextStageIndex(session) !== null) {
     throw new Error(`Session ${session.id} is not finished`);
   }
@@ -68,18 +64,13 @@ export function finalize(session: Session, finishedAt: Date): Attempt {
     id: session.id,
     startedAt: session.startedAt,
     finishedAt: finishedAt.toISOString(),
-    // The device clock can move backwards during a workout.
+    // The device clock can move backwards during a battle.
     durationMs: Math.max(0, finishedAt.getTime() - Date.parse(session.startedAt)),
     challenge: session.challenge,
     game: session.game,
   };
 
-  switch (session.mode) {
-    case 'ladder':
-      return { ...base, mode: session.mode, config: session.config, result: computeLadderResult(session.stages) };
-    case 'campaign':
-      return { ...base, mode: session.mode, config: session.config, result: computeCampaignResult(session.stages) };
-    default:
-      return { ...base, mode: session.mode, config: session.config, result: computeFightResult(session.stages) };
-  }
+  return session.mode === 'campaign'
+    ? { ...base, mode: session.mode, config: session.config, result: computeCampaignResult(session.stages) }
+    : { ...base, mode: session.mode, config: session.config, result: computeFightResult(session.config, session.stages) };
 }

@@ -31,22 +31,23 @@ final readonly class JsonSchemaAttemptFormat implements AttemptFormat
     {
         $attempt = $this->read($json, self::URI);
 
-        // A tab opened before the release or an attempt that waited for the network still speaks
-        // version 2. It was a workout of the site, and the history keeps every attempt in one format.
-        return null !== $attempt && 2 === $attempt['schemaVersion']
-            ? ['schemaVersion' => self::VERSION, 'game' => null] + $attempt
-            : $attempt;
+        if (null === $attempt || self::VERSION === $attempt['schemaVersion']) {
+            return $attempt;
+        }
+
+        // A tab opened before the release or an attempt that waited for the network still speaks an
+        // older version, and the history keeps every attempt in one format. Version 2 knew no game:
+        // it was a workout of the site.
+        return ['schemaVersion' => self::VERSION] + (2 === $attempt['schemaVersion'] ? ['game' => null] : []) + $attempt;
     }
 
     public function readConfiguration(string $json, Mode $mode): ?array
     {
         $definition = match ($mode) {
-            Mode::Target => 'targetConfig',
-            Mode::RandomOpponent => 'randomOpponentConfig',
-            Mode::OpponentLevels => 'opponentLevelsConfig',
-            Mode::Ladder => 'ladderConfig',
-            // The journey sets its levels: the player keeps no settings for them (§24.5).
-            Mode::Campaign => null,
+            // §6: the last fight the player put together.
+            Mode::Fight => 'fightConfig',
+            // The journey sets its levels, and the old modes of the site start no more (§24.5, §24.6).
+            Mode::Campaign, Mode::Target, Mode::RandomOpponent, Mode::OpponentLevels, Mode::Ladder => null,
         };
 
         return null === $definition ? null : $this->read($json, self::URI.'#/definitions/'.$definition);

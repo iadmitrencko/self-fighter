@@ -312,10 +312,6 @@
   flex: none;
 }
 
-.k-button__icon--forward {
-  transform: rotate(180deg);
-}
-
 .k-back {
   display: inline-flex;
   align-items: center;
@@ -393,8 +389,7 @@
   line-height: 1.05;
 }
 
-.k-card__text,
-.k-card__note {
+.k-card__text {
   color: var(--k-ash);
   font-size: var(--text-s);
   line-height: 1.5;
@@ -1537,64 +1532,483 @@
 
 /* The fights */
 
+/* §6, resesign/Main.dc.html: the hall of fights, the grid of the fight beside its summary. */
+
 .k-hall__body {
   display: grid;
-  gap: var(--space-l);
+  gap: var(--space-xl);
   align-items: start;
 }
 
-.k-hall__side,
-.k-hall__main {
+.k-hall__main,
+.k-hall__side {
   display: flex;
   flex-direction: column;
   gap: var(--space-l);
   min-width: 0;
 }
 
+.k-hall__hint {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+/* The summary stays as narrow as in the mockup, so the grid gets the room. */
 @media (min-width: 64rem) {
   .k-hall__body {
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  }
-
-  .k-hall__side {
-    order: 2;
+    grid-template-columns: minmax(0, 1fr) 18.75rem;
+    gap: 1.75rem;
   }
 }
 
-.k-glory-note {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: var(--space-m);
+/* The grid: the exercises in the rows, the rounds in the columns, the sums on the right and below.
+   The rounds scroll sideways on a narrow screen while the exercises stay in place. */
+
+.k-grid {
+  padding: var(--space-xs);
   border: 1px solid var(--k-line);
   border-radius: var(--k-r-card);
-  background: var(--k-surface-2);
+  background: var(--k-surface);
 }
 
-.k-glory-note--won {
-  border-color: var(--k-line-active);
-  background: var(--k-badge-open-bg);
+/* Positioned, so the hidden labels of its cells stay inside and do not widen the page of a phone. */
+.k-grid__scroll {
+  position: relative;
+  overflow-x: auto;
+  border-radius: var(--k-r-btn);
 }
 
-.k-glory-note__value {
-  color: var(--k-gold-light);
-  font-size: 1.5rem;
+.k-grid__scroll:focus-visible {
+  outline: 2px solid var(--k-gold);
+  outline-offset: 2px;
+}
+
+.k-grid__table {
+  --k-grid-exercise: 11.5rem;
+  --k-grid-columns: var(--k-grid-exercise) repeat(var(--rounds), minmax(6.5rem, 1fr)) 3.5rem;
+
+  display: flex;
+  flex-direction: column;
+  min-width: calc(var(--k-grid-exercise) + var(--rounds) * 7rem + 4.5rem);
+}
+
+@media (min-width: 48rem) {
+  .k-grid__table {
+    --k-grid-exercise: 13.75rem;
+  }
+}
+
+.k-grid__row {
+  display: grid;
+  grid-template-columns: var(--k-grid-columns);
+  gap: var(--space-xs);
+  padding: 0.25rem var(--space-xs);
+}
+
+.k-grid__row--head {
+  padding-top: var(--space-xs);
+}
+
+.k-grid__row--foot {
+  padding-bottom: var(--space-xs);
+}
+
+.k-grid__corner,
+.k-grid__exercise,
+.k-grid__add--exercise {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.k-grid__corner {
+  display: flex;
+  align-items: flex-end;
+  padding: var(--space-xs) 0.625rem;
+  background: var(--k-surface);
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: var(--k-tracking-label);
+  text-transform: uppercase;
+}
+
+.k-grid__round {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 2.75rem;
+  padding: var(--space-xs) 0.25rem;
+  border-radius: var(--k-r-tile);
+  background: var(--k-surface-raised);
+  color: var(--k-parchment-dim);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: var(--k-tracking-label);
+}
+
+.k-grid__remove {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--k-ash);
+}
+
+.k-grid__remove:hover {
+  color: var(--k-ember);
+}
+
+.k-grid__remove-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.k-grid__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 1px dashed var(--k-line-strong);
+  border-radius: var(--k-r-tile);
+  background: var(--k-surface);
+  color: var(--k-gold);
   font-weight: 800;
 }
 
-.k-glory-note__text {
+.k-grid__add:hover:not(:disabled) {
+  border-color: var(--k-gold);
+  color: var(--k-gold-light);
+}
+
+.k-grid__add:disabled {
+  border-color: var(--k-line);
+  color: var(--k-disabled-text);
+  cursor: not-allowed;
+}
+
+.k-grid__add--exercise {
+  justify-content: flex-start;
+  min-height: 3.5rem;
+  padding: 0 0.875rem;
+  border-radius: var(--k-r-btn);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.k-grid__add-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+}
+
+.k-grid__exercise {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 4.5rem;
+  padding: 0 0.25rem 0 0.625rem;
+  border-radius: var(--k-r-btn);
+  background: var(--k-surface-raised);
+}
+
+.k-grid__index {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+/* A name breaks between its words; only a word longer than the column breaks inside. */
+.k-grid__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  overflow-wrap: break-word;
+}
+
+@media (min-width: 48rem) {
+  .k-grid__name {
+    font-size: 1rem;
+  }
+}
+
+.k-grid__total {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  font-weight: 800;
+}
+
+/* A cell: «−», the repetitions and «+». The steps stay quiet until the cell is touched. */
+
+.k-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  min-height: 4.5rem;
+  padding: 0 0.25rem;
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-btn);
+  background: var(--k-surface-2);
+}
+
+.k-cell__step {
+  width: 1.875rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--k-ash);
+  font-size: 1.125rem;
+}
+
+.k-cell__step:hover:not(:disabled) {
+  background: var(--k-surface-raised);
+  color: var(--k-parchment-bright);
+}
+
+.k-cell__step:disabled {
+  color: var(--k-disabled-text);
+  cursor: not-allowed;
+}
+
+.k-cell__value {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  line-height: 1;
+}
+
+.k-cell__input {
+  width: 3.25ch;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--k-parchment-bright);
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.k-cell__unit {
+  margin-top: 0.25rem;
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+/* The grid of a fight that has ended: every set done or not. */
+
+.k-grid--result .k-grid__exercise,
+.k-grid--result .k-cell {
+  min-height: 3.5rem;
+}
+
+.k-grid--result .k-cell {
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.k-cell--done {
+  border-color: var(--k-line-active);
+  background: var(--k-badge-open-bg);
+  color: var(--k-gold-light);
+}
+
+.k-cell--missed {
+  color: var(--k-ember-soft);
+}
+
+.k-cell__mark {
+  width: 1rem;
+  height: 1rem;
+}
+
+.k-cell__reps {
+  color: var(--k-parchment-bright);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+/* The summary of the fight: what it holds, how it is won and the way into it. */
+
+.k-summary {
+  gap: 1.125rem;
+  padding: 1.375rem;
+}
+
+.k-summary__title {
+  font-family: var(--k-font-display);
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.k-summary__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+  padding: 0;
+  list-style: none;
+}
+
+.k-summary__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.875rem 0.75rem;
+  border-radius: var(--k-r-btn);
+  background: var(--k-surface-raised);
+}
+
+.k-summary__stat b {
+  font-size: 1.625rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.k-summary__stat span {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-summary__stat--gold b {
+  color: var(--k-gold-light);
+}
+
+.k-summary__rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+.k-summary__rule {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.k-summary__rule dt {
+  min-width: 5.75rem;
+  color: var(--k-parchment-dim);
+  font-weight: 800;
+}
+
+.k-summary__rule dd {
+  margin: 0;
+  color: var(--k-parchment-dim);
+}
+
+.k-summary__rule--win dt {
+  color: var(--k-gold-light);
+}
+
+.k-summary__rule--loss dt {
+  color: var(--k-ember);
+}
+
+.k-summary__empty {
+  color: var(--k-ember-soft);
+  font-size: var(--text-s);
+}
+
+.k-summary__cost {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+/* The exercises of the catalog the fight does not have yet. */
+
+.k-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  padding: 0;
+  list-style: none;
+}
+
+.k-pick__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid var(--k-line-strong);
+  border-radius: var(--k-r-pill);
+  background: transparent;
+  color: var(--k-parchment);
+  font-weight: 800;
+}
+
+.k-pick__option:hover {
+  border-color: var(--k-gold);
+  color: var(--k-gold-light);
+}
+
+.k-pick__icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--k-gold);
+}
+
+/* How a fight ended */
+
+.k-fight-result {
+  gap: var(--space-l);
+}
+
+.k-fight-result__badge {
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  min-height: 1.875rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--k-gold-line);
+  border-radius: var(--k-r-pill);
+  background: var(--k-badge-veil);
+  color: var(--k-gold-light);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: var(--k-tracking-label);
+  text-transform: uppercase;
+}
+
+.k-fight-result__badge--muted {
+  border-color: var(--k-line-strong);
+  color: var(--k-ash);
+}
+
+.k-fight-result__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs) var(--space-m);
   color: var(--k-ash);
   font-size: var(--text-s);
 }
 
-.k-glory-note__rank {
-  color: var(--k-parchment);
-}
-
-.k-glory-note__rank b {
-  color: var(--k-gold-light);
-  font-family: var(--k-font-display);
-  font-size: 1.375rem;
+.k-fight-result .k-grid {
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
 }
 
 /* The journey: the cards of the campaigns */
@@ -2757,6 +3171,23 @@ button.k-marker::before {
   background: var(--k-stripes-current);
 }
 
+/* A long fight: one bar instead of segments too thin to tell apart. */
+.k-battle__bar {
+  flex: none;
+  height: 0.625rem;
+  margin-top: 1.125rem;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--k-segment);
+}
+
+.k-battle__bar-fill {
+  display: block;
+  width: var(--share);
+  height: 100%;
+  background: var(--k-gold);
+}
+
 .k-battle__count {
   display: flex;
   flex: none;
@@ -3144,7 +3575,6 @@ button.k-marker::before {
 /* The screens of a workout in the colors of the game: names in Cormorant, numbers in Manrope. */
 
 .kozak .screen-head__title,
-.kozak .fight-head__title,
 .kozak .result-hero__title,
 .kozak .ladder-result__title,
 .kozak .round-card__title,
@@ -3158,8 +3588,7 @@ button.k-marker::before {
   line-height: 1.1;
 }
 
-.kozak .screen-head__title,
-.kozak .fight-head__title {
+.kozak .screen-head__title {
   font-size: 2.25rem;
 }
 
@@ -3167,8 +3596,6 @@ button.k-marker::before {
   --font-display: var(--font-text);
 }
 
-.kozak .choices,
-.kozak .mode-guide,
 .kozak .card,
 .kozak .k-card {
   border-radius: var(--k-r-card);

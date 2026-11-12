@@ -7,7 +7,6 @@ namespace App\Site\Presentation\Http;
 use App\Shared\Application\GameContent;
 use App\Shared\Application\SignInMethods;
 use App\Shared\Domain\GameJourney;
-use App\Shared\Domain\GameModes;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -31,7 +30,6 @@ final class KozakShellController extends AbstractController
     #[Route('/game/history', name: 'kozak_history', methods: ['GET'])]
     #[Route('/game/settings', name: 'kozak_settings', methods: ['GET'])]
     #[Route('/game/fight', name: 'kozak_fight', methods: ['GET'])]
-    #[Route('/game/fight/setup/{mode}', name: 'kozak_fight_setup', requirements: ['mode' => GameModes::PATTERN], methods: ['GET'])]
     #[Route('/game/fight/battle', name: 'kozak_fight_battle', methods: ['GET'])]
     #[Route('/game/fight/result/{id}', name: 'kozak_fight_result', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     #[Route('/game/journey', name: 'kozak_journey', methods: ['GET'])]

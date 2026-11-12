@@ -17,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\EnumRequirement;
 
 /**
- * The last configuration of each mode, so the next workout starts from it.
+ * §6: the last fight the player put together, so the next one starts from it.
  */
 final readonly class SettingsController
 {
@@ -36,8 +36,8 @@ final readonly class SettingsController
         return Json::response((object) ($this->findSettings)($user));
     }
 
-    // The levels of the journey have no settings, so the address knows the modes of the site only.
-    #[Route('/api/v1/settings/{mode}', name: 'api_settings_save', methods: ['PUT'], requirements: ['mode' => new EnumRequirement([Mode::Target, Mode::RandomOpponent, Mode::OpponentLevels, Mode::Ladder])])]
+    // §6: the last fight the player put together. The journey sets its levels itself.
+    #[Route('/api/v1/settings/{mode}', name: 'api_settings_save', methods: ['PUT'], requirements: ['mode' => new EnumRequirement([Mode::Fight])])]
     public function save(Mode $mode, Request $request, UserId $user): Response
     {
         ($this->saveSettings)($user, $mode, JsonBody::read($request, self::MAX_BYTES));

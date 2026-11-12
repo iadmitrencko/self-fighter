@@ -15,11 +15,11 @@ describe('plural forms', () => {
   });
 
   it('agrees the rest of the words with numbers as well', () => {
-    expect([counts.exercises(3), counts.stages(9), counts.wins(1), counts.losses(5)]).toEqual([
+    expect([counts.exercises(3), counts.exercises(5), counts.workouts(1), counts.customExercises(2)]).toEqual([
       '3 вправи',
-      '9 етапів',
-      '1 перемога',
-      '5 поразок',
+      '5 вправ',
+      '1 тренування',
+      '2 власні вправи',
     ]);
   });
 });

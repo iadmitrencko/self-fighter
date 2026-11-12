@@ -1,16 +1,15 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { NavLink, Outlet, Route, Routes, useLocation, useParams } from 'react-router';
+import { NavLink, Outlet, Route, Routes, useLocation } from 'react-router';
 import { kozakTexts } from '../../i18n/kozak';
-import { ResultScreen } from '../screens/ResultScreen';
-import { SetupScreen } from '../setup/SetupScreen';
-import { WorkoutScreen } from '../workout/WorkoutScreen';
 import { ScrollToTop, SiteLinks } from '../components/routing';
 import { SignInOutcome, SignInPromptProvider } from '../components/SignIn';
 import { DataVersionContext } from '../data';
 import { GameProvider, type Game } from '../game';
 import { CossackScreen } from './CossackScreen';
 import { FightArena } from './fight/FightArena';
+import { FightBattle } from './fight/FightBattle';
 import { FightHall } from './fight/FightHall';
+import { FightResult } from './fight/FightResult';
 import { HistoryScreen } from './HistoryScreen';
 import { BattleScreen } from './journey/BattleScreen';
 import { CampaignScreen } from './journey/CampaignScreen';
@@ -19,7 +18,7 @@ import { JourneyScreen } from './journey/JourneyScreen';
 import { OutcomeScreen } from './journey/OutcomeScreen';
 import { PrepScreen } from './journey/PrepScreen';
 import { StageScreen } from './journey/StageScreen';
-import { isMode, KOZAK_BASE, kozakPaths } from './paths';
+import { KOZAK_BASE, kozakPaths } from './paths';
 import { KozakIcon, type KozakIconName } from './parts';
 import { RanksScreen } from './RanksScreen';
 import { SettingsScreen } from './SettingsScreen';
@@ -50,8 +49,9 @@ export function KozakApp({ game }: { game: Game }) {
 function KozakRoutes() {
   return (
     <Routes>
-      {/* The battle of a level covers the whole screen. */}
+      {/* A battle covers the whole screen. */}
       <Route path="journey/battle" element={<BattleScreen />} />
+      <Route path="fight/battle" element={<FightBattle />} />
       <Route element={<KozakLayout />}>
         <Route index element={<CossackScreen />} />
         <Route path="ranks" element={<RanksScreen />} />
@@ -59,9 +59,7 @@ function KozakRoutes() {
         <Route path="settings" element={<SettingsScreen />} />
         <Route path="fight" element={<FightArena />}>
           <Route index element={<FightHall />} />
-          <Route path="setup/:mode" element={<FightSetup />} />
-          <Route path="battle" element={<WorkoutScreen />} />
-          <Route path="result/:id" element={<ResultScreen />} />
+          <Route path="result/:id" element={<FightResult />} />
         </Route>
         <Route path="journey">
           <Route index element={<JourneyScreen />} />
@@ -74,12 +72,6 @@ function KozakRoutes() {
       </Route>
     </Routes>
   );
-}
-
-function FightSetup() {
-  const { mode } = useParams();
-
-  return isMode(mode) ? <SetupScreen key={mode} mode={mode} /> : <KozakNotFound />;
 }
 
 const SECTIONS: readonly { to: string; icon: KozakIconName; label: string; end: boolean }[] = [

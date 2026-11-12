@@ -14,7 +14,7 @@ final class AttemptControllerTest extends ApiTestCase
     public function testSavedAttemptCanBeReadBack(): void
     {
         $this->signUp();
-        $attempt = Documents::fight();
+        $attempt = Documents::target();
 
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
 
@@ -43,10 +43,10 @@ final class AttemptControllerTest extends ApiTestCase
     public function testOtherContentUnderSavedIdIsRefused(): void
     {
         $this->signUp();
-        $attempt = Documents::fight('win');
+        $attempt = Documents::target('win');
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
 
-        $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], Documents::fight('loss', overrides: ['id' => $attempt['id']]));
+        $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], Documents::target('loss', overrides: ['id' => $attempt['id']]));
 
         $this->assertError(409, 'conflict');
         $this->send('GET', '/api/v1/attempts/'.$attempt['id']);
@@ -56,7 +56,7 @@ final class AttemptControllerTest extends ApiTestCase
     public function testAttemptOfAnotherUserStaysOutOfReach(): void
     {
         $this->signUp();
-        $attempt = Documents::fight();
+        $attempt = Documents::target();
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
 
         $this->switchBrowser();
@@ -95,9 +95,10 @@ final class AttemptControllerTest extends ApiTestCase
      */
     public static function invalidAttempts(): iterable
     {
-        $fight = Documents::fight();
+        $fight = Documents::target();
         $config = Documents::targetConfig();
         $level = Documents::level();
+        $grid = Documents::fight();
 
         yield 'unknown field' => [[...$fight, 'rating' => 5]];
         yield 'missing result' => [array_diff_key($fight, ['result' => true])];
@@ -105,10 +106,10 @@ final class AttemptControllerTest extends ApiTestCase
         yield 'too many rounds' => [[...$fight, 'config' => [...$config, 'rounds' => 21]]];
         yield 'too many repetitions' => [[...$fight, 'config' => [...$config, 'exercises' => [['id' => 'push-ups', 'name' => 'Віджимання', 'targets' => [10_000]]]]]];
         yield 'empty exercise name' => [[...$fight, 'config' => [...$config, 'exercises' => [['id' => 'push-ups', 'name' => '', 'targets' => [10]]]]]];
-        yield 'unknown format version' => [[...$fight, 'schemaVersion' => 4]];
+        yield 'unknown format version' => [[...$fight, 'schemaVersion' => 5]];
         yield 'version 1 the API no longer takes' => [[...array_diff_key($fight, ['challenge' => true, 'game' => true]), 'schemaVersion' => 1]];
         yield 'no challenge' => [array_diff_key($fight, ['challenge' => true])];
-        yield 'version 3 without a game' => [array_diff_key($fight, ['game' => true])];
+        yield 'version 4 without a game' => [array_diff_key($fight, ['game' => true])];
         yield 'version 2 with a game' => [[...$fight, 'schemaVersion' => 2, 'game' => Documents::game()]];
         yield 'fight that took the energy of the journey' => [[...$fight, 'game' => Documents::game('campaign')]];
         yield 'game without the time its energy is full' => [[...$fight, 'game' => ['pool' => 'fight']]];
@@ -116,6 +117,14 @@ final class AttemptControllerTest extends ApiTestCase
         yield 'level that took the energy of fights' => [[...$level, 'game' => Documents::game('fight')]];
         yield 'level with a challenge' => [[...$level, 'challenge' => Documents::challenge('100-pull-ups')]];
         yield 'level of version 2' => [[...array_diff_key($level, ['game' => true]), 'schemaVersion' => 2]];
+        // §6: a fight put together freely is a battle of the game of version 4, won or lost.
+        yield 'fight outside the game' => [[...$grid, 'game' => null]];
+        yield 'fight put together that took the energy of the journey' => [[...$grid, 'game' => Documents::game('campaign')]];
+        yield 'fight of version 3' => [[...$grid, 'schemaVersion' => 3]];
+        yield 'fight with a challenge' => [[...$grid, 'challenge' => Documents::challenge('100-push-ups')]];
+        yield 'fight with a draw' => [[...$grid, 'result' => [...$grid['result'], 'outcome' => 'draw']]];
+        yield 'fight with a set of nothing' => [[...$grid, 'config' => ['mode' => 'fight', 'exercises' => [['id' => 'squats', 'name' => 'Присідання', 'sets' => [0]]]]]];
+        yield 'fight of eleven rounds' => [[...$grid, 'config' => ['mode' => 'fight', 'exercises' => [['id' => 'squats', 'name' => 'Присідання', 'sets' => array_fill(0, 11, 5)]]]]];
         yield 'level with a strange address' => [[...$level, 'config' => [...$level['config'], 'level' => 'Forest ravens/1/1']]];
         yield 'level without sets' => [[...$level, 'config' => [...$level['config'], 'sets' => []]]];
         yield 'set without repetitions' => [[...$level, 'config' => [...$level['config'], 'sets' => [0]]]];
@@ -127,12 +136,12 @@ final class AttemptControllerTest extends ApiTestCase
         yield 'date that does not exist' => [[...$fight, 'finishedAt' => '2026-02-30T10:00:00.000Z']];
     }
 
-    // Section 3.7 of the plan: a tab opened before the release still sends version 2, and the
-    // history keeps it as version 3 of a workout of the site.
+    // Section 3.7 of the plan: a tab opened before the release still sends version 2 or 3, and the
+    // history keeps it as version 4; version 2 knew no game and was a workout of the site.
     public function testAttemptOfThePreviousVersionIsUpgraded(): void
     {
         $this->signUp();
-        $previous = [...array_diff_key(Documents::fight(), ['game' => true]), 'schemaVersion' => 2];
+        $previous = [...array_diff_key(Documents::target(), ['game' => true]), 'schemaVersion' => 2];
 
         $this->send('PUT', '/api/v1/attempts/'.$previous['id'], $previous);
 
@@ -144,17 +153,24 @@ final class AttemptControllerTest extends ApiTestCase
 
         $this->send('GET', '/api/v1/attempts/'.$previous['id']);
 
-        self::assertEquals([...$previous, 'schemaVersion' => 3, 'game' => null], $this->responseData());
+        self::assertEquals([...$previous, 'schemaVersion' => 4, 'game' => null], $this->responseData());
+
+        $three = Documents::ladder(overrides: ['schemaVersion' => 3, 'game' => Documents::game()]);
+        $this->send('PUT', '/api/v1/attempts/'.$three['id'], $three);
+        $this->send('GET', '/api/v1/attempts/'.$three['id']);
+
+        self::assertEquals([...$three, 'schemaVersion' => 4], $this->responseData());
     }
 
     // §24: a fight of the game and a level of the journey are attempts of the history as well.
     public function testBattlesOfTheGameAreSaved(): void
     {
         $this->signUp();
-        $fight = Documents::fight(overrides: ['game' => Documents::game()]);
+        $fight = Documents::fight('loss');
+        $oldFight = Documents::target(overrides: ['game' => Documents::game()]);
         $level = Documents::level('forest-ravens/10/7', 'loss', sets: [1, 2, 3, 2, 1]);
 
-        foreach ([$fight, $level] as $attempt) {
+        foreach ([$fight, $oldFight, $level] as $attempt) {
             $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
             self::assertResponseStatusCodeSame(201);
 
@@ -164,6 +180,9 @@ final class AttemptControllerTest extends ApiTestCase
 
         $this->send('GET', '/api/v1/attempts?mode=campaign');
         self::assertSame([$level['id']], array_column($this->listedItems(), 'id'));
+
+        $this->send('GET', '/api/v1/attempts?mode=fight');
+        self::assertSame([$fight['id']], array_column($this->listedItems(), 'id'));
     }
 
     // §24: the game counts its own battles only, and the levels won once each.
@@ -171,10 +190,12 @@ final class AttemptControllerTest extends ApiTestCase
     {
         $this->signUp();
         $attempts = [
-            Documents::fight('win'),
-            Documents::fight('win', overrides: ['game' => Documents::game('fight', '2026-11-02T14:00:00.000Z')]),
-            Documents::fight('draw', overrides: ['game' => Documents::game('fight', '2026-11-02T16:00:00.000Z')]),
+            Documents::target('win'),
+            Documents::target('win', overrides: ['game' => Documents::game('fight', '2026-11-02T14:00:00.000Z')]),
+            Documents::target('draw', overrides: ['game' => Documents::game('fight', '2026-11-02T16:00:00.000Z')]),
             Documents::ladder('loss', overrides: ['game' => Documents::game('fight', '2026-11-02T12:00:00.000Z')]),
+            Documents::fight('win', '2026-11-02T10:30:00.000Z', '2026-11-02T13:00:00.000Z'),
+            Documents::fight('loss', '2026-11-02T10:40:00.000Z', '2026-11-02T15:00:00.000Z'),
             Documents::level('forest-ravens/1/2', 'loss', '2026-11-02T15:00:00.000Z'),
             Documents::level('forest-ravens/1/2', 'win', '2026-11-02T20:00:00.000Z'),
             Documents::level('forest-ravens/1/1', 'win', '2026-11-02T10:05:00.000Z'),
@@ -187,7 +208,7 @@ final class AttemptControllerTest extends ApiTestCase
 
         $this->send('GET', '/api/v1/game');
         self::assertSame([
-            'fights' => ['wins' => 1, 'draws' => 1, 'losses' => 1],
+            'fights' => ['wins' => 2, 'draws' => 1, 'losses' => 2],
             'campaign' => ['wins' => 3, 'draws' => 0, 'losses' => 1],
             'passed' => ['forest-ravens/1/1', 'forest-ravens/1/2'],
             'energy' => ['fight' => '2026-11-02T16:00:00.000Z', 'campaign' => '2026-11-02T20:00:00.000Z'],
@@ -195,13 +216,13 @@ final class AttemptControllerTest extends ApiTestCase
 
         // The history still counts every attempt, the workouts of the site included.
         $this->send('GET', '/api/v1/stats');
-        self::assertSame(['total' => 8, 'wins' => 5, 'draws' => 1, 'losses' => 2], $this->responseData());
+        self::assertSame(['total' => 10, 'wins' => 6, 'draws' => 1, 'losses' => 3], $this->responseData());
     }
 
     public function testGameRecordStartsEmpty(): void
     {
         $this->signUp();
-        $this->send('PUT', '/api/v1/attempts/'.($fight = Documents::fight())['id'], $fight);
+        $this->send('PUT', '/api/v1/attempts/'.($fight = Documents::target())['id'], $fight);
 
         $this->send('GET', '/api/v1/game');
 
@@ -228,7 +249,7 @@ final class AttemptControllerTest extends ApiTestCase
     {
         $this->signUp();
 
-        $this->send('PUT', '/api/v1/attempts/'.AttemptId::generate(), Documents::fight());
+        $this->send('PUT', '/api/v1/attempts/'.AttemptId::generate(), Documents::target());
 
         $this->assertError(422, 'invalid-attempt');
     }
@@ -239,7 +260,7 @@ final class AttemptControllerTest extends ApiTestCase
         $ids = [];
 
         foreach (['09', '10', '11', '12', '13'] as $hour) {
-            $attempt = Documents::fight(finishedAt: \sprintf('2026-11-02T%s:00:00.000Z', $hour));
+            $attempt = Documents::target(finishedAt: \sprintf('2026-11-02T%s:00:00.000Z', $hour));
             $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
             $ids[] = $attempt['id'];
         }
@@ -265,7 +286,7 @@ final class AttemptControllerTest extends ApiTestCase
         $ids = [];
 
         for ($attempt = 1; $attempt <= 3; ++$attempt) {
-            $document = Documents::fight(finishedAt: \sprintf('2026-11-02T10:00:00.%03dZ', $attempt));
+            $document = Documents::target(finishedAt: \sprintf('2026-11-02T10:00:00.%03dZ', $attempt));
             $this->send('PUT', '/api/v1/attempts/'.$document['id'], $document);
             $ids[] = $document['id'];
         }
@@ -283,8 +304,8 @@ final class AttemptControllerTest extends ApiTestCase
     public function testHistoryFilters(): void
     {
         $this->signUp();
-        $morningWin = Documents::fight('win', '2026-11-01T08:00:00.000Z');
-        $eveningLoss = Documents::fight('loss', '2026-11-01T20:00:00.000Z');
+        $morningWin = Documents::target('win', '2026-11-01T08:00:00.000Z');
+        $eveningLoss = Documents::target('loss', '2026-11-01T20:00:00.000Z');
         $ladder = Documents::ladder('win', '2026-11-02T08:00:00.000Z');
 
         foreach ([$morningWin, $eveningLoss, $ladder] as $attempt) {
@@ -337,7 +358,7 @@ final class AttemptControllerTest extends ApiTestCase
     {
         $this->signUp();
 
-        foreach ([Documents::fight('win'), Documents::fight('draw'), Documents::fight('loss'), Documents::ladder('win')] as $attempt) {
+        foreach ([Documents::target('win'), Documents::target('draw'), Documents::target('loss'), Documents::ladder('win')] as $attempt) {
             $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
         }
 
@@ -353,7 +374,7 @@ final class AttemptControllerTest extends ApiTestCase
     {
         $this->signUp();
         $attempts = [
-            Documents::fight('win', overrides: ['challenge' => Documents::challenge('100-squats')]),
+            Documents::target('win', overrides: ['challenge' => Documents::challenge('100-squats')]),
             Documents::ladder('loss', overrides: ['challenge' => Documents::challenge('pull-ups-ladder-to-3')]),
         ];
 
@@ -368,7 +389,7 @@ final class AttemptControllerTest extends ApiTestCase
     public function testWritesOfOneUserAreLimited(): void
     {
         $this->exhaustLimit('api_write', $this->signUp());
-        $attempt = Documents::fight();
+        $attempt = Documents::target();
 
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
 

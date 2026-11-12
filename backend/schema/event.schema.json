@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "An analytics event",
-  "description": "The fields an event of §19 may carry, nothing else: no time, no address, no user. The server adds the time and takes the user from the device cookie. Stage 8 of the plan.",
+  "description": "The fields an event of §19 may carry, nothing else: no time, no address, no user. The server adds the time and takes the user from the device cookie. A fight of the game (§6) sends the mode fight; the old modes and setup_error come from tabs opened before it. Stage 8 of the plan.",
   "oneOf": [
     {
       "type": "object",
@@ -39,6 +39,6 @@
     }
   ],
   "definitions": {
-    "mode": { "enum": ["target", "random-opponent", "opponent-levels", "ladder"] }
+    "mode": { "enum": ["fight", "target", "random-opponent", "opponent-levels", "ladder"] }
   }
 }

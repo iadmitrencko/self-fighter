@@ -1,8 +1,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "A finished attempt, format version 3",
-  "description": "The structure and limits of an attempt; the game rules stay in frontend/src/domain. Version 3 marks the battles of the game and adds the levels of its journey (§24). The API also accepts version 2, which knows no game, and stores it as version 3 of a workout of the site. Section 3.7 of the plan.",
+  "title": "A finished attempt, format version 4",
+  "description": "The structure and limits of an attempt; the game rules stay in frontend/src/domain. Version 4 puts a fight of the game together freely from exercises and rounds (§6); the old modes of the site stay readable for the attempts the history keeps. Version 3 marked the battles of the game and added the levels of its journey (§24). The API also accepts versions 2 and 3 and stores them as version 4; version 2 knows no game and becomes a workout of the site. Section 3.7 of the plan.",
   "oneOf": [
+    { "$ref": "#/definitions/fightAttempt" },
     { "$ref": "#/definitions/targetAttempt" },
     { "$ref": "#/definitions/randomOpponentAttempt" },
     { "$ref": "#/definitions/opponentLevelsAttempt" },
@@ -18,7 +19,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [2, 3] },
+        "schemaVersion": { "enum": [2, 3, 4] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -35,7 +36,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [2, 3] },
+        "schemaVersion": { "enum": [2, 3, 4] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -52,7 +53,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [2, 3] },
+        "schemaVersion": { "enum": [2, 3, 4] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -69,7 +70,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [2, 3] },
+        "schemaVersion": { "enum": [2, 3, 4] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -81,13 +82,31 @@
         "result": { "$ref": "#/definitions/ladderResult" }
       }
     },
+    "fightAttempt": {
+      "description": "Version 4: a fight of the game the player puts together (§6). It always takes the energy of fights and no ready-made challenge.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "game", "mode", "config", "result"],
+      "properties": {
+        "schemaVersion": { "enum": [4] },
+        "id": { "$ref": "#/definitions/attemptId" },
+        "startedAt": { "$ref": "#/definitions/instant" },
+        "finishedAt": { "$ref": "#/definitions/instant" },
+        "durationMs": { "$ref": "#/definitions/duration" },
+        "challenge": { "type": "null" },
+        "game": { "$ref": "#/definitions/fightBattleGame" },
+        "mode": { "enum": ["fight"] },
+        "config": { "$ref": "#/definitions/fightConfig" },
+        "result": { "$ref": "#/definitions/fightGridResult" }
+      }
+    },
     "campaignAttempt": {
       "description": "Version 3: a level of the journey of the game (§24.5). It takes no ready-made challenge of the site.",
       "type": "object",
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "game", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [3] },
+        "schemaVersion": { "enum": [3, 4] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -100,6 +119,35 @@
       }
     },
 
+    "fightConfig": {
+      "description": "Version 4: the exercises of a fight with the repetitions of every round; every exercise has as many rounds (§6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "exercises"],
+      "properties": {
+        "mode": { "enum": ["fight"] },
+        "exercises": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "sets"],
+            "properties": {
+              "id": { "$ref": "#/definitions/exerciseId" },
+              "name": { "$ref": "#/definitions/exerciseName" },
+              "sets": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10,
+                "items": { "$ref": "#/definitions/fightReps" }
+              }
+            }
+          }
+        }
+      }
+    },
     "targetConfig": {
       "type": "object",
       "additionalProperties": false,
@@ -211,7 +259,45 @@
       }
     },
 
+    "fightGridResult": {
+      "description": "Version 4: every set of a fight, done or not. The fight is won when every set is done (§6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exercises", "outcome"],
+      "properties": {
+        "exercises": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["exercise", "sets"],
+            "properties": {
+              "exercise": { "$ref": "#/definitions/exercise" },
+              "sets": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10,
+                "items": { "$ref": "#/definitions/fightSetResult" }
+              }
+            }
+          }
+        },
+        "outcome": { "$ref": "#/definitions/decisiveOutcome" }
+      }
+    },
+    "fightSetResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "done"],
+      "properties": {
+        "target": { "$ref": "#/definitions/fightReps" },
+        "done": { "type": "boolean" }
+      }
+    },
     "fightResult": {
+      "description": "Versions 2 and 3: the rounds of the old modes against a goal or an opponent.",
       "type": "object",
       "additionalProperties": false,
       "required": ["rounds", "won", "drawn", "lost", "outcome"],
@@ -334,6 +420,16 @@
         }
       ]
     },
+    "fightBattleGame": {
+      "description": "Version 4: a fight of the game always takes the energy of fights (§24.4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pool", "energyFullAt"],
+      "properties": {
+        "pool": { "enum": ["fight"] },
+        "energyFullAt": { "$ref": "#/definitions/instant" }
+      }
+    },
     "campaignGame": {
       "description": "Version 3: a level of the journey always takes the energy of the journey (§24.4).",
       "type": "object",
@@ -384,6 +480,7 @@
     "opponentBound": { "type": "integer", "minimum": 1, "maximum": 100 },
     "ladderStep": { "type": "integer", "minimum": 1, "maximum": 100 },
     "setReps": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "fightReps": { "type": "integer", "minimum": 1, "maximum": 999 },
     "outcome": { "enum": ["win", "draw", "loss"] },
     "decisiveOutcome": { "enum": ["win", "loss"] }
   }

@@ -167,23 +167,88 @@ export function formatWait(ms: number): string {
   return [hours > 0 ? `${hours} год` : null, rest > 0 ? `${rest} хв` : null].filter(Boolean).join(' ');
 }
 
+// §6, resesign/Main.dc.html: the fight as the player puts it together, exercises by rounds.
 export const fightHallTexts = {
   eyebrow: 'Бій',
   title: 'Бій',
-  lead: 'Ті самі режими, що й у тренуванні, але кожен бій забирає одиницю енергії боїв, а перемога додає козакові +1 славу.',
-  next: 'До налаштування бою',
+  lead: 'Склади свій бій: вправи ліворуч, раунди праворуч. Виконай кожну клітинку — і перемога твоя.',
+  grid: 'Сітка бою',
+  exercise: 'Вправа',
+  // «Р» for «раунд» in the head of a column; a screen reader hears the whole word.
+  round: (round: number) => `Р${round}`,
+  roundName: (round: number) => `Раунд ${round}`,
+  reps: 'повт.',
+  cell: (exercise: string, round: number) => `${exercise}, раунд ${round}`,
+  less: (exercise: string, round: number) => `Менше: ${exercise}, раунд ${round}`,
+  more: (exercise: string, round: number) => `Більше: ${exercise}, раунд ${round}`,
+  addRound: 'Додати раунд',
+  removeRound: (round: number) => `Прибрати раунд ${round}`,
+  addExercise: 'Додати вправу',
+  removeExercise: (exercise: string) => `Прибрати вправу ${exercise}`,
+  exerciseTotal: (exercise: string) => `Разом ${exercise}`,
+  roundTotal: (round: number) => `Разом за раунд ${round}`,
+  hint: 'Порада: натисни «+» / «−» у клітинці, щоб змінити кількість повторів. Справа — сума по вправі, знизу — по раунду.',
+  customFailed: 'Не вдалося завантажити твої вправи, доступні лише готові.',
+  pickTitle: 'Додати вправу',
+  pickNone: 'Усі вправи каталогу вже в бою. Додай власну.',
+  custom: 'Власна вправа',
+  manage: 'Мої вправи',
+  summary: 'Твій бій',
+  exercises: (count: number) => plural(count, { one: 'вправа', few: 'вправи', many: 'вправ' }),
+  rounds: (count: number) => plural(count, { one: 'раунд', few: 'раунди', many: 'раундів' }),
+  repsTotal: (count: number) => plural(count, { one: 'повтор', few: 'повтори', many: 'повторів' }),
+  win: 'Перемога',
+  winRule: (cells: number) =>
+    cells === 1
+      ? 'Виконано єдину клітинку.'
+      : plural(cells, { one: 'Виконано всі {n} клітинку.', few: 'Виконано всі {n} клітинки.', many: 'Виконано всі {n} клітинок.' }),
+  loss: 'Поразка',
+  lossRule: 'Хоч одна клітинка не виконана.',
+  reward: 'Нагорода',
+  rewardRule: '+1 слава козаку',
+  empty: 'Додай хоча б одну вправу.',
+  start: 'До бою',
+  cost: '· −1 енергія',
   noEnergy: 'Енергія боїв вичерпалася',
   resumeTitle: 'Незавершений бій',
-  resumeProgress: (mode: string, done: number, total: number) => `${mode} · пройдено ${done} з ${total} етапів`,
+  resumeProgress: (done: number, total: number) => `Виконано ${done} з ${total} підходів`,
   resume: 'Продовжити бій',
-  retreatText: 'Етапи, що лишилися, підуть суперникові, а витрачена енергія не повернеться. У рахунку козака це, найпевніше, поразка.',
   refusal: 'Енергії для бою немає. Відпочинь: вона відновиться сама.',
   busy: 'У тебе є незавершений бій. Продовж його або відступи, а тоді починай новий.',
-  glory: (glory: number) => `+${glory} слава`,
+};
+
+// The fight itself, set by set, on the screen of a battle (§6).
+export const fightBattleTexts = {
+  title: 'Бій',
+  subtitle: (exercises: number, rounds: number) =>
+    `${plural(exercises, { one: '{n} вправа', few: '{n} вправи', many: '{n} вправ' })} · ${plural(rounds, { one: '{n} раунд', few: '{n} раунди', many: '{n} раундів' })}`,
+  round: 'Раунд',
+  retreatText: 'Підходи, що лишилися, не буде виконано, а витрачена енергія не повернеться. У рахунку козака це поразка.',
+};
+
+// How a fight ended (§6, §24.3).
+export const fightResultTexts = {
+  winBadge: 'Перемога',
+  winTitle: 'Бій виграно',
+  winText: 'Усі підходи виконано.',
+  lossBadge: 'Поразка',
+  lossTitle: 'Бій програно',
+  lossText: 'Не всі підходи виконано. Енергія відновиться, і можна спробувати знову.',
+  sets: 'Підходів',
+  reps: 'Повторень',
+  glory: 'Слава',
+  setsOf: (done: number, total: number) => `${done} з ${total}`,
+  grid: 'Підходи бою',
+  done: 'виконано',
+  notDone: 'не виконано',
   gloryNote: 'Перемога в бою додає козакові славу.',
-  noGlory: 'Слава приходить лише з перемогою. Енергія відновиться, і можна спробувати знову.',
-  toHall: 'До вибору бою',
+  noGlory: 'Слава приходить лише з перемогою.',
+  repeat: 'Повторити',
+  repeatCost: '· −1 енергія',
+  newFight: 'Новий бій',
   history: 'Історія',
+  // An attempt of a mode the site had before §6: the history keeps it as it was.
+  legacyNote: 'Це бій старого режиму сайту: його вже не повторити, але можна скласти новий.',
 };
 
 export const journeyTexts = {

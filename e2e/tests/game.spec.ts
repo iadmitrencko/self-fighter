@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { enter, expectAccessible, field } from './helpers';
+import { expectAccessible, finishSets } from './helpers';
 
 interface GameRecord {
   fights: { wins: number; draws: number; losses: number };
@@ -94,21 +94,28 @@ test('a retreat from a level is a defeat', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Спробувати ще раз' })).toBeVisible();
 });
 
-// §24.6: a fight of the game is a workout of the site that takes energy and brings glory.
+// §6, §24.6: a fight is put together freely, takes energy and brings glory.
 test('a fight of the game spends energy and brings glory', async ({ page }) => {
   await page.goto('/game/fight');
   await expect(page.getByRole('heading', { level: 1, name: 'Бій' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Віджимання, раунд 1' })).toHaveValue('10');
   await expectAccessible(page);
-  await page.getByRole('radio', { name: 'Драбина' }).check();
-  await page.getByRole('link', { name: 'До налаштування бою' }).click();
 
-  await page.getByRole('radio', { name: 'Підтягування' }).check();
-  await field(page, /Максимум драбини/).fill('1');
-  await page.getByRole('button', { name: 'Почати драбину' }).click();
-  await enter(page, 1, 'Зафіксувати етап');
+  await page.getByRole('button', { name: 'Прибрати вправу Присідання' }).click();
+  await page.getByRole('button', { name: 'Прибрати раунд 3' }).click();
+  await page.getByRole('button', { name: 'Прибрати раунд 2' }).click();
+  await page.getByRole('button', { name: 'Більше: Віджимання, раунд 1' }).click();
+  await expect(page.getByRole('textbox', { name: 'Віджимання, раунд 1' })).toHaveValue('11');
+  await expect(page.getByRole('region', { name: 'Твій бій' }).getByText('Виконано єдину клітинку.')).toBeVisible();
+  await page.getByRole('button', { name: /^До бою/ }).click();
 
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('▲ Перемога');
-  await expect(page.getByText('+1 слава')).toBeVisible();
+  const battle = page.getByRole('dialog', { name: 'Бій' });
+  await expect(battle.getByText('1 вправа · 1 раунд')).toBeVisible();
+  await expectAccessible(page);
+  await finishSets(page);
+
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Бій виграно');
+  await expect(page.getByText('+1', { exact: true })).toBeVisible();
   await expectAccessible(page);
   await expect.poll(async () => (await gameRecord(page))?.fights).toEqual({ wins: 1, draws: 0, losses: 0 });
 });

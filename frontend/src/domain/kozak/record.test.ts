@@ -1,24 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { campaignAttempt, fightAttempt, ladderConfig, play, STARTED_AT, testDeps } from '../testing/fixtures';
-import { createSession } from '../engine/session';
-import { finalize } from '../history/attempt';
+import { campaignAttempt, fightAttempt, fightGame, legacyLadderAttempt, legacyTargetAttempt } from '../testing/fixtures';
 import { addGameRecords, computeGameRecord, EMPTY_RECORD, totalTally, type GameRecord } from './record';
-
-const fight = (energyFullAt: string) => ({ pool: 'fight' as const, energyFullAt });
 
 describe('the record of the game', () => {
   it('is empty before the first battle', () => {
     expect(computeGameRecord([])).toEqual(EMPTY_RECORD);
   });
 
-  // §24.6: the workouts of the site stay out of the game.
+  // §24.6: the workouts of the old site stay out of the game; its old fights count, a draw too.
   it('counts the battles of the game only', () => {
     const record = computeGameRecord([
-      fightAttempt('win'),
-      fightAttempt('win', fight('2026-10-30T12:00:00.000Z')),
-      fightAttempt('draw', fight('2026-10-30T16:00:00.000Z')),
-      fightAttempt('loss', fight('2026-10-30T14:00:00.000Z')),
-      { ...finalize(play(createSession(ladderConfig(), testDeps()), () => 0), STARTED_AT), game: fight('2026-10-30T13:00:00.000Z') },
+      legacyTargetAttempt('win'),
+      fightAttempt('win', fightGame('2026-10-30T12:00:00.000Z')),
+      legacyTargetAttempt('draw', { game: fightGame('2026-10-30T16:00:00.000Z') }),
+      fightAttempt('loss', fightGame('2026-10-30T14:00:00.000Z')),
+      legacyLadderAttempt('loss', { game: fightGame('2026-10-30T13:00:00.000Z') }),
       campaignAttempt('forest-ravens/1/1', 'win', '2026-10-30T15:00:00.000Z'),
       campaignAttempt('forest-ravens/1/2', 'loss', '2026-10-30T20:00:00.000Z'),
       campaignAttempt('forest-ravens/1/2', 'win', '2026-10-31T01:00:00.000Z'),

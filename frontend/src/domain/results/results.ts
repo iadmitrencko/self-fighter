@@ -1,120 +1,54 @@
 import type { ExerciseRef } from '../catalog/exercise';
-import { stagePassed, type FightStage, type Stage } from '../engine/rules';
+import type { FightConfig } from '../config/types';
+import type { FightStage, SetStage } from '../engine/session';
 
-// These results are separate on purpose and must not be mixed (§4.5).
+// A battle is won or lost. The attempts of the old modes of the site could also end in a draw,
+// and the history still counts them (§14.2).
 export type Outcome = 'win' | 'draw' | 'loss';
-export type RoundOutcome = Outcome;
-export type FightOutcome = Outcome;
-export type ExerciseOutcome = Exclude<Outcome, 'draw'>;
-export type LadderOutcome = Exclude<Outcome, 'draw'>;
-export type CampaignOutcome = Exclude<Outcome, 'draw'>;
+export type BattleOutcome = Exclude<Outcome, 'draw'>;
 
-export interface ExerciseResult {
-  readonly exercise: ExerciseRef;
-  readonly target: number;
-  readonly actual: number;
-  readonly outcome: ExerciseOutcome;
-}
-
-export interface RoundResult {
-  readonly exercises: readonly ExerciseResult[];
-  readonly won: number;
-  readonly lost: number;
-  readonly outcome: RoundOutcome;
-}
-
-export interface FightResult {
-  readonly rounds: readonly RoundResult[];
-  readonly won: number;
-  readonly drawn: number;
-  readonly lost: number;
-  readonly outcome: FightOutcome;
-}
-
-export interface LadderStageResult {
-  readonly target: number;
-  readonly actual: number | null;
-  readonly passed: boolean;
-}
-
-export interface LadderResult {
-  readonly stages: readonly LadderStageResult[];
-  readonly maxPassed: number;
-  readonly passedCount: number;
-  readonly outcome: LadderOutcome;
-}
-
-type FilledFightStage = FightStage & { readonly actual: number };
-
-function decide(won: number, lost: number): Outcome {
-  if (won > lost) {
-    return 'win';
-  }
-
-  return won < lost ? 'loss' : 'draw';
-}
-
-function isFilled(stage: FightStage): stage is FilledFightStage {
-  return stage.actual !== null;
-}
-
-function exerciseResult(stage: FilledFightStage): ExerciseResult {
-  const { exercise, target, actual } = stage;
-
-  return { exercise, target, actual, outcome: stagePassed(stage) ? 'win' : 'loss' };
-}
-
-function roundResult(stages: readonly FilledFightStage[]): RoundResult {
-  const exercises = stages.map(exerciseResult);
-  const won = exercises.filter(({ outcome }) => outcome === 'win').length;
-  const lost = exercises.length - won;
-
-  return { exercises, won, lost, outcome: decide(won, lost) };
-}
-
-// Counts finished rounds only, so it also gives the running score of a fight in progress.
-export function computeFightResult(stages: readonly FightStage[]): FightResult {
-  const roundNumbers = [...new Set(stages.map(({ round }) => round))];
-  const rounds = roundNumbers
-    .map((number) => stages.filter(({ round }) => round === number))
-    .filter((round): round is FilledFightStage[] => round.every(isFilled))
-    .map(roundResult);
-  const count = (expected: RoundOutcome) =>
-    rounds.filter(({ outcome }) => outcome === expected).length;
-  const won = count('win');
-  const lost = count('loss');
-
-  return { rounds, won, drawn: count('draw'), lost, outcome: decide(won, lost) };
-}
-
-export interface CampaignSetResult {
+export interface SetResult {
   readonly target: number;
   readonly done: boolean;
 }
 
+// §6: the sets of one exercise of a fight, one for every round.
+export interface FightExerciseResult {
+  readonly exercise: ExerciseRef;
+  readonly sets: readonly SetResult[];
+}
+
+// §6: a fight is won when every set is done.
+export interface FightResult {
+  readonly exercises: readonly FightExerciseResult[];
+  readonly outcome: BattleOutcome;
+}
+
 // §24.5: a level of the journey is won when every set is done.
 export interface CampaignResult {
-  readonly sets: readonly CampaignSetResult[];
-  readonly outcome: CampaignOutcome;
+  readonly sets: readonly SetResult[];
+  readonly outcome: BattleOutcome;
 }
 
-export function computeCampaignResult(stages: readonly Stage[]): CampaignResult {
-  const sets = stages.map((stage) => ({ target: stage.target, done: stagePassed(stage) }));
-
-  return { sets, outcome: sets.every(({ done }) => done) ? 'win' : 'loss' };
+function setResult({ target, done }: SetStage): SetResult {
+  return { target, done: done === true };
 }
 
-export function computeLadderResult(stages: readonly Stage[]): LadderResult {
-  const passed = stages.filter(stagePassed);
+function decide(sets: readonly SetResult[]): BattleOutcome {
+  return sets.every(({ done }) => done) ? 'win' : 'loss';
+}
 
-  return {
-    stages: stages.map((stage) => ({
-      target: stage.target,
-      actual: stage.actual,
-      passed: stagePassed(stage),
-    })),
-    maxPassed: Math.max(0, ...passed.map(({ target }) => target)),
-    passedCount: passed.length,
-    outcome: passed.length === stages.length ? 'win' : 'loss',
-  };
+export function computeFightResult(config: FightConfig, stages: readonly FightStage[]): FightResult {
+  const exercises = config.exercises.map(({ id, name }) => ({
+    exercise: { id, name },
+    sets: stages.filter(({ exercise }) => exercise.id === id).map(setResult),
+  }));
+
+  return { exercises, outcome: decide(exercises.flatMap(({ sets }) => sets)) };
+}
+
+export function computeCampaignResult(stages: readonly SetStage[]): CampaignResult {
+  const sets = stages.map(setResult);
+
+  return { sets, outcome: decide(sets) };
 }

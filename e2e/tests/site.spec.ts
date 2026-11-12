@@ -6,7 +6,7 @@ test('the landing explains the game and opens it without signing up', async ({ p
   await page.goto('/');
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Перетвори тренування на гру.');
-  await expect(page.locator('#modes h3')).toHaveText(['Ціль', 'Випадковий суперник', 'Рівні суперників', 'Драбина']);
+  await expect(page.locator('#game h3')).toHaveText(['Вправи й раунди', 'Підхід за підходом', 'Слава й звання', 'Похід «Січ»']);
   await expectAccessible(page);
 
   await page.getByRole('main').getByRole('link', { name: 'Почати тренування' }).first().click();
@@ -14,7 +14,9 @@ test('the landing explains the game and opens it without signing up', async ({ p
   // §24.1: everything is made for the game, so a workout starts with the choice of a fight in it.
   await expect(page).toHaveURL('/game/fight');
   await expect(page.getByRole('heading', { level: 1, name: 'Бій' })).toBeVisible();
-  await expect(page.getByRole('radio')).toHaveCount(4);
+  // §6: the hall offers a fight of the ready-made exercises at once.
+  await expect(page.getByRole('textbox', { name: 'Віджимання, раунд 1' })).toHaveValue('10');
+  await expect(page.getByRole('button', { name: /^До бою/ })).toBeEnabled();
   await expectAccessible(page);
 });
 
@@ -41,8 +43,8 @@ test('the header and the footer are the same everywhere and screens lead back', 
   expect(await page.locator('footer.site-footer').innerHTML()).toBe(footer);
   await expectAccessible(page);
 
-  await page.goto('/game/fight/setup/ladder');
+  await page.goto('/game/fight');
   expect(await page.locator('header.site-header').innerHTML()).toBe(header);
-  await page.getByRole('link', { name: 'До вибору бою' }).click();
-  await expect(page).toHaveURL('/game/fight');
+  await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Козак' }).click();
+  await expect(page).toHaveURL('/game');
 });

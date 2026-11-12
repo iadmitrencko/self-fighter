@@ -37,7 +37,7 @@ createRoot(root).render(
           storage,
           analytics,
           ...readPage(root),
-          deps: { rng: Math.random, now: () => new Date(), newId },
+          deps: { now: () => new Date(), newId },
         }}
       />
     </BrowserRouter>

@@ -6,6 +6,9 @@ namespace App\Workout\Domain;
 
 enum Mode: string
 {
+    // §6: a fight the player puts together from exercises and rounds.
+    case Fight = 'fight';
+    // §24.6: the modes of the site before §6. The history keeps their attempts.
     case Target = 'target';
     case RandomOpponent = 'random-opponent';
     case OpponentLevels = 'opponent-levels';
