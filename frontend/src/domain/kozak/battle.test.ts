@@ -73,7 +73,7 @@ describe('entering a battle', () => {
 
     expect(enterBattle(session, 'campaign', null)?.game).toEqual({
       pool: 'campaign',
-      energyFullAt: '2026-10-30T15:00:00.000Z',
+      energyFullAt: '2026-10-30T12:00:00.000Z',
     });
   });
 

@@ -254,18 +254,18 @@ describe('the battle of a level', () => {
     expect(storage.gameSessions.campaign.load()).not.toBeNull();
   });
 
-  // §24.4: five battles in a row empty the pool of the journey for five hours.
+  // §24.4: six battles in a row empty the pool of the journey for two hours.
   it('waits for the energy of the journey', async () => {
     const storage = createMemoryStorage();
 
-    for (let battle = 0; battle < 5; battle += 1) {
-      const fullAt = new Date(Date.parse('2026-10-30T14:00:00.000Z') + battle * 5 * 3_600_000).toISOString();
+    for (let battle = 0; battle < 6; battle += 1) {
+      const fullAt = new Date(Date.parse('2026-10-30T11:00:00.000Z') + battle * 2 * 3_600_000).toISOString();
       await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'loss', `2026-10-30T09:0${battle}:00.000Z`, fullAt));
     }
     renderKozak('/journey/forest-ravens/1/1', { storage });
 
     expect(await screen.findByRole('button', { name: 'Почати випробування' })).toHaveProperty('disabled', true);
-    expect(screen.getByText('Енергії немає. Наступна одиниця через 4 год.')).toBeTruthy();
+    expect(screen.getByText('Енергії немає. Наступна одиниця через 1 год.')).toBeTruthy();
   });
 
   it('leads back to the battle in progress instead of a new one', async () => {

@@ -11,7 +11,7 @@ export interface EnergyRule {
 
 export const ENERGY: Readonly<Record<EnergyPool, EnergyRule>> = {
   fight: { max: 10, periodMs: 2 * HOUR_MS },
-  campaign: { max: 5, periodMs: 5 * HOUR_MS },
+  campaign: { max: 6, periodMs: 2 * HOUR_MS },
 };
 
 export interface Energy {

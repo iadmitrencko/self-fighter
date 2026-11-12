@@ -13,57 +13,57 @@ function spendAt(pool: EnergyPool, hours: readonly number[]): string | null {
 }
 
 describe('energy', () => {
-  // §24.4: 10 for fights with one back every 2 hours, 5 for the journey with one back every 5 hours.
+  // §24.4: 10 for fights and 6 for the journey, with one back every 2 hours in both.
   it('follows the rules of the brief', () => {
     expect(ENERGY).toEqual({
       fight: { max: 10, periodMs: 2 * HOUR },
-      campaign: { max: 5, periodMs: 5 * HOUR },
+      campaign: { max: 6, periodMs: 2 * HOUR },
     });
   });
 
   it('is full before the first battle', () => {
     expect(energyAt('fight', null, NOW)).toEqual({ value: 10, max: 10, nextAt: null, fullAt: null });
-    expect(energyAt('campaign', iso(-1), NOW)).toEqual({ value: 5, max: 5, nextAt: null, fullAt: null });
+    expect(energyAt('campaign', iso(-1), NOW)).toEqual({ value: 6, max: 6, nextAt: null, fullAt: null });
   });
 
   it('takes a unit for a battle and gives it back after a period', () => {
     const fullAt = spendEnergy('campaign', null, NOW);
 
-    expect(fullAt).toBe(iso(5));
-    expect(energyAt('campaign', fullAt, at(1))).toEqual({ value: 4, max: 5, nextAt: iso(5), fullAt: iso(5) });
-    expect(energyAt('campaign', fullAt, at(5)).value).toBe(5);
+    expect(fullAt).toBe(iso(2));
+    expect(energyAt('campaign', fullAt, at(1))).toEqual({ value: 5, max: 6, nextAt: iso(2), fullAt: iso(2) });
+    expect(energyAt('campaign', fullAt, at(2)).value).toBe(6);
   });
 
   // The units come back one by one, a period apart, from the moment the pool stops being full.
   it('gives the units back one by one', () => {
     const fullAt = spendAt('campaign', [0, 0, 0]);
 
-    expect(fullAt).toBe(iso(15));
-    expect(energyAt('campaign', fullAt, at(0))).toMatchObject({ value: 2, nextAt: iso(5) });
-    expect(energyAt('campaign', fullAt, at(4.9))).toMatchObject({ value: 2, nextAt: iso(5) });
-    expect(energyAt('campaign', fullAt, at(5))).toMatchObject({ value: 3, nextAt: iso(10) });
-    expect(energyAt('campaign', fullAt, at(12))).toMatchObject({ value: 4, nextAt: iso(15) });
+    expect(fullAt).toBe(iso(6));
+    expect(energyAt('campaign', fullAt, at(0))).toMatchObject({ value: 3, nextAt: iso(2) });
+    expect(energyAt('campaign', fullAt, at(1.9))).toMatchObject({ value: 3, nextAt: iso(2) });
+    expect(energyAt('campaign', fullAt, at(2))).toMatchObject({ value: 4, nextAt: iso(4) });
+    expect(energyAt('campaign', fullAt, at(5))).toMatchObject({ value: 5, nextAt: iso(6) });
   });
 
   // A battle while units are on their way does not restart the wait for the next one.
   it('keeps the wait of the units on their way', () => {
-    expect(spendAt('campaign', [0, 3])).toBe(iso(10));
-    expect(energyAt('campaign', iso(10), at(3))).toMatchObject({ value: 3, nextAt: iso(5) });
+    expect(spendAt('campaign', [0, 1])).toBe(iso(4));
+    expect(energyAt('campaign', iso(4), at(1))).toMatchObject({ value: 4, nextAt: iso(2) });
   });
 
   it('refuses a battle with no energy left', () => {
-    const empty = spendAt('campaign', [0, 0, 0, 0, 0]);
+    const empty = spendAt('campaign', [0, 0, 0, 0, 0, 0]);
 
-    expect(energyAt('campaign', empty, NOW)).toMatchObject({ value: 0, nextAt: iso(5) });
+    expect(energyAt('campaign', empty, NOW)).toMatchObject({ value: 0, nextAt: iso(2) });
     expect(spendEnergy('campaign', empty, NOW)).toBeNull();
-    expect(spendEnergy('campaign', empty, at(5))).toBe(iso(30));
+    expect(spendEnergy('campaign', empty, at(2))).toBe(iso(14));
   });
 
   // Two devices may both spend the last unit: the pool waits at zero instead of going below it.
   it('never shows less than zero', () => {
-    const overspent = iso(40);
+    const overspent = iso(16);
 
-    expect(energyAt('campaign', overspent, NOW)).toEqual({ value: 0, max: 5, nextAt: iso(20), fullAt: overspent });
+    expect(energyAt('campaign', overspent, NOW)).toEqual({ value: 0, max: 6, nextAt: iso(6), fullAt: overspent });
   });
 
   it('never holds more than its maximum or less than zero', () => {

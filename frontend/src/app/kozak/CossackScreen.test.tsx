@@ -15,9 +15,9 @@ describe('the cossack', () => {
     expect(screen.getByText('10 слави').closest('p')?.textContent).toBe('Ще 10 слави до звання «Заставний»');
     // The meters show «10 / 10» and say «10 з 10».
     expect(screen.getByText('10 з 10')).toBeTruthy();
-    expect(screen.getByText('5 з 5')).toBeTruthy();
-    expect(screen.getByText('Повна · +1 кожні 2 год')).toBeTruthy();
-    expect(screen.getByText('Повна · +1 кожні 5 год')).toBeTruthy();
+    expect(screen.getByText('6 з 6')).toBeTruthy();
+    // Both pools get a unit back every 2 hours.
+    expect(screen.getAllByText('Повна · +1 кожні 2 год')).toHaveLength(2);
   });
 
   // resesign/kozak.html: the way to a battle starts on the screen of the cossack.
@@ -80,8 +80,8 @@ describe('the cossack', () => {
     await storage.attempts.save(gameFight('win', '2026-10-30T08:10:00.000Z', '2026-10-30T10:10:00.000Z'));
     // A fight of «Ціль» the game played before §6 could end in a draw.
     await storage.attempts.save(oldGameFight('draw', '2026-10-30T08:20:00.000Z', '2026-10-30T12:10:00.000Z'));
-    await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'loss', '2026-10-30T08:30:00.000Z', '2026-10-30T13:30:00.000Z'));
-    await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'win', '2026-10-30T08:40:00.000Z', '2026-10-30T18:30:00.000Z'));
+    await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'loss', '2026-10-30T08:30:00.000Z', '2026-10-30T10:30:00.000Z'));
+    await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'win', '2026-10-30T08:40:00.000Z', '2026-10-30T12:30:00.000Z'));
     renderKozak('/', { storage });
 
     await screen.findByRole('heading', { level: 1, name: 'Звання: Джура' });
@@ -93,7 +93,7 @@ describe('the cossack', () => {
     const glory = screen.getByRole('progressbar', { name: 'Ще 7 слави до звання «Заставний»' });
     expect([glory.getAttribute('aria-valuenow'), glory.getAttribute('aria-valuemax')]).toEqual(['3', '10']);
     // The clock of the test stands at 10:00: the two fights and the two levels still owe a unit each.
-    expect(screen.getByText('3 з 5')).toBeTruthy();
+    expect(screen.getByText('4 з 6')).toBeTruthy();
     expect(screen.getByText('8 з 10')).toBeTruthy();
   });
 
