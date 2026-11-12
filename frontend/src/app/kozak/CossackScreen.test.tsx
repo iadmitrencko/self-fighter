@@ -35,6 +35,21 @@ describe('the cossack', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Бій' })).toBeTruthy();
   });
 
+  // §24.8: the best set of every exercise of the journey, a set done in a lost level too.
+  it('shows the best sets of the journey', async () => {
+    const storage = createMemoryStorage();
+    await storage.attempts.save(levelAttempt('forest-ravens/2/3', 'win', '2026-10-29T10:00:00.000Z', '2026-10-29T15:00:00.000Z'));
+    renderKozak('/', { storage });
+
+    const best = within(await screen.findByRole('region', { name: 'Рекорди походу' }));
+    const rows = best.getAllByRole('term').map((term) => [term.textContent, term.nextElementSibling?.textContent]);
+    expect(rows).toEqual([
+      ['Відтискання', '—ще немає'],
+      ['Присідання', '—ще немає'],
+      ['Підтягування', '3 за підхід'],
+    ]);
+  });
+
   // §24.3: «?» beside the glory tells what brings it.
   it('explains how to earn glory', async () => {
     const { user } = renderKozak('/');

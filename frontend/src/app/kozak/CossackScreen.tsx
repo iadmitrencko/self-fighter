@@ -1,18 +1,20 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { totalTally } from '../../domain/kozak/record';
-import { cossackTexts, lookTexts, rankNames } from '../../i18n/kozak';
+import { SICH } from '../../domain/kozak/journey';
+import { bestSets, totalTally } from '../../domain/kozak/record';
+import { campaignTexts, cossackTexts, lookTexts, rankNames } from '../../i18n/kozak';
 import { Title } from '../components/Screen';
 import { CossackFigure } from './art/Cossack';
 import { kozakPaths } from './paths';
 import { Bar, EnergyMeter, GloryRewards, KozakIcon, KozakScreen, WithCossack } from './parts';
 import { useNow } from './record';
 
-// §24.1–§24.4, resesign/kozak.html: the cossack of the player, his glory, energy and record, and
-// the way to the next battle.
+// §24.1–§24.4, §24.8, resesign/kozak.html: the cossack of the player, his glory, energy, record and
+// the best sets of the journey, and the way to the next battle.
 export function CossackScreen() {
   const now = useNow();
   const recordId = useId();
+  const bestId = useId();
 
   return (
     <KozakScreen title={cossackTexts.title} className="k-cossack">
@@ -87,6 +89,32 @@ export function CossackScreen() {
                 <Link className="k-record__link" to={kozakPaths.history}>
                   {cossackTexts.history} <span aria-hidden="true">→</span>
                 </Link>
+              </section>
+              <section className="k-record" aria-labelledby={bestId}>
+                <h2 id={bestId} className="k-record__title">
+                  {cossackTexts.best}
+                </h2>
+                <dl className="k-best">
+                  {bestSets(SICH, record).map(({ campaign, reps }) => (
+                    <div key={campaign} className="k-best__item">
+                      <dt className="k-best__exercise">{campaignTexts[campaign].exercise}</dt>
+                      <dd className="k-best__reps">
+                        {reps === null ? (
+                          <>
+                            <span className="k-best__number" aria-hidden="true">
+                              —
+                            </span>
+                            <span className="visually-hidden">{cossackTexts.bestNone}</span>
+                          </>
+                        ) : (
+                          <>
+                            <strong className="k-best__number">{reps}</strong> {cossackTexts.bestUnit}
+                          </>
+                        )}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               </section>
             </>
           );

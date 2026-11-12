@@ -16,7 +16,7 @@ services:
         autowire: true      # Automatically injects dependencies in your services.
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
         bind:
-            # Every module that keeps data of users takes part in the export and the deletion.
+            # Every module that keeps data of users takes part in the deletion and in joining a guest to an account.
             iterable $userData: !tagged_iterator app.user_data
 
     _instanceof:

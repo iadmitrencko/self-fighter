@@ -114,8 +114,9 @@ final class Documents
     /**
      * §24.5: a level of the journey. Every set but the last is done unless the level is won.
      *
-     * @param list<int>            $sets
-     * @param array<string, mixed> $overrides
+     * @param list<int>             $sets
+     * @param array<string, mixed>  $overrides
+     * @param array<string, string> $exercise  the ready-made exercise of the campaign
      *
      * @return array<string, mixed>
      */
@@ -125,6 +126,7 @@ final class Documents
         string $energyFullAt = '2026-11-02T15:00:00.000Z',
         array $sets = [1, 1, 1],
         array $overrides = [],
+        array $exercise = ['id' => 'pull-ups', 'name' => 'Підтягування'],
     ): array {
         $last = \count($sets) - 1;
 
@@ -140,7 +142,7 @@ final class Documents
             'config' => [
                 'mode' => 'campaign',
                 'level' => $level,
-                'exercise' => ['id' => 'pull-ups', 'name' => 'Підтягування'],
+                'exercise' => $exercise,
                 'sets' => $sets,
             ],
             'result' => [

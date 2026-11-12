@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react';
+import type { CampaignId } from '../../../domain/kozak/journey';
 import { routeFrom, routeTo, type LabelSide, type MapLayout } from './CampaignMap';
 import { useSvgId } from './svgId';
 
 /*
  * Screens 3–4 of kozak_design: the local map of a stage with a point for every level. The first
- * stage follows the mockup; the others are put together from the same pieces of the forest, each
- * with the places its story names (the river, the traps, the lair, the tower, the nest).
+ * stage of «Лісові круки» follows the mockup; the others are put together from the same pieces,
+ * each with the places its story names: the river, the traps and the nest of the forest, the
+ * roads, camps and the fortress of «Чорний прапор».
  */
 
 type Point = readonly [number, number];
@@ -14,6 +16,8 @@ interface StageScene {
   readonly points: readonly Point[];
   readonly labels: readonly LabelSide[];
   readonly draw: (patterns: { trees: string }) => ReactNode;
+  // The colour of the land under everything: the forest by default.
+  readonly ground?: string;
 }
 
 const WIDTH = 1040;
@@ -32,12 +36,12 @@ function segmentsThrough(points: readonly Point[]): string[] {
   });
 }
 
-function sceneOf(stage: number): StageScene {
-  return SCENES[stage] ?? FIRST_STAGE;
+function sceneOf(campaign: CampaignId, stage: number): StageScene {
+  return campaign === 'black-flag' ? (ROAD_SCENES[stage] ?? ROADS_FIRST) : (SCENES[stage] ?? FIRST_STAGE);
 }
 
-export function stageLayout(stage: number): MapLayout {
-  const scene = sceneOf(stage);
+export function stageLayout(campaign: CampaignId, stage: number): MapLayout {
+  const scene = sceneOf(campaign, stage);
 
   return {
     width: WIDTH,
@@ -50,11 +54,13 @@ export function stageLayout(stage: number): MapLayout {
 }
 
 export function StageMap({
+  campaign,
   stage,
   current,
   label,
   children,
 }: {
+  campaign: CampaignId;
   stage: number;
   // The index of the level in progress; the number of levels once the stage is passed.
   current: number;
@@ -62,8 +68,8 @@ export function StageMap({
   children: ReactNode;
 }) {
   const id = useSvgId('stage');
-  const scene = sceneOf(stage);
-  const layout = stageLayout(stage);
+  const scene = sceneOf(campaign, stage);
+  const layout = stageLayout(campaign, stage);
   const reached = Math.min(current, layout.points.length - 1);
   const passedAll = current >= layout.points.length;
 
@@ -88,7 +94,7 @@ export function StageMap({
             <stop offset="1" stopColor="#000" stopOpacity=".55" />
           </radialGradient>
         </defs>
-        <rect width={WIDTH} height={HEIGHT} fill="#2B2D22" />
+        <rect width={WIDTH} height={HEIGHT} fill={scene.ground ?? '#2B2D22'} />
         {scene.draw({ trees: id('trees') })}
         <path d={routeTo(layout, reached)} className="k-route k-route--passed" />
         {!passedAll && <path d={routeFrom(layout, reached)} className="k-route k-route--ahead" />}
@@ -228,9 +234,90 @@ function Hill({ x, y, children }: { x: number; y: number; children?: ReactNode }
   );
 }
 
-function Banner({ x, y }: { x: number; y: number }) {
-  return <path d={`M${x} ${y} l6 -26 M${x + 6} ${y - 26} l20 6 l-20 8`} stroke="#8E2620" strokeWidth="3" fill="#8E2620" />;
+// Red over the forest; the black flag of the band over its camps.
+function Banner({ x, y, black = false }: { x: number; y: number; black?: boolean }) {
+  const colour = black ? '#0E0C0B' : '#8E2620';
+
+  return <path d={`M${x} ${y} l6 -26 M${x + 6} ${y - 26} l20 6 l-20 8`} stroke={colour} strokeWidth="3" fill={colour} />;
 }
+
+function Cart({ x, y, broken = false }: { x: number; y: number; broken?: boolean }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${broken ? -10 : 0})`} stroke="#1E1610" strokeWidth="2">
+      <path d="M-30 -24 H30 L26 -8 H-26Z" fill="#5A4130" />
+      <path d="M30 -14 L54 -6" strokeWidth="3" />
+      <circle cx="-16" cy="-4" r="9" fill="none" strokeWidth="3" />
+      {broken ? (
+        <ellipse cx="38" cy="10" rx="10" ry="4" fill="none" strokeWidth="3" />
+      ) : (
+        <circle cx="16" cy="-4" r="9" fill="none" strokeWidth="3" />
+      )}
+    </g>
+  );
+}
+
+function Hut({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x} ${y})`} stroke="#1E1610" strokeWidth="1.5">
+      <rect x="-22" y="-26" width="44" height="26" fill="#6B5A44" />
+      <path d="M-28 -24 L0 -48 L28 -24Z" fill="#4A3A26" />
+      <rect x="-5" y="-14" width="10" height="14" fill="#2E2118" />
+    </g>
+  );
+}
+
+// Crossed stakes across a road.
+function Barricade({ x, y, stakes = 3 }: { x: number; y: number; stakes?: number }) {
+  const d = Array.from({ length: stakes }, (_, index) => {
+    const left = x + index * 24;
+
+    return `M${left} ${y} l18 -28 M${left + 18} ${y} l-18 -28`;
+  }).join(' ');
+
+  return (
+    <g stroke="#3B2A1E" strokeWidth="5" strokeLinecap="round" fill="none">
+      <path d={`M${x - 6} ${y - 14} H${x + stakes * 24}`} />
+      <path d={d} />
+    </g>
+  );
+}
+
+function Shields({ x, y, count = 4 }: { x: number; y: number; count?: number }) {
+  return (
+    <g fill="#4A3A2A" stroke="#1E1610" strokeWidth="2">
+      {Array.from({ length: count }, (_, index) => (
+        <circle key={index} cx={x + index * 24} cy={y} r="12" />
+      ))}
+    </g>
+  );
+}
+
+function Chests({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x} ${y})`} fill="#7A5A2A" stroke="#2E2118" strokeWidth="1.5">
+      <rect x="0" y="-16" width="26" height="16" />
+      <rect x="30" y="-14" width="24" height="14" />
+      <rect x="14" y="-30" width="22" height="14" />
+    </g>
+  );
+}
+
+// The open steppe around the Sich: dry fields and low grass.
+function Steppe() {
+  return (
+    <g>
+      <path d="M0 0 H1040 V170 C900 210 760 150 620 190 C480 230 300 170 160 210 C100 226 40 220 0 210Z" fill="#332E22" />
+      <ellipse cx="250" cy="410" rx="230" ry="90" fill="#423A29" />
+      <ellipse cx="780" cy="660" rx="280" ry="100" fill="#423A29" />
+      <path
+        d="M60 330 l5 -12 M70 332 l-3 -10 M560 300 l5 -12 M570 302 l-3 -10 M960 520 l5 -12 M970 522 l-3 -10 M380 720 l5 -12 M390 722 l-3 -10 M720 300 l5 -12 M730 302 l-3 -10"
+        stroke="#5A5038"
+        strokeWidth="2"
+      />
+    </g>
+  );
+}
+
 
 // 1. Перші сліди: the road, the watch post, the hidden camp and the fort on the hill.
 const FIRST_STAGE: StageScene = {
@@ -548,6 +635,277 @@ const SCENES: Readonly<Record<number, StageScene>> = {
           <path d="M-36 -6 l12 -10 M36 -6 l-12 -10 M0 -26 v-14" stroke="#120F0C" strokeWidth="3" />
         </g>
         <Ravens birds={[[840, 60], [900, 40], [960, 90], [780, 110], [1000, 50]]} />
+      </>
+    ),
+  },
+};
+
+// «Чорний прапор»: the roads around the Sich, in the same coordinates (1040 × 768).
+const STEPPE = '#3A3428';
+
+/*
+ * The road zigzags up to the camp of the leader in the top right corner. Every point is a hollow
+ * with its label below or a rise with its label above, the hollows a step apart in height, so the
+ * long names of the levels meet neither each other nor a marker, and the labels stay inside the
+ * map down to the width of a small phone.
+ */
+const HOLLOWS: Pick<StageScene, 'points' | 'labels'> = {
+  points: [
+    [185, 540],
+    [318, 330],
+    [451, 450],
+    [584, 270],
+    [717, 540],
+    [850, 210],
+  ],
+  labels: ['below', 'above', 'below', 'above', 'below', 'below'],
+};
+
+const RISES: Pick<StageScene, 'points' | 'labels'> = {
+  points: [
+    [185, 450],
+    [318, 260],
+    [451, 540],
+    [584, 330],
+    [717, 470],
+    [850, 180],
+  ],
+  labels: ['below', 'above', 'below', 'above', 'below', 'below'],
+};
+
+const SLOPES: Pick<StageScene, 'points' | 'labels'> = {
+  points: [
+    [185, 500],
+    [318, 300],
+    [451, 410],
+    [584, 240],
+    [717, 500],
+    [850, 190],
+  ],
+  labels: ['below', 'above', 'below', 'above', 'below', 'below'],
+};
+
+const HOLLOWS_ROAD =
+  'M0 600 C80 590 140 560 185 540 C240 515 270 350 318 330 C370 310 400 440 451 450 C500 460 530 290 584 270 C640 250 670 520 717 540 C770 560 810 260 850 210';
+const RISES_ROAD =
+  'M0 480 C80 470 140 460 185 450 C240 438 270 280 318 260 C370 240 400 520 451 540 C500 558 530 350 584 330 C640 310 670 450 717 470 C770 490 810 230 850 180';
+const SLOPES_ROAD =
+  'M0 540 C80 530 140 515 185 500 C240 480 270 320 318 300 C370 280 400 400 451 410 C500 420 530 260 584 240 C640 220 670 480 717 500 C770 520 810 240 850 190';
+
+// 1. Перші напади: the road, the broken cart, the hill of the ambush and the camp of the leader.
+const ROADS_FIRST: StageScene = {
+  ...HOLLOWS,
+  ground: STEPPE,
+  draw: () => (
+    <>
+      <Steppe />
+      <Hill x={760} y={600}>
+        <Bandit x={800} y={585} />
+      </Hill>
+      <Road d={HOLLOWS_ROAD} />
+      <Cart x={380} y={350} broken />
+      <Bandit x={500} y={440} />
+      <Bandit x={522} y={446} />
+      <Tent x={900} y={230} />
+      <Fire x={930} y={248} />
+      <Banner x={980} y={170} black />
+    </>
+  ),
+};
+
+const ROAD_SCENES: Readonly<Record<number, StageScene>> = {
+  1: ROADS_FIRST,
+  // 2. Розбійницькі ватаги: the watch on the road, the camp at the edge of the wood, the loot.
+  2: {
+    ...RISES,
+    ground: STEPPE,
+    draw: ({ trees }) => (
+      <>
+        <Steppe />
+        <Forest trees={trees} d="M0 0 H260 C230 70 170 120 100 140 C60 150 20 150 0 150Z" />
+        <Hill x={850} y={210} />
+        <Road d={RISES_ROAD} />
+        <WatchPost x={100} y={470} />
+        <Tent x={370} y={280} scale={0.8} />
+        <Fire x={440} y={290} />
+        <Bandit x={500} y={530} />
+        <Bandit x={522} y={536} />
+        <Chests x={640} y={340} />
+        <Palisade x={740} y={220} posts={3} />
+        <Palisade x={900} y={220} posts={3} />
+        <Banner x={930} y={130} black />
+      </>
+    ),
+  },
+  // 3. Чорні здирники: the robbed village, the point of the tribute, the caravan and the yard.
+  3: {
+    ...SLOPES,
+    ground: STEPPE,
+    draw: () => (
+      <>
+        <Steppe />
+        <Road d={SLOPES_ROAD} />
+        <Hut x={80} y={490} />
+        <Hut x={100} y={410} />
+        <Cart x={380} y={320} />
+        <WatchPost x={500} y={420} />
+        <Cart x={650} y={260} />
+        <Palisade x={770} y={500} posts={4} />
+        <Hut x={910} y={210} />
+        <Banner x={950} y={140} black />
+      </>
+    ),
+  },
+  // 4. Залізний заслін: the stakes across the road, the wall of shields and the post.
+  4: {
+    ...HOLLOWS,
+    ground: STEPPE,
+    draw: () => (
+      <>
+        <Steppe />
+        <Hill x={850} y={240} />
+        <Road d={`${HOLLOWS_ROAD} C880 150 960 110 1040 100`} />
+        <Barricade x={230} y={480} stakes={2} />
+        <WatchPost x={370} y={350} />
+        <Barricade x={490} y={420} />
+        <Shields x={630} y={300} count={4} />
+        <Palisade x={770} y={540} posts={4} />
+        <Palisade x={740} y={250} posts={3} />
+        <Palisade x={900} y={250} posts={3} />
+        <Banner x={930} y={160} black />
+      </>
+    ),
+  },
+  // 5. Табір Чорного прапора: the camp of the band, its yard of drills and its stores.
+  5: {
+    ...RISES,
+    ground: STEPPE,
+    draw: () => (
+      <>
+        <Steppe />
+        <Hill x={860} y={210} />
+        <Palisade x={40} y={380} posts={6} />
+        <ellipse cx="451" cy="560" rx="70" ry="24" fill="#5A4C34" />
+        <Road d={RISES_ROAD} />
+        <WatchPost x={110} y={470} />
+        <Tent x={360} y={270} />
+        <Tent x={200} y={330} scale={0.8} />
+        <Fire x={520} y={520} />
+        <Chests x={640} y={340} />
+        <Tent x={770} y={480} />
+        <Banner x={800} y={420} black />
+        <Tent x={890} y={200} scale={1.2} />
+        <Banner x={980} y={130} black />
+      </>
+    ),
+  },
+  // 6. Кривава дорога: the caravan, the stakes, the crossing of the river and the ambush.
+  6: {
+    ...SLOPES,
+    ground: STEPPE,
+    draw: () => (
+      <>
+        <Steppe />
+        <Creek wide d="M520 0 C560 100 570 180 584 240 S600 420 560 560 S520 700 540 768" />
+        <Road d={`${SLOPES_ROAD} C880 140 960 110 1040 100`} />
+        <Cart x={160} y={330} />
+        <Bandit x={380} y={300} />
+        <Bandit x={400} y={306} />
+        <Barricade x={490} y={400} stakes={2} />
+        <Rocks x={700} y={380} scale={0.4} />
+        <Bandit x={780} y={480} />
+        <Bandit x={802} y={486} />
+        <Bandit x={824} y={482} />
+        <Tent x={900} y={210} />
+        <Banner x={950} y={140} black />
+      </>
+    ),
+  },
+  // 7. Чорні головорізи: the rocks, the guard, the armoured band and its fortified camp.
+  7: {
+    ...HOLLOWS,
+    ground: STEPPE,
+    draw: () => (
+      <>
+        <Steppe />
+        <Rocks x={40} y={400} scale={0.6} />
+        <Rocks x={230} y={180} scale={0.5} />
+        <Rocks x={620} y={600} scale={0.5} />
+        <Rocks x={960} y={400} scale={0.6} />
+        <Road d={HOLLOWS_ROAD} />
+        <Bandit x={370} y={350} />
+        <Bandit x={392} y={356} />
+        <Bandit x={500} y={440} />
+        <Bandit x={522} y={446} />
+        <Bandit x={544} y={442} />
+        <Shields x={630} y={300} count={3} />
+        <Palisade x={770} y={540} posts={4} />
+        <Palisade x={720} y={200} posts={2} />
+        <Tent x={900} y={230} />
+        <Fire x={950} y={248} />
+        <Banner x={980} y={160} black />
+      </>
+    ),
+  },
+  // 8. Велика ватага: the walls of the main camp, its yard and the tent of the command.
+  8: {
+    ...RISES,
+    ground: STEPPE,
+    draw: () => (
+      <>
+        <Steppe />
+        <Road d={RISES_ROAD} />
+        <Palisade x={60} y={470} posts={4} />
+        <Shields x={370} y={270} count={3} />
+        <Palisade x={500} y={540} posts={4} />
+        <Hut x={670} y={350} />
+        <Fire x={620} y={420} />
+        <Tent x={770} y={480} scale={1.2} />
+        <Banner x={840} y={430} black />
+        <Tower x={900} y={220} />
+        <Banner x={960} y={80} black />
+      </>
+    ),
+  },
+  // 9. Останній рубіж: the trail of the retreat, the last guard and the chambers of the leader.
+  9: {
+    ...SLOPES,
+    ground: STEPPE,
+    draw: () => (
+      <>
+        <Steppe />
+        <Rocks x={60} y={420} scale={0.6} />
+        <Road d={SLOPES_ROAD} />
+        <WatchPost x={370} y={320} />
+        <Palisade x={500} y={420} posts={3} />
+        <Barricade x={630} y={260} stakes={2} />
+        <Hut x={790} y={500} />
+        <Tower x={900} y={230} />
+        <Banner x={960} y={90} black />
+      </>
+    ),
+  },
+  // 10. Король розбійників: the last fortress, its gate, the iron hall and the throne yard.
+  10: {
+    ...HOLLOWS,
+    ground: STEPPE,
+    draw: () => (
+      <>
+        <Steppe />
+        <Rocks x={60} y={440} scale={0.6} />
+        <ellipse cx="717" cy="556" rx="70" ry="22" fill="#5A4C34" />
+        <Palisade x={760} y={160} posts={12} />
+        <Tower x={724} y={190} />
+        <Tower x={960} y={190} />
+        <Banner x={1000} y={40} black />
+        <Road d={HOLLOWS_ROAD} />
+        <Palisade x={370} y={470} posts={3} />
+        <path d="M492 410 V366 H536 V410" stroke="#3B2A1E" strokeWidth="8" fill="none" />
+        <Palisade x={540} y={420} posts={2} />
+        <g fill="#2A2420" stroke="#120F0C" strokeWidth="2">
+          <rect x="630" y="270" width="70" height="36" />
+          <path d="M622 270 L665 248 L708 270Z" />
+        </g>
       </>
     ),
   },

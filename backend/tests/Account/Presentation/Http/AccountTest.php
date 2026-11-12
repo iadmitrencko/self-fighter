@@ -152,22 +152,6 @@ final class AccountTest extends ApiTestCase
         self::assertSame(['user' => null, 'guest' => null], $this->responseData());
     }
 
-    // §15.5: the file names the account, its way to sign in and its profile.
-    public function testExportOfAnAccountNamesItsWayToSignIn(): void
-    {
-        self::mockTime('2026-11-04 12:00:00');
-        $this->signInWithGoogle(['sub' => '1001', 'name' => 'Олена', 'email' => 'olena@example.com']);
-
-        $this->send('GET', '/api/v1/me/export');
-
-        $data = $this->responseData();
-        self::assertSame(['kind' => 'account', 'name' => 'Олена', 'email' => 'olena@example.com'], array_intersect_key(
-            \is_array($data['user'] ?? null) ? $data['user'] : [],
-            ['kind' => 1, 'name' => 1, 'email' => 1],
-        ));
-        self::assertSame([['provider' => 'google', 'subject' => '1001', 'createdAt' => '2026-11-04T12:00:00.000Z']], $data['identities']);
-    }
-
     /**
      * An account with an attempt, open on a browser whose guest has an attempt too and was not joined.
      *

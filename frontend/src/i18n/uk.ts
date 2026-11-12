@@ -192,10 +192,6 @@ export const accountTexts = {
   keptText: (attempts: number, exercises: number) =>
     `У цьому браузері є ${guestData(attempts, exercises)}, збережені до входу. Їх можна перенести в обліковий запис, а інакше вони знову стануть доступні після виходу.`,
   join: 'Перенести в обліковий запис',
-  exportTitle: 'Завантажити дані',
-  exportText: 'Файл JSON з усіма тренуваннями, власними вправами й налаштуваннями.',
-  export: 'Завантажити дані',
-  fileName: 'self-fighter-data.json',
   deleteTitle: 'Видалити дані',
   deleteText: 'Історія, власні вправи й налаштування зникнуть назавжди.',
   accountDeleteText: 'Історія, власні вправи, налаштування й сам обліковий запис зникнуть назавжди.',

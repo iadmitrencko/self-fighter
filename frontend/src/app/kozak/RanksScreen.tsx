@@ -86,7 +86,6 @@ function RankGroupCard({ group, glory, standing }: { group: RankGroup; glory: nu
         <h2 id={titleId} className="k-rank-group__title">
           {lookTexts[group.look].group}
         </h2>
-        <span className="k-rank-group__range">{ranksTexts.range(group.first, group.last)}</span>
       </div>
       {/* list-style: none takes the list away from VoiceOver in Safari; the role brings it back. */}
       <ol className="k-rank-list" role="list">

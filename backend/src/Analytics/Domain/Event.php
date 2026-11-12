@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Analytics\Domain;
 
-use App\Shared\Domain\Instant;
 use App\Shared\Domain\UserId;
 
 /**
@@ -50,22 +49,6 @@ final class Event
             $user,
             $occurredAt,
         );
-    }
-
-    /**
-     * The event as the export of the user shows it (§15.5).
-     *
-     * @return array<string, string>
-     */
-    public function describe(): array
-    {
-        return array_filter([
-            'name' => $this->name->value,
-            'mode' => $this->mode,
-            'outcome' => $this->outcome,
-            'error' => $this->error,
-            'occurredAt' => Instant::format($this->occurredAt),
-        ], static fn (?string $value): bool => null !== $value);
     }
 
     private static function text(mixed $value): string

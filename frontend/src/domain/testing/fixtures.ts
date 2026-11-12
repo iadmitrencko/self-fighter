@@ -103,18 +103,20 @@ export function fightAttempt(outcome: BattleOutcome, game: GameMark = fightGame(
 }
 
 // §24.5: a level of the journey, won or left before its first set.
+// A level of the journey; a loss leaves its sets from `retreatAt` on undone.
 export function campaignAttempt(
   id: string,
   outcome: BattleOutcome = 'win',
   energyFullAt = '2026-10-30T15:00:00.000Z',
+  { exercise = pullUps, retreatAt = 0 }: { readonly exercise?: ExerciseRef; readonly retreatAt?: number } = {},
 ): CampaignAttempt {
   const level = findLevel(SICH, id);
 
   if (level === null) {
     throw new Error(`The journey has no level ${id}`);
   }
-  const session = createSession(levelConfig(level, pullUps), testDeps());
-  const played = outcome === 'win' ? play(session) : retreat(session);
+  const session = createSession(levelConfig(level, exercise), testDeps());
+  const played = outcome === 'win' ? play(session) : play(session, retreatAt);
 
   return { ...finalize(played, FINISHED_AT), game: { pool: 'campaign', energyFullAt } };
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Account\Domain;
 
-use App\Shared\Domain\Instant;
 use App\Shared\Domain\UserId;
 
 /**
@@ -33,19 +32,5 @@ final class Identity
     public function user(): UserId
     {
         return $this->user;
-    }
-
-    /**
-     * The way to sign in as the export of the user shows it (§15.5).
-     *
-     * @return array{provider: string, subject: string, createdAt: string}
-     */
-    public function describe(): array
-    {
-        return [
-            'provider' => $this->provider,
-            'subject' => $this->subject,
-            'createdAt' => Instant::format($this->createdAt),
-        ];
     }
 }

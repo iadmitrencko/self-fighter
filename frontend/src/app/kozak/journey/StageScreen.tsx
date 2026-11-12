@@ -41,7 +41,7 @@ function StageView({ campaign, progress }: { campaign: CampaignDefinition; progr
   // The current level is chosen at first; a passed stage shows its boss.
   const [chosen, setChosen] = useState<number | null>(null);
   const selected = chosen ?? Math.min(reached, levels.length - 1);
-  const layout = stageLayout(stage.number);
+  const layout = stageLayout(campaign.id, stage.number);
   const card = levels[selected] as LevelProgress;
 
   return (
@@ -75,7 +75,7 @@ function StageView({ campaign, progress }: { campaign: CampaignDefinition; progr
       )}
       <div className="k-stage">
         <div className="k-stage__map">
-          <StageMap stage={stage.number} current={reached} label={texts.story}>
+          <StageMap campaign={campaign.id} stage={stage.number} current={reached} label={texts.story}>
             {levels.map(({ level, status }, index) => {
               const { name, short } = levelText(level.id);
               const isSelected = index === selected;

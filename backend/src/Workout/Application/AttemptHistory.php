@@ -66,6 +66,7 @@ final readonly class AttemptHistory
             Tally::of($this->attempts->countByOutcome($owner, new AttemptFilter(pool: GamePool::Campaign))),
             $this->attempts->passedLevels($owner),
             $energy,
+            $this->attempts->bestSets($owner),
         );
     }
 }

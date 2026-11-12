@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { expectAccessible, finishSets, playFight, savedAttempts } from './helpers';
 
@@ -22,21 +21,13 @@ test('an attempt finished offline is sent later, once', async ({ page, context }
   expect(await savedAttempts(page)).toBe(1);
 });
 
-// §18 «Продукт», §15.5: a guest downloads every piece of data and deletes it.
-test('a guest downloads the data and deletes it', async ({ page }) => {
+// §18 «Продукт», §15.5: a guest deletes every piece of data.
+test('a guest deletes the data', async ({ page }) => {
   await playFight(page);
 
   // §24.1: the data of the player lives in the settings of the game.
   await page.goto('/game/settings');
   await expectAccessible(page);
-  const [download] = await Promise.all([
-    page.waitForEvent('download'),
-    page.getByRole('button', { name: 'Завантажити дані' }).click(),
-  ]);
-  const data = JSON.parse(await readFile(await download.path(), 'utf8')) as { attempts: unknown[] };
-  expect(download.suggestedFilename()).toBe('self-fighter-data.json');
-  expect(data.attempts).toHaveLength(1);
-
   await page.getByRole('button', { name: 'Видалити всі дані' }).click();
   await page.getByRole('dialog', { name: 'Видалити всі дані?' }).getByRole('button', { name: 'Видалити назавжди' }).click();
 

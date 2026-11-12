@@ -1,6 +1,7 @@
-import type { Attempt } from '../history/attempt';
+import type { Attempt, CampaignAttempt } from '../history/attempt';
 import type { Outcome } from '../results/results';
 import { laterFullAt, type EnergyPool } from './energy';
+import type { CampaignId, JourneyDefinition } from './journey';
 
 export interface Tally {
   readonly wins: number;
@@ -21,6 +22,17 @@ export interface GameRecord {
   readonly passed: readonly string[];
   // When each pool of energy is full again, by the newest battle that took from it.
   readonly energy: Readonly<Record<EnergyPool, string | null>>;
+  // §24.8: the most repetitions done in one set of a level, by the exercise.
+  readonly best: Readonly<Record<string, number>>;
+}
+
+// §24.8: the record of an exercise of the journey.
+export interface BestSet {
+  readonly campaign: CampaignId;
+  // The ready-made exercise the campaign trains.
+  readonly exercise: string;
+  // null before the first set of the exercise is done.
+  readonly reps: number | null;
 }
 
 const NO_TALLY: Tally = { wins: 0, draws: 0, losses: 0 };
@@ -32,6 +44,7 @@ export const EMPTY_RECORD: GameRecord = {
   campaign: NO_TALLY,
   passed: [],
   energy: { fight: null, campaign: null },
+  best: {},
 };
 
 // Attempts of the site's workouts have no game and stay out of it.
@@ -49,6 +62,7 @@ export function computeGameRecord(attempts: readonly Attempt[]): GameRecord {
       campaign: game.pool === 'campaign' ? tally : NO_TALLY,
       passed: attempt.mode === 'campaign' && result.outcome === 'win' ? [attempt.config.level] : [],
       energy: { ...EMPTY_RECORD.energy, [game.pool]: game.energyFullAt },
+      best: attempt.mode === 'campaign' ? bestOf(attempt) : {},
     });
   }, EMPTY_RECORD);
 }
@@ -69,7 +83,24 @@ export function addGameRecords(a: GameRecord, b: GameRecord): GameRecord {
       fight: laterFullAt(a.energy.fight, b.energy.fight),
       campaign: laterFullAt(a.energy.campaign, b.energy.campaign),
     },
+    best: Object.fromEntries(
+      [...new Set([...Object.keys(a.best), ...Object.keys(b.best)])]
+        .sort()
+        .map((exercise) => [exercise, Math.max(a.best[exercise] ?? 0, b.best[exercise] ?? 0)]),
+    ),
   };
+}
+
+// A set counts once it is done, in a level won or left in the middle alike.
+function bestOf({ config, result }: CampaignAttempt): Readonly<Record<string, number>> {
+  const done = result.sets.filter((set) => set.done).map(({ target }) => target);
+
+  return done.length === 0 ? {} : { [config.exercise.id]: Math.max(...done) };
+}
+
+// §24.8: one record for every exercise the campaigns of the journey train, in their order.
+export function bestSets(journey: JourneyDefinition, { best }: GameRecord): BestSet[] {
+  return journey.campaigns.flatMap(({ id, exercise }) => (exercise === null ? [] : [{ campaign: id, exercise, reps: best[exercise] ?? null }]));
 }
 
 // Every battle of the game counts, in fights and in the journey alike (§24.6).

@@ -1,10 +1,12 @@
 import type { CSSProperties, ReactNode } from 'react';
+import type { CampaignId } from '../../../domain/kozak/journey';
 import { useSvgId } from './svgId';
 
 /*
- * Screen 2 of kozak_design: the map of «Лісові круки». The wide map runs from the edge of the
- * forest on the left to the Nest on the right, the tall one of a phone from the bottom up.
- * Coordinates come from the mockups.
+ * Screen 2 of kozak_design: the map of a campaign. The wide map runs from the start of the route
+ * on the left to its end on the right, the tall one of a phone from the bottom up. The route of
+ * «Лісові круки» leads from the edge of the forest to the Nest, the route of «Чорний прапор» from
+ * the Sich along the roads to the fortress of the king. Coordinates come from the mockups.
  */
 
 type Point = readonly [x: number, y: number];
@@ -115,11 +117,13 @@ export function pinVars(layout: MapLayout, index: number): CSSProperties {
  * the fog lies over everything ahead of the current point.
  */
 export function CampaignMap({
+  campaign,
   layout,
   current,
   label,
   children,
 }: {
+  campaign: CampaignId;
   layout: MapLayout;
   // The index of the point in progress; the length of the route once everything is passed.
   current: number;
@@ -157,7 +161,17 @@ export function CampaignMap({
             <stop offset="1" stopColor="#000" stopOpacity=".55" />
           </radialGradient>
         </defs>
-        {wide ? <WideLand trees={id('trees')} dark={id('dark')} /> : <TallLand trees={id('trees')} />}
+        {campaign === 'black-flag' ? (
+          wide ? (
+            <RoadsWide trees={id('trees')} />
+          ) : (
+            <RoadsTall />
+          )
+        ) : wide ? (
+          <WideLand trees={id('trees')} dark={id('dark')} />
+        ) : (
+          <TallLand trees={id('trees')} />
+        )}
         <path d={routeTo(layout, reached)} className="k-route k-route--passed" />
         {!passedAll && <path d={routeFrom(layout, reached)} className="k-route k-route--ahead" />}
         {!passedAll && <rect width={layout.width} height={layout.height} fill={`url(#${id('fog')})`} />}
@@ -257,6 +271,140 @@ function TallLand({ trees }: { trees: string }) {
         <path d="M260 24 q5 -5 10 -1 q5 -4 10 1 q-5 -2 -10 2 q-5 -4 -10 -2z" />
       </g>
       <path d="M90 1000 L90 930" stroke="#6E5C40" strokeWidth="4" strokeDasharray="2 8" strokeLinecap="round" />
+    </g>
+  );
+}
+
+// «Чорний прапор»: the steppe around the Sich, its roads, villages, camps and the river.
+const PALISADE = 'M0 0 v-30 l6 -10 l6 10 v30 M14 0 v-30 l6 -10 l6 10 v30 M28 0 v-30 l6 -10 l6 10 v30';
+
+function Stakes({ x, y }: { x: number; y: number }) {
+  return (
+    <path
+      transform={`translate(${x} ${y})`}
+      d="M0 0 l14 -22 M14 0 l-14 -22 M20 0 l14 -22 M34 0 l-14 -22 M-4 -11 H38"
+      stroke="#3B2A1E"
+      strokeWidth="4"
+      strokeLinecap="round"
+      fill="none"
+    />
+  );
+}
+
+function Huts({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x} ${y})`} stroke="#1E1610" strokeWidth="1.5">
+      <rect x="-16" y="-18" width="32" height="18" fill="#6B5A44" />
+      <path d="M-21 -17 L0 -34 L21 -17Z" fill="#4A3A26" />
+      <rect x="22" y="-14" width="26" height="14" fill="#6B5A44" />
+      <path d="M18 -13 L35 -26 L52 -13Z" fill="#4A3A26" />
+    </g>
+  );
+}
+
+function Camp({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <path d="M0 0 L16 -24 L32 0Z M40 0 L54 -20 L68 0Z" fill="#5A4130" stroke="#2E2118" strokeWidth="1.5" />
+      <path d="M30 4 l4 -8 l3 6 l3 -9 l3 11Z" fill="#E08A3C" />
+    </g>
+  );
+}
+
+function BlackFlag({ x, y, size = 1 }: { x: number; y: number; size?: number }) {
+  return (
+    <path
+      transform={`translate(${x} ${y}) scale(${size})`}
+      d="M0 0 V-34 M0 -34 l22 6 l-22 9"
+      stroke="#0E0C0B"
+      strokeWidth="3"
+      fill="#0E0C0B"
+    />
+  );
+}
+
+function RoadsWide({ trees }: { trees: string }) {
+  const road = `M40 720 C90 700 130 670 150 640 ${WIDE.segments.join(' ')}`;
+
+  return (
+    <g>
+      <rect width="1440" height="768" fill="#3A3428" />
+      <path d="M0 0 H1440 V150 C1300 190 1160 140 1000 170 C820 200 640 150 460 180 C300 206 140 170 0 190Z" fill="#332E22" />
+      <ellipse cx="300" cy="420" rx="260" ry="90" fill="#423A29" />
+      <ellipse cx="980" cy="660" rx="320" ry="100" fill="#423A29" />
+      <ellipse cx="1260" cy="400" rx="160" ry="70" fill="#423A29" />
+      <path d="M0 0 H380 C350 80 280 130 200 180 C130 222 50 236 0 240Z" fill={`url(#${trees})`} />
+      <path d={road} fill="none" stroke="#6E5C40" strokeWidth="14" strokeLinecap="round" opacity=".45" />
+      <path d="M1030 0 C990 140 1000 260 900 380 S800 600 830 768" fill="none" stroke="#2E4652" strokeWidth="30" strokeLinecap="round" />
+      <path d="M1030 0 C990 140 1000 260 900 380 S800 600 830 768" fill="none" stroke="#3E5866" strokeWidth="18" />
+      <g transform="translate(20 740)" fill="#3B2A1E" stroke="#1E1610" strokeWidth="1.5">
+        <path d={PALISADE} />
+      </g>
+      <path d="M60 700 l6 -30 M66 670 l22 6 l-22 8" stroke="#8E2620" strokeWidth="3" fill="#8E2620" />
+      <Camp x={250} y={500} />
+      <Huts x={400} y={620} />
+      <Huts x={540} y={680} />
+      <Stakes x={560} y={450} />
+      <Camp x={690} y={610} />
+      <Camp x={810} y={600} />
+      <BlackFlag x={870} y={590} />
+      <g fill="#3B3E3E" stroke="#22262A" strokeWidth="2">
+        <path d="M1070 540 L1090 506 L1110 520 L1130 494 L1160 530 L1150 552 L1090 556Z" />
+        <path d="M980 470 L996 450 L1012 462 L1004 480Z" />
+      </g>
+      <g transform="translate(1160 300)" fill="#3B2A1E" stroke="#1E1610" strokeWidth="1.5">
+        <path d={PALISADE} />
+      </g>
+      <Camp x={1080} y={280} />
+      <g transform="translate(1180 220)" fill="#3B2A1E" stroke="#1E1610" strokeWidth="1.5">
+        <path d={PALISADE} />
+      </g>
+      <g transform="translate(1372 130)" fill="#2A2420" stroke="#120F0C" strokeWidth="2">
+        <rect x="0" y="-80" width="28" height="80" />
+        <path d="M-6 -80 L14 -108 L34 -80Z" />
+      </g>
+      <g transform="translate(1290 150)" fill="#3B2A1E" stroke="#1E1610" strokeWidth="1.5">
+        <path d={PALISADE} />
+      </g>
+      <BlackFlag x={1404} y={40} size={1.3} />
+    </g>
+  );
+}
+
+function RoadsTall() {
+  const road = `M60 1000 C70 970 80 950 90 930 ${TALL.segments.join(' ')}`;
+
+  return (
+    <g>
+      <rect width="390" height="1000" fill="#3A3428" />
+      <ellipse cx="200" cy="820" rx="200" ry="70" fill="#423A29" />
+      <ellipse cx="190" cy="360" rx="190" ry="80" fill="#423A29" />
+      <path d="M0 0 H390 V90 C300 120 200 80 100 110 C60 120 20 116 0 110Z" fill="#332E22" />
+      <path d={road} fill="none" stroke="#6E5C40" strokeWidth="12" strokeLinecap="round" opacity=".45" />
+      <path d="M-10 540 C100 500 200 560 300 520 S380 500 400 510" fill="none" stroke="#2E4652" strokeWidth="26" />
+      <path d="M-10 540 C100 500 200 560 300 520 S380 500 400 510" fill="none" stroke="#3E5866" strokeWidth="15" />
+      <g transform="translate(150 996)" fill="#3B2A1E" stroke="#1E1610" strokeWidth="1.2">
+        <path d={PALISADE} />
+      </g>
+      <path d="M200 990 l5 -26 M205 964 l18 5 l-18 7" stroke="#8E2620" strokeWidth="3" fill="#8E2620" />
+      <Huts x={30} y={800} />
+      <Stakes x={322} y={700} />
+      <Camp x={10} y={610} />
+      <BlackFlag x={86} y={606} />
+      <g fill="#3B3E3E" stroke="#22262A" strokeWidth="2">
+        <path d="M14 440 L30 412 L46 424 L60 404 L76 434 L66 448 L24 450Z" />
+      </g>
+      <g transform="translate(316 340)" fill="#3B2A1E" stroke="#1E1610" strokeWidth="1.2">
+        <path d={PALISADE} />
+      </g>
+      <g transform="translate(20 240)" fill="#3B2A1E" stroke="#1E1610" strokeWidth="1.2">
+        <path d={PALISADE} />
+      </g>
+      <g transform="translate(296 128)" fill="#2A2420" stroke="#120F0C" strokeWidth="1.5">
+        <rect x="0" y="-60" width="20" height="60" />
+        <path d="M-5 -60 L10 -82 L25 -60Z" />
+      </g>
+      <BlackFlag x={330} y={60} />
     </g>
   );
 }

@@ -37,11 +37,6 @@ final readonly class DoctrineIdentityRepository implements IdentityRepository
         return (int) $found > 0;
     }
 
-    public function findAllOf(UserId $user): array
-    {
-        return $this->entityManager->getRepository(Identity::class)->findBy(['user' => $user], ['createdAt' => 'ASC', 'subject' => 'ASC']);
-    }
-
     public function removeAllOf(UserId $user): void
     {
         $this->entityManager

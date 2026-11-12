@@ -116,7 +116,7 @@ function CampaignView({ progress }: { progress: CampaignProgress }) {
     <>
       {head}
       <div className="k-campaign-screen__wide">
-        <CampaignMap layout={WIDE} current={reached} label={texts.story}>
+        <CampaignMap campaign={campaign.id} layout={WIDE} current={reached} label={texts.story}>
           {pins(WIDE)}
           <ul className="k-legend" aria-label={mapTexts.legend}>
             <li className="k-legend__item k-legend__item--done">{mapTexts.legendItems.done}</li>
@@ -148,7 +148,7 @@ function CampaignView({ progress }: { progress: CampaignProgress }) {
         )}
       </div>
       <div className="k-campaign-screen__tall" ref={tall}>
-        <CampaignMap layout={TALL} current={reached} label={texts.story}>
+        <CampaignMap campaign={campaign.id} layout={TALL} current={reached} label={texts.story}>
           {pins(TALL)}
         </CampaignMap>
       </div>

@@ -14,6 +14,19 @@ function sentEvents(page: Page): string[] {
   return names;
 }
 
+// The names of the events the server took, in the order it answered.
+function takenEvents(page: Page): string[] {
+  const names: string[] = [];
+
+  page.on('response', (response) => {
+    if (new URL(response.url()).pathname === '/api/v1/events' && response.ok()) {
+      names.push((response.request().postDataJSON() as { name: string }).name);
+    }
+  });
+
+  return names;
+}
+
 function banner(page: Page) {
   return page.getByRole('region', { name: 'Згода на аналітику' });
 }
@@ -46,9 +59,10 @@ test('no event leaves the browser before a choice and after a refusal', async ({
   expect(events).toEqual([]);
 });
 
-// §19, §22: once allowed, the events reach the server with the user; the footer withdraws the consent.
+// §19, §22: once allowed, the events reach the server; the footer withdraws the consent.
 test('allowed events reach the server and stop once the decision changes', async ({ page }) => {
   const events = sentEvents(page);
+  const taken = takenEvents(page);
 
   await page.goto('/');
   await banner(page).getByRole('button', { name: 'Дозволити' }).click();
@@ -62,14 +76,8 @@ test('allowed events reach the server and stop once the decision changes', async
 
   const sent = ['workout_completed', 'workout_completed', 'workout_repeated', 'workout_started', 'workout_started'];
   await expect.poll(() => events.toSorted()).toEqual(sent);
-  // The first save made this browser a guest: the server names it in every event after it.
-  await expect
-    .poll(async () => {
-      const exported = (await (await page.request.get('/api/v1/me/export')).json()) as { events: { name: string }[] };
-
-      return exported.events.map(({ name }) => name).toSorted();
-    })
-    .toEqual(sent);
+  // The server takes every one of them; PHPUnit checks that it names the user.
+  await expect.poll(() => taken.toSorted()).toEqual(sent);
 
   await page.getByRole('button', { name: 'Згода на аналітику' }).click();
 

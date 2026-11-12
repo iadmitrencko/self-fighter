@@ -5,19 +5,21 @@ import { campaignOf, currentLevel, currentStage, journeyProgress, levelProgress 
 const RAVENS = 'forest-ravens';
 // Every level of «Лісові круки» up to and including the given one.
 const upTo = (id: string) => {
-  const levels = allLevels(SICH).map((level) => level.id);
+  const levels = allLevels(SICH)
+    .filter(({ campaign }) => campaign === RAVENS)
+    .map((level) => level.id);
 
   return levels.slice(0, levels.indexOf(id) + 1);
 };
 const ravensOf = (passed: readonly string[]) => campaignOf(journeyProgress(SICH, passed), RAVENS);
 
 describe('the progress of the journey', () => {
-  // §24.5: only «Лісові круки» can be played; the other campaigns are still being prepared.
+  // §24.5: «Чорний прапор» and «Лісові круки» can be played; «Степові вовки» is still being prepared.
   it('opens the campaigns that have their levels', () => {
     const journey = journeyProgress(SICH, []);
 
     expect(journey.campaigns.map(({ campaign, status }) => [campaign.id, status])).toEqual([
-      ['black-flag', 'locked'],
+      ['black-flag', 'open'],
       ['steppe-wolves', 'locked'],
       ['forest-ravens', 'open'],
       ['final-battle', 'locked'],
@@ -88,7 +90,7 @@ describe('the progress of the journey', () => {
     const locked = { ...(ravensOf([]) ?? (undefined as never)), status: 'locked' as const };
 
     expect(currentStage(locked)?.stage.number).toBe(1);
-    expect(currentStage(campaignOf(journey, 'black-flag') ?? (undefined as never))).toBeNull();
+    expect(currentStage(campaignOf(journey, 'steppe-wolves') ?? (undefined as never))).toBeNull();
   });
 
   // §24.5: the final battle opens once every other campaign is passed, and its win ends the journey.

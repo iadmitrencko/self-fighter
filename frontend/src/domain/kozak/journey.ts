@@ -149,6 +149,100 @@ const FOREST_RAVENS: readonly (readonly LevelSpec[])[] = [
   ],
 ];
 
+// §24.5, «Чорний прапор»: push-ups, ten stages of six levels, up to 25 in one set.
+const BLACK_FLAG: readonly (readonly LevelSpec[])[] = [
+  // 1. Перші напади
+  [
+    ['normal', '1-1-2'],
+    ['normal', '1-2-2'],
+    ['normal', '2-2-2'],
+    ['ladder-up', '1-2-3'],
+    ['normal', '2-3-2'],
+    ['ladder-return', '1-2-3-2-1', 'boss'],
+  ],
+  // 2. Розбійницькі ватаги
+  [
+    ['normal', '3-2-2'],
+    ['normal', '3-3-2'],
+    ['ladder-up', '2-3-4-5'],
+    ['normal', '4-3-3'],
+    ['normal', '4-5-3'],
+    ['ladder-return', '1-3-5-3-1', 'boss'],
+  ],
+  // 3. Чорні здирники
+  [
+    ['normal', '5-4-4'],
+    ['normal', '5-5-4-3'],
+    ['normal', '6-5-5'],
+    ['ladder-up', '3-5-6-8'],
+    ['normal', '7-6-5-4'],
+    ['ladder-return', '2-4-6-8-6-4', 'boss'],
+  ],
+  // 4. Залізний заслін
+  [
+    ['normal', '7-6-5-4'],
+    ['normal', '7-7-6-5'],
+    ['normal', '8-7-6-5'],
+    ['ladder-up', '4-6-8-11'],
+    ['normal', '9-8-7-6'],
+    ['ladder-return', '2-4-7-11-7-4-2', 'boss'],
+  ],
+  // 5. Табір Чорного прапора
+  [
+    ['normal', '9-8-7-6'],
+    ['normal', '9-9-8-7'],
+    ['normal', '10-9-8-7'],
+    ['ladder-up', '5-8-11-14'],
+    ['normal', '11-10-9-8'],
+    ['ladder-return', '3-6-9-14-9-6-3', 'boss'],
+  ],
+  // 6. Кривава дорога
+  [
+    ['normal', '11-10-9-8'],
+    ['normal', '11-11-10-9'],
+    ['normal', '12-11-10-9'],
+    ['ladder-up', '5-9-13-17'],
+    ['normal', '13-12-11-10'],
+    ['ladder-return', '3-6-10-17-10-6-3', 'boss'],
+  ],
+  // 7. Чорні головорізи
+  [
+    ['normal', '12-11-10-9'],
+    ['normal', '12-12-11-10'],
+    ['ladder-up', '5-9-14-19'],
+    ['normal', '14-13-12-10'],
+    ['normal', '15-14-12-10'],
+    ['ladder-return', '4-8-12-19-12-8-4', 'boss'],
+  ],
+  // 8. Велика ватага
+  [
+    ['normal', '14-13-12-10'],
+    ['normal', '14-14-13-11'],
+    ['ladder-up', '5-10-15-21'],
+    ['normal', '16-15-14-12'],
+    ['normal', '17-16-15-12'],
+    ['ladder-return', '4-8-13-21-13-8-4', 'boss'],
+  ],
+  // 9. Останній рубіж
+  [
+    ['normal', '15-14-13-11'],
+    ['normal', '16-15-14-12'],
+    ['ladder-up', '5-10-16-23'],
+    ['normal', '17-16-15-13'],
+    ['normal', '18-17-16-14'],
+    ['ladder-return', '5-10-15-23-15-10-5', 'boss'],
+  ],
+  // 10. Король розбійників
+  [
+    ['normal', '16-15-14-12'],
+    ['normal', '17-16-15-13'],
+    ['ladder-up', '5-11-18-25'],
+    ['normal', '18-17-16-14'],
+    ['normal', '20-18-17-15'],
+    ['ladder-return', '5-10-15-25-15-10-5', 'boss'],
+  ],
+];
+
 function campaign(
   id: CampaignId,
   exercise: string,
@@ -178,9 +272,9 @@ function campaign(
 
 export const SICH: JourneyDefinition = {
   id: 'sich',
-  // In the order of the story. The first two campaigns and the final battle are still being prepared.
+  // In the order of the story. «Степові вовки» and the final battle are still being prepared.
   campaigns: [
-    campaign('black-flag', 'push-ups', 25, []),
+    campaign('black-flag', 'push-ups', 25, BLACK_FLAG),
     campaign('steppe-wolves', 'squats', 50, []),
     campaign('forest-ravens', 'pull-ups', 10, FOREST_RAVENS),
     { id: 'final-battle', exercise: null, peak: null, stages: [], final: true },

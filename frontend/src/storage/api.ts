@@ -38,7 +38,6 @@ import {
   parsePage,
   parseSettings,
   parseStatistics,
-  parseUserData,
   type BrowserState,
 } from './payload';
 
@@ -283,14 +282,6 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       // The next person on this browser does not continue the workout of the account.
       clearSessions();
       remember(browser);
-    },
-    async exportData() {
-      if ((await me.get()).user === null) {
-        return null;
-      }
-      const reply = await request('GET', '/api/v1/me/export');
-
-      return reply.status === 401 ? forgotten(null) : parseUserData(expectStatus(reply, 200));
     },
     async deleteData() {
       const browser = await me.get();

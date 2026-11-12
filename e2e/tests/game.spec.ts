@@ -33,7 +33,7 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Похід' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Похід «Січ»' })).toBeVisible();
   await expectAccessible(page);
-  await page.getByRole('link', { name: 'Вирушити в кампанію' }).click();
+  await page.getByRole('article').filter({ hasText: 'Лісові круки' }).getByRole('link', { name: 'Вирушити в кампанію' }).click();
 
   await expect(page.getByRole('heading', { level: 1, name: 'Лісові круки' })).toBeVisible();
   await expectAccessible(page);
@@ -70,12 +70,36 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   // §24.1: the data of the player is the last section of the game.
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Налаштування' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Налаштування' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Завантажити дані' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Видалити всі дані' })).toBeVisible();
   await expectAccessible(page);
 
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Козак' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeVisible();
   await expect(page.getByRole('progressbar', { name: 'Ще 8 слави до звання «Заставний»' })).toBeVisible();
+  // §24.8: the level brought the first best set of the pull-ups.
+  await expect(page.getByRole('region', { name: 'Рекорди походу' }).getByRole('definition')).toHaveText([
+    /ще немає/,
+    /ще немає/,
+    '1 за підхід',
+  ]);
+});
+
+// §24.5: «Чорний прапор» opens beside «Лісові круки», with its own maps and levels.
+test('the campaign «Чорний прапор» leads to its first level', async ({ page }) => {
+  await page.goto('/game/journey');
+  await page.getByRole('article').filter({ hasText: 'Чорний прапор' }).getByRole('link', { name: 'Вирушити в кампанію' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Чорний прапор' })).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('link', { name: 'Відкрити етап' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Перші напади' })).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('link', { name: 'Перейти до випробування' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Сліди на дорозі' })).toBeVisible();
+  await expect(page.getByText('Схема 1-1-2 · 3 підходи')).toBeVisible();
+  await expectAccessible(page);
 });
 
 // §24.5: a retreat loses the level and keeps it open for another try.

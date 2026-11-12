@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { campaignAttempt, fightAttempt, fightGame, legacyLadderAttempt, legacyTargetAttempt } from '../testing/fixtures';
-import { addGameRecords, computeGameRecord, EMPTY_RECORD, totalTally, type GameRecord } from './record';
+import { campaignAttempt, fightAttempt, fightGame, legacyLadderAttempt, legacyTargetAttempt, pushUps } from '../testing/fixtures';
+import { SICH } from './journey';
+import { addGameRecords, bestSets, computeGameRecord, EMPTY_RECORD, totalTally, type GameRecord } from './record';
 
 describe('the record of the game', () => {
   it('is empty before the first battle', () => {
@@ -26,8 +27,31 @@ describe('the record of the game', () => {
       campaign: { wins: 3, draws: 0, losses: 1 },
       passed: ['forest-ravens/1/1', 'forest-ravens/1/2'],
       energy: { fight: '2026-10-30T16:00:00.000Z', campaign: '2026-10-31T01:00:00.000Z' },
+      best: { 'pull-ups': 1 },
     });
     expect(totalTally(record)).toEqual({ wins: 4, draws: 1, losses: 3 });
+  });
+
+  // §24.8: the best set of an exercise is the largest one done in a level, won or not.
+  it('keeps the most repetitions done in one set of every exercise', () => {
+    const record = computeGameRecord([
+      campaignAttempt('forest-ravens/2/3', 'win'),
+      // 1-2-3-2-1: the retreat at the fourth set leaves the top of the ladder done.
+      campaignAttempt('black-flag/1/6', 'loss', '2026-10-30T15:00:00.000Z', { exercise: pushUps, retreatAt: 3 }),
+      // A retreat before the first set does nothing.
+      campaignAttempt('black-flag/2/1', 'loss', '2026-10-30T15:00:00.000Z', { exercise: pushUps }),
+      campaignAttempt('forest-ravens/1/1', 'win'),
+      // The fights of the game are put together freely and stay out of the records.
+      fightAttempt('win', fightGame('2026-10-30T12:00:00.000Z')),
+    ]);
+
+    expect(record.best).toEqual({ 'pull-ups': 3, 'push-ups': 3 });
+    expect(bestSets(SICH, record)).toEqual([
+      { campaign: 'black-flag', exercise: 'push-ups', reps: 3 },
+      { campaign: 'steppe-wolves', exercise: 'squats', reps: null },
+      { campaign: 'forest-ravens', exercise: 'pull-ups', reps: 3 },
+    ]);
+    expect(bestSets(SICH, EMPTY_RECORD).map(({ reps }) => reps)).toEqual([null, null, null]);
   });
 
   // An attempt waits in the browser while the server knows the rest: together they count once.
@@ -37,12 +61,14 @@ describe('the record of the game', () => {
       campaign: { wins: 1, draws: 0, losses: 0 },
       passed: ['forest-ravens/1/2'],
       energy: { fight: '2026-10-30T16:00:00.000Z', campaign: null },
+      best: { 'push-ups': 9, 'pull-ups': 2 },
     };
     const b: GameRecord = {
       fights: { wins: 0, draws: 1, losses: 0 },
       campaign: { wins: 2, draws: 0, losses: 1 },
       passed: ['forest-ravens/1/1', 'forest-ravens/1/2'],
       energy: { fight: '2026-10-30T12:00:00.000Z', campaign: '2026-10-30T15:00:00.000Z' },
+      best: { 'pull-ups': 3 },
     };
 
     expect(addGameRecords(a, b)).toEqual({
@@ -50,6 +76,7 @@ describe('the record of the game', () => {
       campaign: { wins: 3, draws: 0, losses: 1 },
       passed: ['forest-ravens/1/1', 'forest-ravens/1/2'],
       energy: { fight: '2026-10-30T16:00:00.000Z', campaign: '2026-10-30T15:00:00.000Z' },
+      best: { 'pull-ups': 3, 'push-ups': 9 },
     });
   });
 });

@@ -10,7 +10,6 @@ import type {
   CustomExercise,
   GameStorage,
   Settings,
-  SignInIdentity,
   StoredAttempt,
 } from './contract';
 import { StorageError } from './errors';
@@ -31,7 +30,8 @@ export interface MemoryStorage extends GameStorage {
 
 interface Person {
   user: CurrentUser;
-  identities: SignInIdentity[];
+  // The Google account the person signs in with, by its id.
+  google: string | null;
   exercises: readonly CustomExercise[];
   settings: Settings;
   attempts: readonly Attempt[];
@@ -73,7 +73,7 @@ export function createMemoryStorage(): MemoryStorage {
     }
     const created: Person = {
       user: { id: newId(), kind: 'guest', createdAt: now() },
-      identities: [],
+      google: null,
       exercises: [],
       settings: {},
       attempts: [],
@@ -103,19 +103,17 @@ export function createMemoryStorage(): MemoryStorage {
   return {
     persistent: true,
     signIn(google) {
-      const linked = [...people.values()].find(({ identities }) =>
-        identities.some(({ subject }) => subject === google.sub),
-      );
+      const linked = [...people.values()].find((someone) => someone.google === google.sub);
       const browser = person();
       const guest = browser?.user.kind === 'guest' ? browser : null;
 
       if (linked === undefined && guest !== null) {
         guest.user = account(guest.user, google);
-        guest.identities = [{ provider: 'google', subject: google.sub, createdAt: now() }];
+        guest.google = google.sub;
       } else if (linked === undefined) {
         const created: Person = {
           user: account({ id: newId(), kind: 'guest', createdAt: now() }, google),
-          identities: [{ provider: 'google', subject: google.sub, createdAt: now() }],
+          google: google.sub,
           exercises: [],
           settings: {},
           attempts: [],
@@ -164,26 +162,6 @@ export function createMemoryStorage(): MemoryStorage {
         sessions.clear();
 
         return Promise.resolve();
-      },
-      exportData() {
-        const found = person();
-
-        return Promise.resolve(
-          found === null
-            ? null
-            : {
-                exportedAt: now(),
-                user: found.user,
-                identities: found.identities,
-                exercises: found.exercises,
-                settings: found.settings,
-                attempts: [...found.attempts].sort(
-                  (a, b) => a.finishedAt.localeCompare(b.finishedAt) || a.id.localeCompare(b.id),
-                ),
-                // The events of analytics live on the server only.
-                events: [],
-              },
-        );
       },
       deleteData() {
         if (current !== null) {

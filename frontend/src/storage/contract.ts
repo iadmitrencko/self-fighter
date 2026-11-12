@@ -35,13 +35,6 @@ export interface KeptGuest {
   readonly exercises: number;
 }
 
-// A way to sign in as the export shows it: the id of the Google account is data about the person too.
-export interface SignInIdentity {
-  readonly provider: string;
-  readonly subject: string;
-  readonly createdAt: string;
-}
-
 export interface CustomExercise extends ExerciseRef {
   readonly description: string;
 }
@@ -80,25 +73,6 @@ export interface AttemptPage {
   readonly nextCursor: string | null;
 }
 
-// An event of analytics as the server keeps it, sent only with consent (§22).
-export interface StoredEvent {
-  readonly name: string;
-  readonly mode: string;
-  readonly outcome?: string;
-  readonly error?: string;
-  readonly occurredAt: string;
-}
-
-export interface UserData {
-  readonly exportedAt: string;
-  readonly user: CurrentUser;
-  readonly identities: readonly SignInIdentity[];
-  readonly exercises: readonly CustomExercise[];
-  readonly settings: Settings;
-  readonly attempts: readonly Attempt[];
-  readonly events: readonly StoredEvent[];
-}
-
 export interface AccountStore {
   // Reading never creates a user: a guest appears with the first write (§15.1).
   current(): Promise<CurrentUser | null>;
@@ -109,8 +83,6 @@ export interface AccountStore {
   // §23.2: the browser goes back to its guest or to no user. Attempts of the account that still
   // wait here stay until the account signs in on this browser again.
   signOut(): Promise<void>;
-  // null while there is nothing to export.
-  exportData(): Promise<UserData | null>;
   // Removes the data on the server and in this browser (§15.5). A browser that kept its guest
   // beside the account goes back to that guest.
   deleteData(): Promise<void>;

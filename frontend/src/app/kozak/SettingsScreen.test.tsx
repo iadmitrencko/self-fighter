@@ -24,26 +24,15 @@ describe('the settings of the game', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Налаштування' })).toBeTruthy();
     expect(document.title).toBe('Налаштування — Self-Fighter');
     expect(await screen.findByText('Ще нічого не збережено.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Завантажити дані' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Видалити всі дані' })).toBeNull();
   });
 
-  // §15.5: a guest downloads all data as a file.
-  it('downloads every piece of data as JSON', async () => {
-    const files: Blob[] = [];
-    URL.createObjectURL = vi.fn((file: Blob) => {
-      files.push(file);
+  // §15.5: the data stays on the server; the settings only delete it.
+  it('offers no download of the data', async () => {
+    renderKozak('/settings', { storage: await guestWithAttempt() });
 
-      return 'blob:data';
-    });
-    URL.revokeObjectURL = vi.fn();
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
-    const { user } = renderKozak('/settings', { storage: await guestWithAttempt() });
-
-    await user.click(await screen.findByRole('button', { name: 'Завантажити дані' }));
-
-    expect(click).toHaveBeenCalledOnce();
-    const data = JSON.parse(await (files[0] as Blob).text()) as { attempts: unknown[] };
-    expect(data.attempts).toHaveLength(1);
+    expect(await screen.findByRole('button', { name: 'Видалити всі дані' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Завантажити/ })).toBeNull();
   });
 
   // §15.5: deleting is final, so it asks first.

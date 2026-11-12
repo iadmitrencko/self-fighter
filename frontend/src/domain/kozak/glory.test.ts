@@ -3,7 +3,12 @@ import { awardFor, FIGHT_GLORY, gloryOf } from './glory';
 import { allLevels, SICH, type JourneyDefinition } from './journey';
 import { EMPTY_RECORD, type GameRecord } from './record';
 
-const RAVENS = allLevels(SICH).map(({ id }) => id);
+const levelsOf = (campaign: string) =>
+  allLevels(SICH)
+    .filter((level) => level.campaign === campaign)
+    .map(({ id }) => id);
+const RAVENS = levelsOf('forest-ravens');
+const FLAG = levelsOf('black-flag');
 
 describe('glory', () => {
   const record = (fightWins: number, passed: readonly string[]): GameRecord => ({
@@ -28,6 +33,13 @@ describe('glory', () => {
   it('adds the campaign once its last boss is beaten', () => {
     expect(gloryOf(SICH, record(0, RAVENS.slice(0, -1)))).toBe(147);
     expect(gloryOf(SICH, record(0, RAVENS))).toBe(162);
+  });
+
+  // 50 levels and 10 bosses, and +10 for the campaign: «Чорний прапор» brings 160.
+  it('counts every campaign apart', () => {
+    expect(gloryOf(SICH, record(0, FLAG.slice(0, -1)))).toBe(145);
+    expect(gloryOf(SICH, record(0, FLAG))).toBe(160);
+    expect(gloryOf(SICH, record(0, [...FLAG, ...RAVENS]))).toBe(322);
   });
 
   it('ignores levels the journey does not have', () => {

@@ -6,7 +6,6 @@ namespace App\Account\Presentation\Http;
 
 use App\Account\Application\DeleteUser;
 use App\Account\Application\DescribeBrowser;
-use App\Account\Application\ExportUserData;
 use App\Account\Application\MergeGuest;
 use App\Account\Application\SignOut;
 use App\Account\Application\SignUpGuest;
@@ -15,7 +14,6 @@ use App\Account\Domain\Device;
 use App\Shared\Domain\UserId;
 use App\Shared\Presentation\Http\ApiProblem;
 use App\Shared\Presentation\Http\Json;
-use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,7 +31,6 @@ final readonly class MeController
         private SignOut $signOut,
         private MergeGuest $mergeGuest,
         private DeleteUser $deleteUser,
-        private ExportUserData $exportUserData,
         private DeviceCookie $cookie,
         private RateLimiterFactoryInterface $guestCreationLimiter,
     ) {
@@ -107,17 +104,5 @@ final readonly class MeController
         ($this->mergeGuest)($device);
 
         return Json::response(($this->describeBrowser)($device));
-    }
-
-    #[Route('/api/v1/me/export', name: 'api_me_export', methods: ['GET'])]
-    public function export(UserId $user): JsonResponse
-    {
-        $response = Json::response(($this->exportUserData)($user));
-        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(
-            HeaderUtils::DISPOSITION_ATTACHMENT,
-            'self-fighter-data.json',
-        ));
-
-        return $response;
     }
 }

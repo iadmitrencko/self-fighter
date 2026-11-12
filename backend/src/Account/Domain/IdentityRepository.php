@@ -15,10 +15,5 @@ interface IdentityRepository
     // A user with a way to sign in is an account, a user without one is a guest.
     public function existsFor(UserId $user): bool;
 
-    /**
-     * @return list<Identity> the oldest first
-     */
-    public function findAllOf(UserId $user): array;
-
     public function removeAllOf(UserId $user): void;
 }

@@ -21,11 +21,6 @@ interface AttemptRepository
     public function findPage(UserId $owner, AttemptFilter $filter, int $limit, ?Attempt $after = null): array;
 
     /**
-     * @return list<Attempt> the oldest first
-     */
-    public function findAllOf(UserId $owner): array;
-
-    /**
      * @return array<string, int> the number of attempts for each outcome
      */
     public function countByOutcome(UserId $owner, AttemptFilter $filter): array;
@@ -34,6 +29,14 @@ interface AttemptRepository
      * @return list<string> the levels of the journey won at least once, in alphabetical order (§24.5)
      */
     public function passedLevels(UserId $owner): array;
+
+    /**
+     * §24.8: the most repetitions done in one set of a level of the journey, won or not, by the
+     * exercise.
+     *
+     * @return array<string, int> by the id of the exercise, in alphabetical order
+     */
+    public function bestSets(UserId $owner): array;
 
     // §24.4: the moment the pool is full again by the battles that took from it, or null for none.
     public function energyFullAt(UserId $owner, GamePool $pool): ?\DateTimeImmutable;

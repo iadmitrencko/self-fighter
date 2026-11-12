@@ -9,6 +9,8 @@ import { newId } from './ids';
 import { finishedAttempt, levelAttempt } from './testing/attempts';
 import { createFakeServer, type FakeServer } from './testing/fakeServer';
 
+const NO_TALLY = { wins: 0, draws: 0, losses: 0 };
+
 describe('storage over the API', () => {
   let server: FakeServer;
   let storage: GameStorage;
@@ -491,23 +493,22 @@ describe('storage over the API', () => {
         { user: { id: 'a', kind: 'account', createdAt: '', name: null, email: null }, guest: { id: 'b', attempts: 1 } },
         (s: GameStorage) => s.account.keptGuest(),
       ],
-      [
-        'a way to sign in without a subject',
-        '/api/v1/me/export',
-        { exportedAt: '', user: { id: 'a', kind: 'guest', createdAt: '' }, identities: [{ provider: 'google' }], exercises: [], settings: {}, attempts: [], events: [] },
-        (s: GameStorage) => s.account.exportData(),
-      ],
       ['an exercise without a name', '/api/v1/exercises', [{ id: 'a' }], (s: GameStorage) => s.exercises.list()],
       ['settings as a list', '/api/v1/settings', [], (s: GameStorage) => s.settings.get('fight')],
       ['a page without items', '/api/v1/attempts', { nextCursor: null }, (s: GameStorage) => s.attempts.list()],
       ['an attempt without an id', '/api/v1/attempts', { items: [{}], nextCursor: null }, (s: GameStorage) => s.attempts.list()],
       ['statistics without numbers', '/api/v1/stats', { total: '1' }, (s: GameStorage) => s.attempts.stats()],
-      ['an export without attempts', '/api/v1/me/export', { exportedAt: '' }, (s: GameStorage) => s.account.exportData()],
       [
-        'an event without a name',
-        '/api/v1/me/export',
-        { exportedAt: '', user: { id: 'a', kind: 'guest', createdAt: '' }, exercises: [], settings: {}, attempts: [], events: [{ mode: 'target', occurredAt: '' }] },
-        (s: GameStorage) => s.account.exportData(),
+        'a record of the game without the best sets',
+        '/api/v1/game',
+        { fights: NO_TALLY, campaign: NO_TALLY, passed: [], energy: { fight: null, campaign: null } },
+        (s: GameStorage) => s.attempts.game(),
+      ],
+      [
+        'a best set that is no count',
+        '/api/v1/game',
+        { fights: NO_TALLY, campaign: NO_TALLY, passed: [], energy: { fight: null, campaign: null }, best: { 'pull-ups': -1 } },
+        (s: GameStorage) => s.attempts.game(),
       ],
     ])('reports %s as a server failure', async (_, brokenPath, body, read) => {
       const guest = { user: { id: newId(), kind: 'guest', createdAt: '' } };
@@ -546,30 +547,6 @@ describe('storage over the API', () => {
       body: JSON.stringify(fightConfig()),
       signal: expect.any(AbortSignal) as AbortSignal,
     });
-  });
-
-  // §15.5: the file holds everything the server keeps, the events of analytics too.
-  it('keeps the events of analytics in the export', async () => {
-    const user = { id: newId(), kind: 'guest', createdAt: '2026-11-03T10:00:00.000Z' };
-    const events = [
-      { name: 'setup_error', mode: 'target', error: 'target-required', occurredAt: '2026-11-03T10:00:00.000Z' },
-      { name: 'workout_completed', mode: 'ladder', outcome: 'win', occurredAt: '2026-11-03T10:05:00.000Z' },
-    ];
-    const exported = createApiStorage({
-      fetch: (path) =>
-        Promise.resolve(
-          new Response(
-            JSON.stringify(
-              path === '/api/v1/me'
-                ? { user }
-                : { exportedAt: '2026-11-03T11:00:00.000Z', user, exercises: [], settings: {}, attempts: [], events },
-            ),
-          ),
-        ),
-      buffer: createBrowserBuffer(null),
-    });
-
-    expect((await exported.account.exportData())?.events).toEqual(events);
   });
 });
 

@@ -212,6 +212,7 @@ final class AttemptControllerTest extends ApiTestCase
             'campaign' => ['wins' => 3, 'draws' => 0, 'losses' => 1],
             'passed' => ['forest-ravens/1/1', 'forest-ravens/1/2'],
             'energy' => ['fight' => '2026-11-02T16:00:00.000Z', 'campaign' => '2026-11-02T20:00:00.000Z'],
+            'best' => ['pull-ups' => 1],
         ], $this->responseData());
 
         // The history still counts every attempt, the workouts of the site included.
@@ -231,7 +232,39 @@ final class AttemptControllerTest extends ApiTestCase
             'campaign' => ['wins' => 0, 'draws' => 0, 'losses' => 0],
             'passed' => [],
             'energy' => ['fight' => null, 'campaign' => null],
+            'best' => [],
         ], $this->responseData());
+        self::assertStringContainsString('"best":{}', (string) $this->browser->getResponse()->getContent());
+    }
+
+    // §24.8: the largest set done in a level of the journey, won or left, for every exercise.
+    public function testGameRecordKeepsTheBestSetOfEveryExercise(): void
+    {
+        $this->signUp();
+        $mine = $this->deviceCookie();
+        $pushUps = ['id' => 'push-ups', 'name' => 'Віджимання'];
+        $attempts = [
+            Documents::level('forest-ravens/2/3', 'win', sets: [1, 2, 3]),
+            // The retreat leaves the last set undone, the top of the ladder is done.
+            Documents::level('black-flag/1/6', 'loss', sets: [1, 2, 3, 2, 1], exercise: $pushUps),
+            // An undone set counts for nothing, however large.
+            Documents::level('black-flag/2/1', 'loss', sets: [3, 2, 9], exercise: $pushUps),
+            // A fight is put together freely and stays out of the records.
+            Documents::fight('win', '2026-11-02T10:30:00.000Z', '2026-11-02T13:00:00.000Z'),
+        ];
+
+        foreach ($attempts as $attempt) {
+            $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
+        }
+        // Another player does more, which changes nothing here.
+        $this->switchBrowser();
+        $this->signUp();
+        $this->send('PUT', '/api/v1/attempts/'.($other = Documents::level('forest-ravens/2/3', 'win', sets: [1, 2, 3, 4]))['id'], $other);
+
+        $this->switchBrowser($mine);
+        $this->send('GET', '/api/v1/game');
+
+        self::assertSame(['pull-ups' => 3, 'push-ups' => 3], $this->responseData()['best'] ?? null);
     }
 
     /**

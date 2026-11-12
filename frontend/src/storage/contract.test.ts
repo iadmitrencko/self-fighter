@@ -36,33 +36,12 @@ describe.each([
       await storage.attempts.stats();
 
       expect(await storage.account.current()).toBeNull();
-      expect(await storage.account.exportData()).toBeNull();
     });
 
     it('becomes a guest with the first write', async () => {
       await storage.settings.save(fightConfig());
 
       expect(await storage.account.current()).toMatchObject({ kind: 'guest' });
-    });
-
-    // §15.5
-    it('exports every piece of data', async () => {
-      const exercise = { id: newId(), name: 'Бурпі', description: 'Зі стрибком' };
-      const earlier = finishedAttempt('win', '2026-11-01T10:00:00.000Z');
-      const later = finishedAttempt('loss', '2026-11-02T10:00:00.000Z', 'ladder');
-      await storage.exercises.save(exercise);
-      await storage.settings.save(fightConfig());
-      await storage.attempts.save(later);
-      await storage.attempts.save(earlier);
-      await storage.attempts.flush();
-
-      expect(await storage.account.exportData()).toMatchObject({
-        user: await storage.account.current(),
-        exercises: [exercise],
-        settings: { fight: fightConfig() },
-        attempts: [earlier, later],
-        events: [],
-      });
     });
 
     it('deletes every piece of data', async () => {
@@ -216,6 +195,7 @@ describe.each([
         campaign: { wins: 1, draws: 0, losses: 1 },
         passed: ['forest-ravens/1/1'],
         energy: { fight: '2026-11-01T15:00:00.000Z', campaign: '2026-11-02T19:00:00.000Z' },
+        best: { 'pull-ups': 1 },
       });
       expect((await storage.attempts.stats()).total).toBe(5);
     });
@@ -226,6 +206,7 @@ describe.each([
         campaign: { wins: 0, draws: 0, losses: 0 },
         passed: [],
         energy: { fight: null, campaign: null },
+        best: {},
       });
     });
 
@@ -345,7 +326,6 @@ describe.each([
     expect(await browser.storage.account.current()).toBeNull();
     expect(await browser.storage.attempts.list()).toEqual({ items: [], nextCursor: null });
     expect(await browser.storage.attempts.stats()).toMatchObject({ total: 0 });
-    expect(await browser.storage.account.exportData()).toBeNull();
   });
 
   it('opens the account again with its data', async () => {
@@ -425,16 +405,6 @@ describe.each([
 
     expect(await browser.storage.account.keptGuest()).toBeNull();
     expect(await browser.storage.settings.get('fight')).toEqual(fightConfig());
-  });
-
-  // §15.5: the file names the way to sign in as well.
-  it('names the way to sign in in the export', async () => {
-    browser.signIn(OLENA);
-
-    expect(await browser.storage.account.exportData()).toMatchObject({
-      user: { kind: 'account', name: 'Олена' },
-      identities: [{ provider: 'google', subject: '1001' }],
-    });
   });
 
   // §15.5: deleting the account brings back the guest the browser kept beside it.

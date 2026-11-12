@@ -1,7 +1,7 @@
 import { useCallback, useId, useState, type ReactNode } from 'react';
 import { settingsTexts } from '../../i18n/kozak';
 import { accountTexts, commonTexts, signInTexts } from '../../i18n/uk';
-import type { AccountUser, KeptGuest, UserData } from '../../storage/contract';
+import type { AccountUser, KeptGuest } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
 import { ConfirmDialog } from '../components/Dialog';
 import { Title } from '../components/Screen';
@@ -15,8 +15,8 @@ import { KozakScreen } from './parts';
 
 /**
  * §15.5, §23, §24.1: the data of the player as a section of the game. Every user, a guest too, can
- * download the data and delete it; a guest can sign in, an account can sign out and take in the
- * guest this browser kept beside it.
+ * delete the data; a guest can sign in, an account can sign out and take in the guest this
+ * browser kept beside it.
  */
 export function SettingsScreen() {
   const { storage } = useGame();
@@ -57,18 +57,6 @@ export function SettingsScreen() {
       setBusy(false);
     }
   }
-
-  const download = () =>
-    act(async () => {
-      const data = await storage.account.exportData();
-
-      if (data === null) {
-        return accountTexts.nothing;
-      }
-      saveFile(data);
-
-      return null;
-    });
 
   // §15.4: before signing out the waiting attempts get one more try, and those left are named.
   const startSignOut = () =>
@@ -135,20 +123,12 @@ export function SettingsScreen() {
           )}
           {isWorthJoining(guest) && <KeptGuestCard guest={guest} busy={busy} onJoin={() => void join()} />}
           {user !== null && (
-            <>
-              <Setting title={accountTexts.exportTitle}>
-                <p className="k-card__text">{accountTexts.exportText}</p>
-                <button type="button" className="k-button k-button--secondary" disabled={busy} onClick={() => void download()}>
-                  {accountTexts.export}
-                </button>
-              </Setting>
-              <Setting title={accountTexts.deleteTitle}>
-                <p className="k-card__text">{account === null ? accountTexts.deleteText : accountTexts.accountDeleteText}</p>
-                <button type="button" className="k-button k-button--danger" disabled={busy} onClick={() => setConfirming('delete')}>
-                  {accountTexts.delete}
-                </button>
-              </Setting>
-            </>
+            <Setting title={accountTexts.deleteTitle}>
+              <p className="k-card__text">{account === null ? accountTexts.deleteText : accountTexts.accountDeleteText}</p>
+              <button type="button" className="k-button k-button--danger" disabled={busy} onClick={() => setConfirming('delete')}>
+                {accountTexts.delete}
+              </button>
+            </Setting>
           )}
         </div>
       )}
@@ -217,14 +197,4 @@ function KeptGuestCard({ guest, busy, onJoin }: { guest: KeptGuest; busy: boolea
       </button>
     </Setting>
   );
-}
-
-function saveFile(data: UserData) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = accountTexts.fileName;
-  link.click();
-  // Safari starts the download after the click returns, so the file stays available a moment longer.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

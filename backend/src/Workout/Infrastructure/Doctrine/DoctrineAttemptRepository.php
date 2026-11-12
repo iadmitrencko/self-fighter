@@ -49,11 +49,6 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
         return self::attempts($query->getQuery()->getResult());
     }
 
-    public function findAllOf(UserId $owner): array
-    {
-        return $this->entityManager->getRepository(Attempt::class)->findBy(['owner' => $owner], ['finishedAt' => 'ASC', 'id' => 'ASC']);
-    }
-
     public function countByOutcome(UserId $owner, AttemptFilter $filter): array
     {
         $rows = $this->filtered($owner, $filter)
@@ -81,6 +76,30 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
             ->getSingleColumnResult();
 
         return array_values(array_filter($levels, 'is_string'));
+    }
+
+    // The sets live in the document of the attempt (backend/schema/attempt.schema.json).
+    public function bestSets(UserId $owner): array
+    {
+        $rows = $this->entityManager->getConnection()->fetchAllKeyValue(
+            <<<'SQL'
+                SELECT a.document->>'$.config.exercise.id' AS exercise, MAX(s.target) AS best
+                FROM attempt a,
+                    JSON_TABLE(a.document, '$.result.sets[*]' COLUMNS (target INT PATH '$.target', done BOOLEAN PATH '$.done')) s
+                WHERE a.user_id = :owner AND a.mode = :mode AND s.done
+                GROUP BY exercise
+                ORDER BY exercise
+                SQL,
+            ['owner' => $owner, 'mode' => Mode::Campaign->value],
+            ['owner' => UserIdType::NAME],
+        );
+        $best = [];
+
+        foreach ($rows as $exercise => $reps) {
+            $best[(string) $exercise] = (int) $reps;
+        }
+
+        return $best;
     }
 
     // Every battle moves the moment later, so the latest one has seen them all.

@@ -586,7 +586,7 @@
 .k-hero__rank {
   color: var(--k-parchment);
   font-family: var(--k-font-display);
-  font-size: 2.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -831,6 +831,29 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* §24.8: the best sets of the journey, one column for every exercise of its campaigns. */
+.k-best {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-s) 1.25rem;
+  margin: 0;
+}
+
+.k-best__exercise,
+.k-best__reps {
+  margin: 0;
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-best__number {
+  color: var(--k-parchment);
+  font-size: var(--text-l);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .k-record__link,
 .k-progress__back {
   color: var(--k-gold-light);
@@ -868,7 +891,7 @@
   }
 
   .k-hero__rank {
-    font-size: 3.25rem;
+    font-size: 2.25rem;
   }
 }
 
@@ -976,17 +999,8 @@
 
 /* On a phone the name of a group stands in line with the ranks under it. */
 .k-rank-group__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-s);
   margin-bottom: 0.375rem;
   padding-inline: var(--space-s);
-}
-
-.k-rank-group__range {
-  color: var(--k-ash);
-  font-size: var(--text-xs);
 }
 
 .k-rank-list {

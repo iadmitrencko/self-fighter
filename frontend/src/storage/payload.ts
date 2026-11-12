@@ -8,9 +8,6 @@ import type {
   CustomExercise,
   KeptGuest,
   Settings,
-  SignInIdentity,
-  StoredEvent,
-  UserData,
 } from './contract';
 import { StorageError } from './errors';
 
@@ -124,7 +121,25 @@ export function parseGameRecord(body: unknown): GameRecord {
     campaign: parseTally(body.campaign),
     passed: body.passed,
     energy: { fight: body.energy.fight, campaign: body.energy.campaign },
+    best: parseBest(body.best),
   };
+}
+
+// §24.8: the best set of every exercise of the journey, by its id.
+function parseBest(value: unknown): Readonly<Record<string, number>> {
+  if (!isRecord(value)) {
+    throw unexpected();
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([exercise, reps]) => {
+      if (!isCount(reps)) {
+        throw unexpected();
+      }
+
+      return [exercise, reps];
+    }),
+  );
 }
 
 function parseTally(value: unknown): Tally {
@@ -133,47 +148,6 @@ function parseTally(value: unknown): Tally {
   }
 
   return { wins: value.wins, draws: value.draws, losses: value.losses };
-}
-
-// The export joins what every module of the server keeps about the user.
-export function parseUserData(body: unknown): UserData {
-  if (
-    !isRecord(body) ||
-    typeof body.exportedAt !== 'string' ||
-    !Array.isArray(body.attempts) ||
-    !Array.isArray(body.events)
-  ) {
-    throw unexpected();
-  }
-
-  return {
-    exportedAt: body.exportedAt,
-    user: parseUser(body.user),
-    identities: Array.isArray(body.identities) ? body.identities.map(parseIdentity) : [],
-    exercises: parseExercises(body.exercises),
-    settings: parseSettings(body.settings),
-    attempts: body.attempts.map(parseAttempt),
-    events: body.events.map(parseEvent),
-  };
-}
-
-function parseEvent(value: unknown): StoredEvent {
-  if (
-    !isRecord(value) ||
-    typeof value.name !== 'string' ||
-    typeof value.mode !== 'string' ||
-    typeof value.occurredAt !== 'string'
-  ) {
-    throw unexpected();
-  }
-
-  return {
-    name: value.name,
-    mode: value.mode,
-    ...(typeof value.outcome === 'string' ? { outcome: value.outcome } : {}),
-    ...(typeof value.error === 'string' ? { error: value.error } : {}),
-    occurredAt: value.occurredAt,
-  };
 }
 
 function parseUser(value: unknown): CurrentUser {
@@ -201,19 +175,6 @@ function parseKeptGuest(value: unknown): KeptGuest {
   }
 
   return { id: value.id, attempts: value.attempts, exercises: value.exercises };
-}
-
-function parseIdentity(value: unknown): SignInIdentity {
-  if (
-    !isRecord(value) ||
-    typeof value.provider !== 'string' ||
-    typeof value.subject !== 'string' ||
-    typeof value.createdAt !== 'string'
-  ) {
-    throw unexpected();
-  }
-
-  return { provider: value.provider, subject: value.subject, createdAt: value.createdAt };
 }
 
 function isOptionalText(value: unknown): value is string | null {

@@ -149,16 +149,6 @@ export function createFakeServer(): FakeServer {
 
         return reply(200, describe());
       }
-      case 'GET me/export':
-        return reply(200, {
-          exportedAt: new Date().toISOString(),
-          user: describeUser(user),
-          identities: user.subject === null ? [] : [{ provider: 'google', subject: user.subject, createdAt: user.createdAt }],
-          exercises: user.exercises,
-          settings: user.settings,
-          attempts: [...user.attempts].reverse(),
-          events: [],
-        });
       case 'GET exercises':
         return reply(200, user.exercises);
       case 'PUT exercises/:id':

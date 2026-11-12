@@ -159,42 +159,6 @@ final class MeControllerTest extends ApiTestCase
         $this->assertError(401, 'unauthorized');
     }
 
-    public function testExportContainsEverythingOfThisUserOnly(): void
-    {
-        self::mockTime('2026-11-02 12:00:00');
-        $this->signUp();
-        $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'Віджимання', 'description' => '']);
-        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
-        $foreign = Documents::target();
-        $this->send('PUT', '/api/v1/attempts/'.$foreign['id'], $foreign);
-        $this->send('POST', '/api/v1/events', ['name' => 'workout_started', 'mode' => 'target']);
-
-        $this->switchBrowser();
-        $userId = $this->signUp();
-        $exerciseId = ExerciseId::generate()->value;
-        $this->send('PUT', '/api/v1/exercises/'.$exerciseId, ['name' => 'Бурпі', 'description' => 'Зі стрибком']);
-        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
-        $later = Documents::target('loss', '2026-11-02T11:00:00.000Z');
-        $earlier = Documents::ladder('win', '2026-11-02T09:00:00.000Z');
-        $this->send('PUT', '/api/v1/attempts/'.$later['id'], $later);
-        $this->send('PUT', '/api/v1/attempts/'.$earlier['id'], $earlier);
-        $this->send('POST', '/api/v1/events', ['name' => 'workout_completed', 'mode' => 'ladder', 'outcome' => 'win']);
-
-        $this->send('GET', '/api/v1/me/export');
-
-        self::assertResponseIsSuccessful();
-        self::assertResponseHeaderSame('Content-Disposition', 'attachment; filename=self-fighter-data.json');
-        self::assertEquals([
-            'exportedAt' => '2026-11-02T12:00:00.000Z',
-            'user' => ['id' => $userId, 'kind' => 'guest', 'createdAt' => '2026-11-02T12:00:00.000Z'],
-            'identities' => [],
-            'exercises' => [['id' => $exerciseId, 'name' => 'Бурпі', 'description' => 'Зі стрибком']],
-            'settings' => ['fight' => Documents::fightConfig()],
-            'attempts' => [$earlier, $later],
-            'events' => [['name' => 'workout_completed', 'mode' => 'ladder', 'outcome' => 'win', 'occurredAt' => '2026-11-02T12:00:00.000Z']],
-        ], $this->responseData());
-    }
-
     private function issuedDeviceCookie(): ResponseCookie
     {
         foreach ($this->browser->getResponse()->headers->getCookies() as $cookie) {

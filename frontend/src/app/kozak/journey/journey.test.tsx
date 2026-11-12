@@ -9,7 +9,10 @@ import { levelAttempt } from '../../../storage/testing/attempts';
 import { renderKozak } from '../../testing/render';
 import { scheme } from './common';
 
-const LEVELS = allLevels(SICH).map(({ id }) => id);
+// The levels of «Лісові круки» in their order.
+const LEVELS = allLevels(SICH)
+  .filter(({ campaign }) => campaign === 'forest-ravens')
+  .map(({ id }) => id);
 
 // A player who has won the given levels a day before the clock of the tests, with full energy.
 async function passed(levels: readonly string[]): Promise<MemoryStorage> {
@@ -32,8 +35,8 @@ function battleOf(level: string): CampaignSession {
 }
 
 describe('the journey «Січ»', () => {
-  // §24.5: only «Лісові круки» has its levels; the rest is still being prepared.
-  it('opens the campaign that has its levels', async () => {
+  // §24.5: «Чорний прапор» and «Лісові круки» have their levels; the rest is still being prepared.
+  it('opens the campaigns that have their levels', async () => {
     renderKozak('/journey');
 
     const ravens = within((await screen.findByRole('heading', { name: 'Лісові круки' })).closest('article') as HTMLElement);
@@ -41,12 +44,14 @@ describe('the journey «Січ»', () => {
     expect(ravens.getByText('Підтягування · до 10 за підхід')).toBeTruthy();
     expect(ravens.getByRole('link', { name: 'Вирушити в кампанію' }).getAttribute('href')).toBe('/journey/forest-ravens');
 
-    for (const name of ['Чорний прапор', 'Степові вовки']) {
-      const card = within(screen.getByRole('heading', { name }).closest('article') as HTMLElement);
-      expect(card.getByText('Закрита')).toBeTruthy();
-      expect(card.getByText('Ще готується')).toBeTruthy();
-      expect(card.getByRole('button', { name: 'Недоступно' })).toHaveProperty('disabled', true);
-    }
+    const flag = within(screen.getByRole('heading', { name: 'Чорний прапор' }).closest('article') as HTMLElement);
+    expect(flag.getByText('Відтискання · до 25 за підхід')).toBeTruthy();
+    expect(flag.getByRole('link', { name: 'Вирушити в кампанію' }).getAttribute('href')).toBe('/journey/black-flag');
+
+    const wolves = within(screen.getByRole('heading', { name: 'Степові вовки' }).closest('article') as HTMLElement);
+    expect(wolves.getByText('Закрита')).toBeTruthy();
+    expect(wolves.getByText('Ще готується')).toBeTruthy();
+    expect(wolves.getByRole('button', { name: 'Недоступно' })).toHaveProperty('disabled', true);
     const finale = within(screen.getByRole('heading', { name: 'Фінальна битва' }).closest('article') as HTMLElement);
     expect(finale.getByText('Відкриється після трьох кампаній')).toBeTruthy();
   });
@@ -87,7 +92,7 @@ describe('the map of a campaign', () => {
   });
 
   it('keeps a campaign that is being prepared closed', async () => {
-    renderKozak('/journey/black-flag');
+    renderKozak('/journey/steppe-wolves');
 
     expect(await screen.findByRole('heading', { name: 'Кампанія ще закрита' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: /Етап/ })).toBeNull();

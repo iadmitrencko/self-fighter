@@ -6,7 +6,6 @@ namespace App\Workout\Application;
 
 use App\Shared\Application\UserDataHolder;
 use App\Shared\Domain\UserId;
-use App\Workout\Domain\Attempt;
 use App\Workout\Domain\AttemptFilter;
 use App\Workout\Domain\AttemptRepository;
 use App\Workout\Domain\CustomExercise;
@@ -16,8 +15,8 @@ use App\Workout\Domain\SettingsRepository;
 use Psr\Clock\ClockInterface;
 
 /**
- * The part of the export, the deletion and the joining of a guest to an account that the
- * workouts of a user make up (§15.5, §23.3).
+ * The part of the deletion and the joining of a guest to an account that the workouts of a user
+ * make up (§15.5, §23.3).
  */
 final readonly class WorkoutData implements UserDataHolder
 {
@@ -25,20 +24,8 @@ final readonly class WorkoutData implements UserDataHolder
         private CustomExerciseRepository $exercises,
         private SettingsRepository $settings,
         private AttemptRepository $attempts,
-        private ListExercises $listExercises,
-        private FindSettings $findSettings,
         private ClockInterface $clock,
     ) {
-    }
-
-    public function export(UserId $user): array
-    {
-        return [
-            'exercises' => ($this->listExercises)($user),
-            // An object even when empty, as the browser expects it.
-            'settings' => (object) ($this->findSettings)($user),
-            'attempts' => array_map(static fn (Attempt $attempt): array => $attempt->document(), $this->attempts->findAllOf($user)),
-        ];
     }
 
     public function erase(UserId $user): void

@@ -30,8 +30,8 @@ describe('the ranks', () => {
       'Вершина',
     ]);
     expect(ladder.getAllByRole('listitem')).toHaveLength(20);
-    expect(within(ladder.getByRole('region', { name: 'Козацтво' })).getByText('звання 4–9')).toBeTruthy();
-    expect(within(ladder.getByRole('region', { name: 'Вершина' })).getByText('звання 20')).toBeTruthy();
+    // The groups go by their names alone, without the numbers of their ranks.
+    expect(ladder.queryByText(/^звання \d/)).toBeNull();
     expect(rankRow('Гетьман').textContent).toContain('20. Гетьман');
     expect(rankRow('Гетьман').textContent).toContain('від 3500');
   });

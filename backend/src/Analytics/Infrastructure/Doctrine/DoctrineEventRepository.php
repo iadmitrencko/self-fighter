@@ -21,11 +21,6 @@ final readonly class DoctrineEventRepository implements EventRepository
         $this->entityManager->persist($event);
     }
 
-    public function findAllOf(UserId $user): array
-    {
-        return $this->entityManager->getRepository(Event::class)->findBy(['user' => $user], ['occurredAt' => 'ASC', 'id' => 'ASC']);
-    }
-
     public function forget(UserId $user): void
     {
         $this->entityManager

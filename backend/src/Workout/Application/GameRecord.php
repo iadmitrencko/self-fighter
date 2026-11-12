@@ -13,12 +13,14 @@ final readonly class GameRecord
     /**
      * @param list<string>                       $passed the levels of the journey won at least once, in alphabetical order
      * @param array<string, ?\DateTimeImmutable> $energy when each pool of energy is full again, by its name
+     * @param array<string, int>                 $best   the most repetitions done in one set of the journey, by the exercise
      */
     public function __construct(
         public Tally $fights,
         public Tally $campaign,
         public array $passed,
         public array $energy,
+        public array $best,
     ) {
     }
 }
