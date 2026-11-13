@@ -2245,6 +2245,27 @@
     width: 6.5rem;
     height: 6.5rem;
   }
+
+  /* Once open, the King takes the whole height of the card, and the button keeps to its text. */
+  .k-campaigns--final .k-campaign--open {
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+  }
+
+  .k-campaigns--final .k-campaign--open .k-campaign__art {
+    width: 30%;
+    max-width: 20rem;
+    height: auto;
+    min-height: 12rem;
+  }
+
+  .k-campaigns--final .k-campaign__go {
+    align-self: flex-start;
+    min-width: 15rem;
+    margin-top: var(--space-s);
+    padding-inline: var(--space-xl);
+  }
 }
 
 @media (min-width: 75rem) {
@@ -2254,6 +2275,12 @@
 
   .k-campaigns:not(.k-campaigns--final) .k-campaign__art {
     height: 18.75rem;
+  }
+
+  /* The King is as wide as a campaign above him, so their edges meet. */
+  .k-campaigns--final .k-campaign--open .k-campaign__art {
+    width: calc((100% - 2 * var(--space-l)) / 3);
+    max-width: none;
   }
 }
 
