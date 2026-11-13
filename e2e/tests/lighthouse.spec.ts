@@ -2,7 +2,7 @@ import { chromium, expect, test } from '@playwright/test';
 import lighthouse from 'lighthouse';
 
 // Section 6.4 of the plan: the budgets of the public pages in the mobile profile of Lighthouse.
-const PAGES = ['/', '/guides', '/guides/ladder-training', '/about'];
+const PAGES = ['/', '/about', '/privacy'];
 const BUDGETS = { performance: 0.9, accessibility: 0.95 };
 const LCP_MAX = 2500;
 const CLS_MAX = 0.1;

@@ -24,14 +24,13 @@ final class SyncContentTest extends KernelTestCase
     {
         $this->sync(new SiteContent(
             [Content::exercise('side-plank', 2), Content::exercise('plank')],
-            [Content::page(PageType::Guide, 'breathing')],
+            [Content::page(PageType::Service, 'terms')],
         ));
         $slugs = static fn (array $items): array => array_map(static fn ($item): string => $item->slug(), $items);
 
         // In the order of the catalog.
         self::assertSame(['plank', 'side-plank'], $slugs(self::service(ExerciseRepository::class)->all()));
-        self::assertSame(['breathing'], $slugs(self::service(PageRepository::class)->ofType(PageType::Guide)));
-        self::assertSame([], self::service(PageRepository::class)->ofType(PageType::Service));
+        self::assertSame(['terms'], $slugs(self::service(PageRepository::class)->ofType(PageType::Service)));
     }
 
     // A broken release never reaches the site, not even in part.
@@ -41,14 +40,14 @@ final class SyncContentTest extends KernelTestCase
         $before = $database->fetchFirstColumn('SELECT slug FROM exercise ORDER BY position');
 
         try {
-            $this->sync(new SiteContent([Content::exercise('plank'), Content::exercise('plank', 2)], [Content::page(PageType::Guide, 'breathing')]));
+            $this->sync(new SiteContent([Content::exercise('plank'), Content::exercise('plank', 2)], [Content::page(PageType::Service, 'terms')]));
             self::fail('The broken content reached the site.');
         } catch (InvalidContent $invalid) {
             self::assertSame(['Exercise plank appears more than once.'], $invalid->problems);
         }
         self::assertSame(['push-ups', 'squats', 'pull-ups'], $before);
         self::assertSame($before, $database->fetchFirstColumn('SELECT slug FROM exercise ORDER BY position'));
-        self::assertSame(4, (int) $database->fetchOne('SELECT COUNT(*) FROM content_page'));
+        self::assertSame(2, (int) $database->fetchOne('SELECT COUNT(*) FROM content_page'));
     }
 
     private function sync(SiteContent $content): void

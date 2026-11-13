@@ -1,6 +1,6 @@
 /*
- * Components shared by the public pages and the game, built from design/*.dc.html.
- * Components of the game screens join them in stage 6, together with the screens that use them.
+ * Components shared by the public pages and the game, built from design/*.dc.html and drawn in the
+ * colors of the game (kozak.css). Unbounded writes the name of the site in the logo only.
  */
 
 /* Two triangles facing each other: the player and the opponent. */
@@ -10,7 +10,7 @@
   gap: 0.625em;
   min-height: var(--tap-target);
   color: var(--color-text);
-  font-family: var(--font-display);
+  font-family: var(--font-logo);
   font-size: 0.9375rem;
   font-weight: 900;
   letter-spacing: 0.02em;
@@ -45,7 +45,8 @@
   min-height: var(--tap-target);
   padding: 0 1.25rem;
   border: 1px solid transparent;
-  border-radius: var(--radius-s);
+  /* Rounded as the buttons of the game (k-button). */
+  border-radius: var(--k-r-btn);
   font-family: var(--font-text);
   font-size: var(--text-m);
   font-weight: 700;
@@ -65,23 +66,22 @@
   color: var(--color-on-accent);
 }
 
+/* The second action, as the game draws it (k-button--secondary). */
 .button--outline {
-  border-color: var(--color-line-strong);
+  border-color: var(--k-line-strong);
   background: transparent;
-  color: var(--color-text);
+  color: var(--k-parchment);
 }
 
 .button--outline:hover {
-  border-color: var(--color-text-faint);
-  color: var(--color-text);
+  border-color: var(--k-parchment);
+  color: var(--k-parchment);
 }
 
 /* The main action of a screen. */
 .button--large {
-  min-height: 3.75rem;
+  min-height: var(--k-btn-h);
   padding: 0 2rem;
-  border-radius: var(--radius-m);
-  font-family: var(--font-display);
   font-size: var(--text-base);
 }
 
@@ -98,27 +98,23 @@
   flex: none;
 }
 
+/* A card as the game draws it (k-card). */
 .card {
   padding: var(--space-l);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-l);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-card);
   background: var(--color-surface);
 }
 
-/* A short label in capitals above a heading or a value. */
+/* A short label in capitals above a heading or a value, as the game writes it (k-eyebrow). */
 .eyebrow {
-  color: var(--color-text-muted);
-  font-size: var(--text-s);
+  color: var(--k-ash);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: var(--tracking-caps);
+  letter-spacing: var(--k-tracking-label);
   text-transform: uppercase;
 }
 
-/* Diagonal stripes of the mockups. Set --stripe for a colored background. */
-.stripes {
-  background-image: repeating-linear-gradient(
-    135deg,
-    var(--stripe, var(--color-stripe)) 0 2px,
-    transparent 2px 14px
-  );
+.eyebrow--gold {
+  color: var(--k-gold);
 }

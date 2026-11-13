@@ -41,8 +41,9 @@ services:
       - ./frontend:/srv/frontend
       # Vite writes the dev server entrypoints for Symfony into public/build
       - ./backend/public:/srv/backend/public
-      # Twig changes trigger a full page reload
-      - ./backend/templates:/srv/backend/templates:ro
+      # Twig changes trigger a full page reload, and Vitest keeps the landing's copies of the
+      # pictures of the game in home/art (src/app/kozak/art/landing.test.tsx)
+      - ./backend/templates:/srv/backend/templates
       # Vitest checks the attempts of the domain against the schema the server uses
       - ./backend/schema:/srv/backend/schema:ro
       # The challenge generator reads the matrix and writes generated.json next to it

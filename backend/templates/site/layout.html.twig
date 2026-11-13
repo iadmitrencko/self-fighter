@@ -3,9 +3,9 @@
 {# The frame of every page, the game included: header, main content and footer. #}
 
 {% block assets %}
-    {#- The h1 is the largest text on the screen, so its font comes first. #}
-    <link rel="preload" href="{{ asset('node_modules/@fontsource/unbounded/files/unbounded-cyrillic-900-normal.woff2', 'vite') }}" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="{{ asset('node_modules/@fontsource/unbounded/files/unbounded-latin-900-normal.woff2', 'vite') }}" as="font" type="font/woff2" crossorigin>
+    {#- The h1 is the largest text on the screen, so its font comes first. The pages wear the colors
+        and the fonts of the game, so it is Cormorant, as in the game. #}
+    <link rel="preload" href="{{ asset('node_modules/@fontsource/cormorant/files/cormorant-cyrillic-700-normal.woff2', 'vite') }}" as="font" type="font/woff2" crossorigin>
     {{ parent() }}
 {% endblock %}
 
@@ -28,7 +28,6 @@
             </nav>
         </div>
     </header>
-    {% block score %}{{ include('site/_score.html.twig') }}{% endblock %}
     <main id="main">
         {% block main %}{% endblock %}
     </main>
@@ -39,7 +38,6 @@
                     <ul class="site-footer__links" role="list">
                         <li><a class="site-footer__link" href="{{ path('home') }}">{{ 'site.footer.home'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('kozak') }}">{{ 'site.nav.game'|trans }}</a></li>
-                        <li><a class="site-footer__link" href="{{ path('guides') }}">{{ 'site.nav.guides'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('about') }}">{{ 'site.nav.about'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('kozak_fight') }}">{{ 'site.start'|trans }}</a></li>
                         <li><a class="site-footer__link" href="{{ path('kozak_history') }}">{{ 'site.nav.history'|trans }}</a></li>

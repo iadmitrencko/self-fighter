@@ -9,37 +9,22 @@ use Symfony\Component\DomCrawler\Crawler;
 
 final class ContentPagesTest extends WebTestCase
 {
-    // Section 6.3: guides are articles for search engines.
-    public function testGuideIsAnArticle(): void
+    // «Про проєкт» tells what happens in the game and leads into its screens.
+    public function testAboutTellsWhatHappensInTheGame(): void
     {
         $client = self::createClient();
-        $crawler = $client->request('GET', '/guides/ladder-training');
-        $article = null;
+        $crawler = $client->request('GET', '/about');
 
-        foreach ($crawler->filter('script[type="application/ld+json"]') as $script) {
-            $data = json_decode($script->textContent, true, 512, \JSON_THROW_ON_ERROR);
-            $article = 'Article' === $data['@type'] ? $data : $article;
-        }
-
-        self::assertSame('article', $crawler->filter('meta[property="og:type"]')->attr('content'));
-        self::assertIsArray($article);
-        self::assertSame('Що таке тренування драбиною', $article['headline']);
-        self::assertSame('2026-11-11', $article['dateModified']);
-        self::assertSame('http://localhost/guides/ladder-training', $article['mainEntityOfPage']);
-        // §24.1: a guide leads to a fight of the game and to the game itself.
-        self::assertSame(['/game/fight', '/game'], self::links($crawler->filter('.page-cta')));
-    }
-
-    public function testHubListsTheGuides(): void
-    {
-        $client = self::createClient();
-
-        self::assertSame(
-            ['/guides/ladder-training', '/guides/motivation'],
-            self::links($client->request('GET', '/guides')->filter('.cards')),
-        );
-        $client->request('GET', '/about');
+        self::assertResponseIsSuccessful();
         self::assertSelectorTextSame('h1', 'Про проєкт');
+        self::assertSame(
+            ['Твій козак', 'Бій', 'Похід «Січ»', 'Енергія', 'Результати', "Здоров'я"],
+            self::texts($crawler, '.prose h2'),
+        );
+        self::assertSame(
+            ['/game/fight', '/game/journey', '/game/history', '/game/settings', 'https://www.who.int/news-room/fact-sheets/detail/physical-activity'],
+            self::links($crawler->filter('.prose')),
+        );
     }
 
     // §22: the page «Приватність» says which data is kept and why.
@@ -58,13 +43,13 @@ final class ContentPagesTest extends WebTestCase
         self::assertSame(['/game/settings'], self::links($crawler->filter('.prose')));
     }
 
-    public function testBreadcrumbsLeadBackToTheHub(): void
+    public function testBreadcrumbsLeadHome(): void
     {
         $client = self::createClient();
-        $crawler = $client->request('GET', '/guides/motivation');
+        $crawler = $client->request('GET', '/privacy');
 
-        self::assertSame(['/', '/guides'], self::links($crawler->filter('.breadcrumbs')));
-        self::assertSame('Як змусити себе тренуватися', $crawler->filter('.breadcrumbs [aria-current="page"]')->text());
+        self::assertSame(['/'], self::links($crawler->filter('.breadcrumbs')));
+        self::assertSame('Приватність', $crawler->filter('.breadcrumbs [aria-current="page"]')->text());
     }
 
     // Section 6.3: unknown addresses are a real 404, and an address never ends with a slash.
@@ -72,12 +57,12 @@ final class ContentPagesTest extends WebTestCase
     {
         $client = self::createClient();
 
-        foreach (['/guides/unknown', '/guides/Ladder-Training'] as $path) {
+        foreach (['/about/unknown', '/About', '/terms'] as $path) {
             $client->request('GET', $path);
 
             self::assertResponseStatusCodeSame(404, $path);
         }
-        foreach (['/guides/' => '/guides', '/guides/motivation/' => '/guides/motivation'] as $path => $target) {
+        foreach (['/about/' => '/about', '/privacy/' => '/privacy'] as $path => $target) {
             $client->request('GET', $path);
 
             self::assertResponseRedirects($target, 301, $path);

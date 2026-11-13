@@ -1,6 +1,6 @@
 /*
- * The pages of content: the guides with their hub and the pages about the service. Twig renders
- * them inside the frame of every page.
+ * The pages about the service, written in Markdown: «Про проєкт» and «Приватність». Twig renders
+ * them inside the frame of every page, in the colors and the fonts of the game.
  */
 
 .page {
@@ -14,7 +14,7 @@
   flex-wrap: wrap;
   align-items: center;
   padding: 0;
-  color: var(--color-text-muted);
+  color: var(--k-ash);
   font-size: var(--text-s);
   list-style: none;
 }
@@ -26,7 +26,7 @@
 
 .breadcrumbs__item + .breadcrumbs__item::before {
   padding-inline: var(--space-xs);
-  color: var(--color-text-faint);
+  color: var(--k-ash);
   content: '/';
 }
 
@@ -35,15 +35,15 @@
   display: inline-flex;
   align-items: center;
   min-height: 1.5rem;
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
   text-decoration: none;
 }
 
 .breadcrumbs__link:hover {
-  color: var(--color-text);
+  color: var(--k-gold-light);
 }
 
-/* The head of a page */
+/* The head of a page, as the game heads its screens */
 
 .page-head {
   /* The heading scales with the column, so a long word always fits. */
@@ -51,28 +51,28 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-l);
+  gap: var(--space-m);
+  max-width: 48rem;
+  margin-bottom: var(--space-xl);
   padding-block: var(--space-2xl) var(--space-xl);
-}
-
-.page-head__eyebrow {
-  color: var(--color-accent);
+  border-bottom: 1px solid var(--k-line);
 }
 
 .page-head__title {
   max-width: 18em;
-  font-family: var(--font-display);
-  font-size: min(9cqi, 3.75rem);
-  font-weight: 900;
-  line-height: 1.04;
-  letter-spacing: -0.02em;
+  color: var(--k-parchment-bright);
+  font-family: var(--k-font-display);
+  font-size: min(14cqi, 4.25rem);
+  font-weight: 700;
+  line-height: 1;
   text-wrap: balance;
 }
 
 .page-head__lead {
   max-width: 40rem;
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
   font-size: 1.125rem;
+  line-height: 1.6;
   text-wrap: pretty;
 }
 
@@ -90,9 +90,9 @@
 
 .prose {
   max-width: 44rem;
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
   font-size: 1.0625rem;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 
 .prose > * + * {
@@ -101,18 +101,19 @@
 
 .prose h2 {
   margin-top: var(--space-2xl);
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: clamp(1.375rem, 1.1rem + 1.2vw, 1.875rem);
+  color: var(--k-parchment-bright);
+  font-family: var(--k-font-display);
+  font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.375rem);
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.05;
   text-wrap: balance;
 }
 
 .prose h3 {
   margin-top: var(--space-xl);
-  color: var(--color-text);
+  color: var(--k-parchment);
   font-size: var(--text-l);
+  font-weight: 800;
   line-height: 1.3;
 }
 
@@ -124,12 +125,21 @@
 }
 
 .prose li::marker {
-  color: var(--color-accent);
+  color: var(--k-gold);
   font-weight: 700;
 }
 
 .prose strong {
-  color: var(--color-text);
+  color: var(--k-parchment);
+}
+
+.prose a {
+  color: var(--k-gold-light);
+  text-underline-offset: 0.2em;
+}
+
+.prose a:hover {
+  color: var(--k-gold-rim);
 }
 
 .prose table {
@@ -140,83 +150,10 @@
 
 .prose :where(th, td) {
   padding: var(--space-s) var(--space-s) var(--space-s) 0;
-  border-bottom: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--k-line);
   text-align: left;
 }
 
 .prose th {
-  color: var(--color-text);
-}
-
-/* Links between pages */
-
-.page-cta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-s);
-  margin-top: var(--space-3xl);
-}
-
-.page-cta .button {
-  flex: 1 1 auto;
-}
-
-@media (min-width: 30rem) {
-  .page-cta .button {
-    flex: none;
-  }
-}
-
-/* Cards of the hub: the whole card leads to the page. */
-
-.cards {
-  display: grid;
-  gap: var(--space-m);
-  padding: 0;
-  list-style: none;
-}
-
-.hub-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-}
-
-.hub-card:hover {
-  border-color: var(--color-line-strong);
-}
-
-.hub-card__title {
-  font-family: var(--font-display);
-  font-size: 1.375rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.hub-card__link {
-  color: var(--color-text);
-  text-decoration: none;
-}
-
-.hub-card__link::after {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  content: '';
-}
-
-.hub-card:hover .hub-card__link {
-  color: var(--color-accent-hover);
-}
-
-.hub-card__text {
-  color: var(--color-text-muted);
-  line-height: 1.55;
-}
-
-@media (min-width: 40rem) {
-  .cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  color: var(--k-parchment);
 }

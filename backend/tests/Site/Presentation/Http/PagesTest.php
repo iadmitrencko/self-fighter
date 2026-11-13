@@ -9,26 +9,33 @@ use Symfony\Component\DomCrawler\Crawler;
 
 final class PagesTest extends WebTestCase
 {
-    // §3.1: everything the landing has to say is in the HTML, so search engines see it without scripts.
+    // §3.1: everything the landing has to say about the game is in the HTML, so search engines see
+    // it without scripts.
     public function testHomePageExplainsTheGame(): void
     {
         $client = self::createClient();
         $crawler = $client->request('GET', '/');
+        $texts = static fn (string $selector): array => $crawler->filter($selector)->each(static fn (Crawler $node): string => $node->text());
 
         self::assertResponseIsSuccessful();
         self::assertSame('uk', $crawler->filter('html')->attr('lang'));
         self::assertCount(1, $crawler->filter('h1'));
-        self::assertSelectorTextSame('h1', "Перетвори тренування на\u{A0}гру.");
+        self::assertSelectorTextSame('h1', "Від джури до\u{A0}гетьмана\u{A0}— підхід за\u{A0}підходом.");
         self::assertSelectorTextContains('.logo', 'Self-Fighter');
-        // §6: a fight is put together freely, so the landing tells the game instead of modes.
-        self::assertSame(
-            ['Вправи й раунди', 'Підхід за підходом', 'Слава й звання', 'Похід «Січ»'],
-            $crawler->filter('#game h3')->each(static fn (Crawler $title): string => $title->text()),
-        );
-        self::assertCount(3, $crawler->filter('#how li'));
-        self::assertCount(4, $crawler->filter('.benefit'));
-        // §24.1: a workout starts with a fight of the game.
+        self::assertSame(['Бій', 'Похід «Січ»', 'Слава й звання', 'Енергія'], $texts('#game h3'));
+        // §24.5: the three campaigns and the duel with the King of robbers.
+        self::assertSame(['Чорний прапор', 'Степові вовки', 'Лісові круки', 'Фінальна битва'], $texts('.landing-campaign__name'));
+        // §24.2: a look of the cossack for every group of ranks.
+        self::assertSame(['Джура', 'Козак', 'Сотник', 'Генерал-осавул', 'Гетьман'], $texts('.landing-rank__name'));
+        self::assertSame(['від 0 слави', 'від 45 слави', 'від 330 слави', 'від 1 150 слави', 'від 3 500 слави'], $texts('.landing-rank__glory'));
+        self::assertCount(10, $crawler->filter('main svg[role="img"]'));
+        // The pictures define gradients of their own, so no id repeats.
+        $ids = $crawler->filter('[id]')->each(static fn (Crawler $node): string => (string) $node->attr('id'));
+        self::assertSame(array_unique($ids), $ids);
+        self::assertCount(3, $crawler->filter('.landing-step'));
+        // §24.1: a workout starts with a fight of the game, and the journey is a step away.
         self::assertGreaterThanOrEqual(2, $crawler->filter('main a[href="/game/fight"]')->count());
+        self::assertCount(1, $crawler->filter('main a[href="/game/journey"]'));
     }
 
     // Section 6.3 of the plan: search engines learn the name of the site and how people say it.
@@ -49,7 +56,7 @@ final class PagesTest extends WebTestCase
         $client = self::createClient();
         $crawler = $client->request('GET', '/');
 
-        self::assertPageTitleSame('Self-Fighter — тренування у форматі гри');
+        self::assertPageTitleSame('Self-Fighter — козацька гра для тренувань з власною вагою');
         $description = (string) $crawler->filter('meta[name="description"]')->attr('content');
         self::assertNotSame('', $description);
         self::assertLessThanOrEqual(155, mb_strlen($description));
@@ -67,7 +74,7 @@ final class PagesTest extends WebTestCase
             self::assertDoesNotMatchRegularExpression('~/(src/app/|assets/app-)~', $script->getAttribute('src'));
         }
         self::assertStringNotContainsString('fonts.googleapis.com', (string) $client->getResponse()->getContent());
-        self::assertSame(2, $crawler->filter('link[rel="preload"][as="font"][crossorigin]')->count());
+        self::assertSame(1, $crawler->filter('link[rel="preload"][as="font"][crossorigin]')->count());
     }
 
     public function testFooterLeadsThroughTheSite(): void
@@ -76,7 +83,7 @@ final class PagesTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         self::assertSame(
-            ['/', '/game', '/guides', '/about', '/game/fight', '/game/history', '/game/settings', '/privacy'],
+            ['/', '/game', '/about', '/game/fight', '/game/history', '/game/settings', '/privacy'],
             $crawler->filter('footer nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
         // §22: the decision changes as easily as it was made.
@@ -89,7 +96,7 @@ final class PagesTest extends WebTestCase
         $client = self::createClient();
         $banners = [];
 
-        foreach (['/', '/guides/motivation', '/game', '/privacy'] as $page) {
+        foreach (['/', '/about', '/game', '/privacy'] as $page) {
             $crawler = $client->request('GET', $page);
             $banner = $crawler->filter('body > section#consent');
             $banners[] = $banner->outerHtml();
@@ -133,7 +140,7 @@ final class PagesTest extends WebTestCase
         );
     }
 
-    // §24: the cossack game has the frame of the site, its own colors and its own record instead of the score.
+    // §24: the cossack game has the frame of the site.
     public function testCossackGameLivesInTheFrameOfTheSite(): void
     {
         $client = self::createClient();
@@ -143,9 +150,7 @@ final class PagesTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame($header, $game->filter('header')->html());
-        self::assertSame('kozak-page', $game->filter('body')->attr('class'));
         self::assertSelectorExists('main #root');
-        self::assertSelectorNotExists('.score');
         self::assertSelectorTextSame('title', 'Гра — Self-Fighter');
         self::assertSame('noindex, follow', $game->filter('meta[name="robots"]')->attr('content'));
         self::assertSame(
@@ -204,27 +209,17 @@ final class PagesTest extends WebTestCase
         self::assertResponseRedirects('/game/fight', 301);
     }
 
-    // §14.2: the score of the player stands on every page; the browser fills in its numbers.
-    public function testEveryPageShowsTheScoreOfThePlayer(): void
+    // §14.2: the score of the player lives in the game. The pages tell about it, so on every one of
+    // them, the errors included, the content follows the header with nothing in between.
+    public function testNoPageShowsTheScoreOfThePlayer(): void
     {
-        $client = self::createClient();
-        $scores = [];
+        $client = self::createClient(['debug' => false]);
 
-        foreach (['/', '/guides', '/about', '/privacy'] as $page) {
+        foreach (['/', '/about', '/privacy', '/game', '/missing'] as $page) {
             $crawler = $client->request('GET', $page);
-            $scores[] = $crawler->filter('.score')->outerHtml();
 
-            self::assertSame(
-                ['total', 'wins', 'draws', 'losses'],
-                $crawler->filter('.score [data-score]')->each(static fn (Crawler $value): string => (string) $value->attr('data-score')),
-                $page,
-            );
-            self::assertSame(['Тренування', 'Перемоги', 'Нічиї', 'Поразки'], $crawler->filter('.score dt')->each(
-                static fn (Crawler $label): string => $label->text(),
-            ));
+            self::assertSame('main', $crawler->filter('body > header + *')->nodeName(), $page);
         }
-        // The same HTML for everyone: the page reads no cookie and stays cacheable.
-        self::assertCount(1, array_unique($scores));
     }
 
     // §24.1: the workouts of /workout are gone. Each of its screens leads to the same screen of the
@@ -260,13 +255,24 @@ final class PagesTest extends WebTestCase
         }
     }
 
-    // §24.1: the ready-made challenges and the pages of the modes and of the exercises are gone; their
-    // old addresses lead into the game.
+    // §24.1: the ready-made challenges, the pages of the modes and of the exercises and the guides
+    // (§21.2) are gone; their old addresses lead into the game.
     public function testRemovedSectionsLeadToTheGame(): void
     {
         $client = self::createClient();
+        $addresses = [
+            '/challenges',
+            '/challenges/100-push-ups',
+            '/workout/challenge/push-ups-ladder-to-10',
+            '/modes',
+            '/modes/ladder',
+            '/exercises',
+            '/exercises/squats',
+            '/guides',
+            '/guides/ladder-training',
+        ];
 
-        foreach (['/challenges', '/challenges/100-push-ups', '/workout/challenge/push-ups-ladder-to-10', '/modes', '/modes/ladder', '/exercises', '/exercises/squats'] as $address) {
+        foreach ($addresses as $address) {
             $client->request('GET', $address);
 
             self::assertResponseRedirects('/game', 302, $address);

@@ -27,7 +27,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 final readonly class FileContentSource implements ContentSource
 {
-    private const array PAGE_TYPES = ['guides' => PageType::Guide, 'pages' => PageType::Service];
+    private const array PAGE_TYPES = ['pages' => PageType::Service];
 
     private MarkdownConverter $markdown;
 

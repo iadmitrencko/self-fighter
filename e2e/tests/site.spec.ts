@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { expectAccessible } from './helpers';
 
-// §18 «Продукт»: the landing explains the concept and the game starts without signing up.
+// §18 «Продукт»: the landing tells what the cossack game is, and the game starts without signing up.
 test('the landing explains the game and opens it without signing up', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Перетвори тренування на гру.');
-  await expect(page.locator('#game h3')).toHaveText(['Вправи й раунди', 'Підхід за підходом', 'Слава й звання', 'Похід «Січ»']);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Від джури до гетьмана — підхід за підходом.');
+  await expect(page.locator('#game h3')).toHaveText(['Бій', 'Похід «Січ»', 'Слава й звання', 'Енергія']);
   await expectAccessible(page);
 
   await page.getByRole('main').getByRole('link', { name: 'Почати тренування' }).first().click();

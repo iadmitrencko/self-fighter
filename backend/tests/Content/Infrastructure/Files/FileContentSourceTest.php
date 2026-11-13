@@ -22,16 +22,16 @@ final class FileContentSourceTest extends TestCase
         );
         // YAML reads an unquoted date as a timestamp and a quoted one as a text.
         self::assertSame(
-            [[PageType::Guide, 'tip', '2026-10-03', true], [PageType::Service, 'about', '2026-10-04', false]],
+            [[PageType::Service, 'about', '2026-10-04', false], [PageType::Service, 'tip', '2026-10-03', true]],
             array_map(static fn ($page): array => [$page->type(), $page->slug(), $page->updatedAt()->format('Y-m-d'), $page->indexable()], $content->pages),
         );
-        self::assertSame('Вступ до поради.', $content->pages[0]->article()->lead);
+        self::assertSame('Вступ до поради.', $content->pages[1]->article()->lead);
     }
 
     // The authors write Markdown: HTML and scripts in a file are shown as text, never run.
     public function testRendersMarkdownWithoutRawHtml(): void
     {
-        $html = (new FileContentSource(__DIR__.'/fixtures/valid'))->read()->pages[0]->article()->html;
+        $html = (new FileContentSource(__DIR__.'/fixtures/valid'))->read()->pages[1]->article()->html;
 
         self::assertStringStartsWith('<h2>Техніка</h2>', $html);
         self::assertStringContainsString('<table>', $html);
@@ -52,8 +52,8 @@ final class FileContentSourceTest extends TestCase
                 'invalid/exercises.yaml, exercise 2: "slug" must be a text.',
                 'invalid/exercises.yaml, exercise 3: "Not A Slug" is not a slug.',
                 'invalid/exercises.yaml, exercise 4: "slug" must be a text.',
-                'invalid/guides/no-front-matter.md: The file has no front matter.',
                 'invalid/pages/long-title.md: The title "Заголовок, довший за шістдесят символів, який пошук усе одно обріже" is longer than 60 characters.',
+                'invalid/pages/no-front-matter.md: The file has no front matter.',
             ], $invalid->problems);
         }
     }

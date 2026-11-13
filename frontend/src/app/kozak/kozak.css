@@ -1697,6 +1697,8 @@
   border-radius: var(--k-r-tile);
   background: var(--k-surface);
   color: var(--k-gold);
+  /* A button keeps the system font unless told otherwise. */
+  font-family: inherit;
   font-weight: 800;
 }
 
@@ -1788,6 +1790,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--k-ash);
+  font-family: inherit;
   font-size: 1.125rem;
 }
 
@@ -3613,13 +3616,15 @@ button.k-marker::before {
   }
 }
 
-/* The screens of a workout in the colors of the game: names in Cormorant, numbers in Manrope. */
+/* The screens of a workout in the colors of the game: names and headings in Cormorant, numbers in
+   Manrope. */
 
 .kozak .screen-head__title,
 .kozak .result-hero__title,
 .kozak .ladder-result__title,
 .kozak .round-card__title,
-.kozak .sign-in-prompt__title {
+.kozak .sign-in-prompt__title,
+.kozak .dialog__title {
   font-family: var(--k-font-display);
   font-weight: 700;
 }
@@ -3629,21 +3634,29 @@ button.k-marker::before {
   line-height: 1.1;
 }
 
+/* As large as the title of a card of the game (k-card__title). */
+.kozak .dialog__title {
+  font-size: 1.75rem;
+  line-height: 1.05;
+}
+
+/* Cormorant is never smaller in the game than the names of its entries (k-entry__name--level). */
+.kozak .round-card__title {
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+.kozak .ladder-result__title {
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
 .kozak .screen-head__title {
   font-size: 2.25rem;
 }
 
-.kozak {
-  --font-display: var(--font-text);
-}
-
-.kozak .card,
 .kozak .k-card {
   border-radius: var(--k-r-card);
-}
-
-.kozak .card {
-  border-color: var(--k-line);
 }
 
 /* §24.9: the duel with the King of robbers, the final battle of the journey */

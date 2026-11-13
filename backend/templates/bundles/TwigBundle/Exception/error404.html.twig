@@ -4,7 +4,7 @@
 
 {% block main %}
     <div class="container error-page">
-        <p class="eyebrow error-page__code">{{ 'error.code'|trans({'%code%': status_code}) }}</p>
+        <p class="eyebrow eyebrow--gold error-page__code">{{ 'error.code'|trans({'%code%': status_code}) }}</p>
         <h1 class="error-page__title">{{ 'error.not_found.title'|trans }}</h1>
         <p class="error-page__text">{{ 'error.not_found.text'|trans }}</p>
         <div class="error-page__actions">

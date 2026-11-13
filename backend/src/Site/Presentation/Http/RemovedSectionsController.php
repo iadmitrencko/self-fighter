@@ -12,8 +12,8 @@ use Symfony\Component\Routing\Requirement\Requirement;
 
 /**
  * §24.1: everything is made for the game now. The ready-made challenges, the pages of the modes
- * and of the exercises, the workouts of /workout and the modes of a fight (§6) are gone, and their
- * old addresses lead into the game.
+ * and of the exercises, the guides (§21.2), the workouts of /workout and the modes of a fight (§6)
+ * are gone, and their old addresses lead into the game.
  */
 final class RemovedSectionsController extends AbstractController
 {
@@ -27,6 +27,8 @@ final class RemovedSectionsController extends AbstractController
     #[Route('/modes/{slug}', name: 'removed_mode', requirements: ['slug' => Requirement::ASCII_SLUG], methods: ['GET'])]
     #[Route('/exercises', name: 'removed_exercises', methods: ['GET'])]
     #[Route('/exercises/{slug}', name: 'removed_exercise', requirements: ['slug' => Requirement::ASCII_SLUG], methods: ['GET'])]
+    #[Route('/guides', name: 'removed_guides', methods: ['GET'])]
+    #[Route('/guides/{slug}', name: 'removed_guide', requirements: ['slug' => Requirement::ASCII_SLUG], methods: ['GET'])]
     public function __invoke(): RedirectResponse
     {
         return $this->redirectToRoute('kozak');

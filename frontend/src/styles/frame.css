@@ -1,6 +1,7 @@
 /*
  * The frame of every page, the game included: one width of the content, the header and the footer.
- * Twig renders the header and the footer on every page, so they look the same everywhere.
+ * Twig renders the header and the footer on every page, so they look the same everywhere. They are
+ * drawn in the lines and the parchment of the game (kozak.css).
  */
 
 .container {
@@ -25,7 +26,7 @@
 /* Header */
 
 .site-header {
-  border-bottom: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--k-line);
 }
 
 .site-header__inner {
@@ -49,17 +50,17 @@
   justify-content: center;
   min-width: var(--tap-target);
   min-height: var(--tap-target);
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--k-line);
   border-radius: 10px;
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
   font-size: var(--text-m);
   font-weight: 500;
   text-decoration: none;
 }
 
 .site-nav__link:hover {
-  border-color: var(--color-line-strong);
-  color: var(--color-text);
+  border-color: var(--k-line-strong);
+  color: var(--k-parchment);
 }
 
 .site-nav__icon {
@@ -116,110 +117,6 @@
   }
 }
 
-/* The score of the player under the header of every page */
-
-.score {
-  border-bottom: 1px solid var(--color-line);
-}
-
-.score__inner {
-  display: flex;
-  align-items: center;
-  gap: var(--space-l);
-  padding-block: var(--space-xs);
-}
-
-/* On a phone the five numbers need the whole width; their labels say what they count. */
-.score__title {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.score__list {
-  display: grid;
-  flex: 1;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--space-xs);
-  margin: 0;
-}
-
-.score__item {
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: center;
-  min-width: 0;
-  text-align: center;
-}
-
-.score__label {
-  overflow: hidden;
-  max-width: 100%;
-  color: var(--color-text-muted);
-  font-size: 0.6875rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.score__value {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.125rem;
-  font-weight: 900;
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
-}
-
-.score__item--wins .score__value {
-  color: var(--color-accent);
-}
-
-.score__item--losses .score__value {
-  color: var(--color-rival-text);
-}
-
-@media (min-width: 48rem) {
-  .score__title {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip-path: none;
-    color: var(--color-text-muted);
-    font-size: var(--text-s);
-    font-weight: 700;
-    letter-spacing: var(--tracking-caps);
-    text-transform: uppercase;
-  }
-
-  .score__list {
-    display: flex;
-    flex: none;
-    gap: var(--space-xl);
-  }
-
-  .score__inner {
-    padding-block: var(--space-s);
-  }
-
-  .score__item {
-    flex-direction: row-reverse;
-    align-items: baseline;
-    gap: var(--space-xs);
-  }
-
-  .score__value {
-    font-size: var(--text-l);
-  }
-
-  .score__label {
-    font-size: var(--text-m);
-  }
-}
-
 /* Consent to analytics (§22): a small panel at the bottom of the window. The page grows by its
    height (--consent-space from src/consent/consent.ts), so the panel hides nothing for good. */
 
@@ -233,7 +130,8 @@ body {
   bottom: 0;
   left: 0;
   z-index: 3;
-  border-top: 1px solid var(--color-line-strong);
+  /* It rises from the bottom as a sheet of the game does. */
+  border-top: 1px solid var(--k-sheet-line);
   background: var(--color-surface);
   box-shadow: var(--shadow-panel);
 }
@@ -252,7 +150,7 @@ body {
 .consent__text {
   display: grid;
   gap: var(--space-2xs);
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
   font-size: var(--text-s);
   line-height: 1.45;
 }
@@ -298,7 +196,7 @@ body {
   display: grid;
   gap: var(--space-m);
   padding-block: var(--space-l) var(--space-xl);
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--k-line);
   color: var(--color-text-muted);
   font-size: 0.875rem;
 }
@@ -315,12 +213,12 @@ body {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap-target);
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
   text-decoration: none;
 }
 
 .site-footer__link:hover {
-  color: var(--color-text);
+  color: var(--k-parchment);
 }
 
 /* An action among the links, so it looks like one of them. */

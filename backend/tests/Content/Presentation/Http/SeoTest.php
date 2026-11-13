@@ -57,48 +57,40 @@ final class SeoTest extends WebTestCase
 
         // §24.1: everything else is the game, which search engines do not index.
         self::assertSame(
-            ['/', '/guides', '/guides/ladder-training', '/guides/motivation', '/about', '/privacy'],
+            ['/', '/about', '/privacy'],
             array_map(static fn (string $url): string => substr($url, \strlen(self::SITE)), array_keys($titles)),
         );
         self::assertSame(array_unique($titles), $titles);
         self::assertSame(array_unique($descriptions), $descriptions);
     }
 
-    // A page that is not ready stays in its hub, but search engines do not take it.
-    public function testDraftsStayInTheHubButOutOfTheIndex(): void
+    // A page that is not ready stays on the site, but search engines do not take it.
+    public function testDraftsStayOnTheSiteButOutOfTheIndex(): void
     {
         $client = self::createClient();
         $this->reviewEverything();
-        $this->database()->executeStatement("UPDATE content_page SET reviewed = 0 WHERE slug = 'motivation'");
+        $this->database()->executeStatement("UPDATE content_page SET reviewed = 0 WHERE slug = 'privacy'");
         $sitemap = $this->sitemap($client);
 
-        self::assertNotContains(self::SITE.'/guides/motivation', $sitemap);
-        $crawler = $client->request('GET', '/guides/motivation');
+        self::assertNotContains(self::SITE.'/privacy', $sitemap);
+        $crawler = $client->request('GET', '/privacy');
         self::assertResponseIsSuccessful();
         self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
-        self::assertCount(1, $client->request('GET', '/guides')->filter('main a[href="/guides/motivation"]'));
-        self::assertContains(self::SITE.'/guides/ladder-training', $sitemap);
+        self::assertCount(1, $client->request('GET', '/')->filter('footer a[href="/privacy"]'));
+        self::assertContains(self::SITE.'/about', $sitemap);
     }
 
-    // Every page is reachable through the hubs, not through the sitemap alone.
-    public function testHubsLeadToEveryPage(): void
+    // Every page is reachable from the landing, not through the sitemap alone.
+    public function testTheLandingLeadsToEveryPage(): void
     {
         $client = self::createClient();
-        $links = [];
+        $links = $client->request('GET', '/')->filter('a')->each(static fn (Crawler $link): string => (string) $link->attr('href'));
+        $pages = array_map(
+            static fn (string $slug): string => '/'.$slug,
+            $this->database()->fetchFirstColumn('SELECT slug FROM content_page'),
+        );
 
-        foreach (['/', '/guides'] as $hub) {
-            $links = [...$links, ...$client->request('GET', $hub)->filter('a')->each(
-                static fn (Crawler $link): string => (string) $link->attr('href'),
-            )];
-        }
-        $pages = [
-            ...array_map(static fn (string $slug): string => '/guides/'.$slug, $this->database()->fetchFirstColumn("SELECT slug FROM content_page WHERE type = 'guide'")),
-            '/guides',
-            '/about',
-            '/privacy',
-        ];
-
-        self::assertCount(5, $pages);
+        self::assertCount(2, $pages);
         self::assertSame([], array_values(array_diff($pages, $links)));
     }
 
@@ -119,7 +111,7 @@ final class SeoTest extends WebTestCase
     {
         $client = self::createClient();
         $this->reviewEverything();
-        $this->database()->executeStatement("UPDATE content_page SET updated_at = '2026-12-01 00:00:00' WHERE slug = 'motivation'");
+        $this->database()->executeStatement("UPDATE content_page SET updated_at = '2026-12-01 00:00:00' WHERE slug = 'privacy'");
         $client->request('GET', '/sitemap.xml');
 
         self::assertResponseIsSuccessful();
@@ -130,10 +122,8 @@ final class SeoTest extends WebTestCase
             $changes[(string) $url->loc] = isset($url->lastmod) ? (string) $url->lastmod : null;
         }
         self::assertNull($changes[self::SITE.'/']);
-        self::assertSame('2026-12-01', $changes[self::SITE.'/guides/motivation']);
-        // A hub changes with the pages it lists.
-        self::assertSame('2026-12-01', $changes[self::SITE.'/guides']);
-        self::assertSame('2026-11-11', $changes[self::SITE.'/guides/ladder-training']);
+        self::assertSame('2026-12-01', $changes[self::SITE.'/privacy']);
+        self::assertSame('2026-11-13', $changes[self::SITE.'/about']);
     }
 
     // Section 6.3: production opens the site to every crawler, AI search included.
@@ -159,7 +149,7 @@ final class SeoTest extends WebTestCase
 
         self::assertSame("User-agent: *\nDisallow: /\n", $client->getResponse()->getContent());
 
-        foreach (['/', '/guides'] as $path) {
+        foreach (['/', '/about'] as $path) {
             $crawler = $client->request('GET', $path);
 
             self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'), $path);

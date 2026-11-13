@@ -1,7 +1,8 @@
 /*
  * The styles the screens of the game share: the design system, the screens, the dialogs, the
  * notices and the result of an attempt of the old modes of the site (design/Result). Mobile first
- * (section 9 of the plan); the game paints them in its own colors (kozak.css).
+ * (section 9 of the plan); they are drawn in the lines, the parchment and the radii of the game
+ * (kozak.css), as its own pieces are.
  */
 @import '../styles/fonts.css';
 @import '../styles/tokens.css';
@@ -76,13 +77,14 @@ h1:focus {
 }
 
 .screen-head__title {
-  font-family: var(--font-display);
+  font-family: var(--font-text);
   font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.1;
 }
 
-/* «Back» says where it leads, so it reads as a link, not as a guess. */
+/* «Back» says where it leads, so it reads as a link, not as a guess. It looks as the way back of
+   the journey does (k-back). */
 .back-link {
   display: inline-flex;
   align-self: flex-start;
@@ -90,17 +92,16 @@ h1:focus {
   gap: var(--space-xs);
   min-height: var(--tap-target);
   padding: 0 var(--space-m) 0 var(--space-s);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  color: var(--color-text-soft);
+  border-radius: var(--radius-s);
+  background: var(--k-line-soft);
+  color: var(--k-parchment);
   font-size: var(--text-m);
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: none;
 }
 
 .back-link:hover {
-  border-color: var(--color-line-strong);
-  color: var(--color-text);
+  color: var(--k-gold-light);
 }
 
 .back-link__icon {
@@ -133,37 +134,30 @@ h1:focus {
 
 /* Buttons the shared design system does not have */
 
+/* Drawn as the dangerous action of the game (k-button--danger). */
 .button--danger {
-  border-color: var(--color-error);
+  border-color: var(--k-ember-line);
   background: transparent;
-  color: var(--color-error);
+  color: var(--k-ember-soft);
 }
 
 .button--danger:hover {
-  background: var(--color-error);
-  color: var(--color-on-accent);
-}
-
-.button--light {
-  background: var(--color-text);
-  color: var(--color-on-accent);
-}
-
-.button--light:hover {
-  background: var(--color-text-soft);
-  color: var(--color-on-accent);
+  border-color: var(--k-ember);
+  background: var(--k-badge-boss-bg);
+  color: var(--k-ember-soft);
 }
 
 .button--quiet {
   width: 100%;
   min-height: var(--tap-target);
-  background: var(--color-line);
+  background: var(--k-line-soft);
   color: var(--color-text);
   font-size: var(--text-s);
 }
 
 .button--quiet:hover {
-  background: var(--color-line-strong);
+  background: var(--k-line);
+  color: var(--color-text);
 }
 
 .button:disabled {
@@ -179,10 +173,10 @@ h1:focus {
   align-items: flex-start;
   gap: var(--space-s);
   padding: var(--space-m);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-m);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-card);
   background: var(--color-surface);
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
   font-size: var(--text-m);
 }
 
@@ -192,7 +186,7 @@ h1:focus {
 }
 
 .notice--warning {
-  border-color: var(--color-line-strong);
+  border-color: var(--k-line-strong);
 }
 
 .notice:focus {
@@ -204,7 +198,8 @@ h1:focus {
   font-size: var(--text-m);
 }
 
-/* Badges of results: a symbol and a word, never the color alone (§16.2) */
+/* Badges of results: a symbol and a word, never the color alone (§16.2). Pills, as the badges of
+   the game are (k-badge). */
 
 .badge {
   display: inline-flex;
@@ -212,7 +207,7 @@ h1:focus {
   gap: 0.25rem;
   padding: 0.25rem 0.625rem;
   border: 1px solid transparent;
-  border-radius: var(--radius-m);
+  border-radius: var(--k-r-pill);
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -225,7 +220,7 @@ h1:focus {
 }
 
 .badge--draw {
-  background: var(--color-line);
+  background: var(--k-surface-raised);
   color: var(--color-text);
 }
 
@@ -236,8 +231,8 @@ h1:focus {
 
 .badge--pending,
 .badge--rejected {
-  border-color: var(--color-line-strong);
-  color: var(--color-text-soft);
+  border-color: var(--k-line-strong);
+  color: var(--k-parchment-dim);
 }
 
 .badge--rejected {
@@ -252,7 +247,7 @@ h1:focus {
   color: var(--color-text-muted);
   font-size: var(--text-s);
   font-weight: 700;
-  letter-spacing: var(--tracking-caps);
+  letter-spacing: var(--k-tracking-label);
   text-transform: uppercase;
 }
 
@@ -261,7 +256,7 @@ h1:focus {
   min-width: 0;
   min-height: var(--tap-target);
   padding: 0 0.625rem;
-  border: 1px solid var(--color-line-strong);
+  border: 1px solid var(--k-line-strong);
   border-radius: var(--radius-s);
   background: var(--color-bg);
   color: var(--color-text);
@@ -283,7 +278,8 @@ h1:focus {
   resize: vertical;
 }
 
-/* Dialogs: a sheet at the bottom of a phone, a window in the middle of a desktop */
+/* Dialogs: a sheet at the bottom of a phone, as the sheet of a level of the journey (k-level), and
+   a window in the middle of a desktop */
 
 .dialog {
   width: 100%;
@@ -291,25 +287,25 @@ h1:focus {
   max-height: 90dvh;
   margin: auto 0 0;
   padding: var(--space-l) var(--page-gutter) var(--space-xl);
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--k-sheet-line);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   background: var(--color-surface);
   color: var(--color-text);
 }
 
 .dialog::backdrop {
-  background: rgb(0 0 0 / 60%);
+  background: var(--k-veil);
 }
 
 .dialog__title {
   margin-bottom: var(--space-m);
-  font-family: var(--font-display);
+  font-family: var(--font-text);
   font-size: 1.25rem;
   font-weight: 700;
 }
 
 .dialog__text {
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
 }
 
 .dialog__form {
@@ -349,7 +345,7 @@ h1:focus {
   flex-direction: column;
   gap: var(--space-s);
   padding: var(--space-s) 0;
-  border-bottom: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--k-line);
 }
 
 .custom-list__name {
@@ -371,7 +367,7 @@ h1:focus {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
 }
 
 @media (min-width: 40rem) {
@@ -391,19 +387,15 @@ h1:focus {
   flex-direction: column;
   gap: 1.125rem;
   padding: 1.75rem var(--space-l);
-  border: 2px solid var(--color-line);
-  border-radius: var(--radius-xl);
+  border: 2px solid var(--k-line);
+  border-radius: var(--k-r-card);
   background: var(--color-surface);
 }
 
+/* Plain gold: the game draws no stripes. */
 .result-hero--win {
   border-color: var(--color-accent);
-  background-color: var(--color-accent);
-  background-image: repeating-linear-gradient(
-    135deg,
-    var(--color-stripe-on-accent) 0 2px,
-    transparent 2px 14px
-  );
+  background: var(--color-accent);
   color: var(--color-on-accent);
 }
 
@@ -418,12 +410,12 @@ h1:focus {
   gap: var(--space-xs);
   font-size: var(--text-xs);
   font-weight: 700;
-  letter-spacing: var(--tracking-caps);
+  letter-spacing: var(--k-tracking-label);
   text-transform: uppercase;
 }
 
 .result-hero__title {
-  font-family: var(--font-display);
+  font-family: var(--font-text);
   font-size: 2.25rem;
   /* «▲ Перемога» takes about 7.7em, so the title fits the card on any phone. */
   font-size: min(2.75rem, 12cqi);
@@ -439,7 +431,7 @@ h1:focus {
 }
 
 .result-hero__number {
-  font-family: var(--font-display);
+  font-family: var(--font-text);
   font-size: 3.5rem;
   font-weight: 900;
   line-height: 0.9;
@@ -456,12 +448,13 @@ h1:focus {
   gap: var(--space-xs);
   margin: 0;
   padding-top: 0.875rem;
-  border-top: 2px solid rgb(17 18 20 / 25%);
+  /* A darker gold on the gold of a win. */
+  border-top: 2px solid var(--k-gold-dim);
 }
 
 .result-hero--loss .result-hero__counts,
 .result-hero--draw .result-hero__counts {
-  border-top-color: var(--color-line);
+  border-top-color: var(--k-line);
 }
 
 .result-hero__counts > div {
@@ -476,7 +469,7 @@ h1:focus {
 
 .result-hero__counts dd {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-text);
   font-size: 1.5rem;
   font-weight: 900;
 }
@@ -501,8 +494,8 @@ h1:focus {
   flex-direction: column;
   gap: 0.375rem;
   padding: var(--space-s) var(--space-m);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-l);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-card);
   background: var(--color-surface);
 }
 
@@ -514,7 +507,7 @@ h1:focus {
 }
 
 .round-card__title {
-  font-family: var(--font-display);
+  font-family: var(--font-text);
   font-size: var(--text-m);
   font-weight: 700;
 }
@@ -546,7 +539,7 @@ h1:focus {
 
 .round-card__exercise {
   padding-left: 0;
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
   text-align: left;
 }
 
@@ -560,7 +553,7 @@ h1:focus {
 }
 
 .round-card__table .round-card__goal {
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
 }
 
 .round-card__mark {
@@ -575,7 +568,7 @@ h1:focus {
 }
 
 .ladder-result__title {
-  font-family: var(--font-display);
+  font-family: var(--font-text);
   font-size: 1.125rem;
   font-weight: 700;
 }
@@ -590,7 +583,7 @@ h1:focus {
   display: flex;
   justify-content: space-between;
   gap: var(--space-m);
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
 }
 
 .facts dd {
@@ -615,10 +608,10 @@ h1:focus {
   min-width: 2.25rem;
   height: 2.25rem;
   padding: 0 0.375rem;
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--k-line);
   border-radius: var(--radius-s);
   color: var(--color-text-muted);
-  font-family: var(--font-display);
+  font-family: var(--font-text);
   font-size: var(--text-s);
   font-weight: 700;
 }
@@ -642,7 +635,6 @@ h1:focus {
 
 .result-links .button {
   min-height: 3.25rem;
-  border-radius: var(--radius-m);
 }
 
 /* Signing in with Google (§23.2) */
@@ -692,7 +684,7 @@ h1:focus {
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-s);
-  color: var(--color-text-soft);
+  color: var(--k-parchment-dim);
 }
 
 .sign-in-prompt__head {
@@ -705,7 +697,7 @@ h1:focus {
 
 .sign-in-prompt__title {
   color: var(--color-text);
-  font-family: var(--font-display);
+  font-family: var(--font-text);
   font-size: 1.0625rem;
   font-weight: 700;
   line-height: 1.3;
@@ -740,6 +732,7 @@ h1:focus {
   padding: var(--space-l) var(--page-gutter) 0;
 }
 
+/* What went well, in the green of what is done in the game (k-eyebrow--pine). */
 .notice--done {
-  border-color: var(--color-passed);
+  border-color: var(--k-pine-text);
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Content\Presentation\Http;
 
-use App\Content\Domain\Page;
 use App\Content\Domain\PageRepository;
 use App\Content\Domain\PageType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -13,7 +12,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Only the pages search engines may index, with the date their content last changed (section 6.3
- * of the plan). A hub changes with the pages it lists.
+ * of the plan): the landing and the pages about the service.
  */
 final class SitemapController extends AbstractController
 {
@@ -24,17 +23,8 @@ final class SitemapController extends AbstractController
     #[Route('/sitemap.xml', name: 'sitemap', methods: ['GET'], format: 'xml')]
     public function __invoke(): Response
     {
-        $guides = $this->pages->ofType(PageType::Guide);
-        $urls = [
-            ['path' => $this->generateUrl('home'), 'updated' => null],
-            ['path' => $this->generateUrl('guides'), 'updated' => self::latest($guides)],
-        ];
+        $urls = [['path' => $this->generateUrl('home'), 'updated' => null]];
 
-        foreach ($guides as $guide) {
-            if ($guide->indexable()) {
-                $urls[] = ['path' => $this->generateUrl('guide', ['slug' => $guide->slug()]), 'updated' => $guide->updatedAt()];
-            }
-        }
         // The pages about the service are named after their routes.
         foreach (['about', 'privacy'] as $slug) {
             $page = $this->pages->find(PageType::Service, $slug);
@@ -48,13 +38,5 @@ final class SitemapController extends AbstractController
         $response->headers->set('Content-Type', 'application/xml; charset=UTF-8');
 
         return $response;
-    }
-
-    /**
-     * @param list<Page> $pages
-     */
-    private static function latest(array $pages): ?\DateTimeImmutable
-    {
-        return [] === $pages ? null : max(array_map(static fn (Page $page): \DateTimeImmutable => $page->updatedAt(), $pages));
     }
 }

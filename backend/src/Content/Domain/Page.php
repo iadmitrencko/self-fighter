@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Content\Domain;
 
 /**
- * A page of the site written in Markdown: a guide or a page about the site.
+ * A page about the site written in Markdown, such as «Про проєкт».
  */
 final class Page
 {

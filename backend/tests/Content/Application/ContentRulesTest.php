@@ -18,7 +18,7 @@ final class ContentRulesTest extends TestCase
     {
         $content = new SiteContent(
             [Content::exercise('push-ups'), Content::exercise('squats', 2)],
-            [Content::page(PageType::Guide, 'ladder-training', '<p>Етапи драбини.</p>'), Content::page(PageType::Service, 'about', '<p>Про гру.</p>')],
+            [Content::page(PageType::Service, 'privacy', '<p>Що зберігає сервер.</p>'), Content::page(PageType::Service, 'about', '<p>Про гру.</p>')],
         );
 
         self::assertSame([], (new ContentRules())->problems($content));
@@ -35,11 +35,11 @@ final class ContentRulesTest extends TestCase
     // Section 6.3 of the plan: every page has a title and a description of its own.
     public function testFindsRepeatedTitlesAndDescriptions(): void
     {
-        $content = new SiteContent([Content::exercise('push-ups')], [Content::page(PageType::Guide, 'tip'), Content::page(PageType::Guide, 'tip')]);
+        $content = new SiteContent([Content::exercise('push-ups')], [Content::page(PageType::Service, 'tip'), Content::page(PageType::Service, 'tip')]);
 
         self::assertSame([
-            'Guide page tip has the same title as guide page tip.',
-            'Guide page tip has the same description as guide page tip.',
+            'Service page tip has the same title as service page tip.',
+            'Service page tip has the same description as service page tip.',
         ], (new ContentRules())->problems($content));
     }
 
@@ -49,11 +49,11 @@ final class ContentRulesTest extends TestCase
         $copy = str_replace(['Сто', '15–20'], ['Двісті', '25–30'], self::TEXT);
         $content = new SiteContent(
             [Content::exercise('push-ups')],
-            [Content::page(PageType::Guide, 'hundred', self::TEXT), Content::page(PageType::Guide, 'two-hundred', $copy)],
+            [Content::page(PageType::Service, 'hundred', self::TEXT), Content::page(PageType::Service, 'two-hundred', $copy)],
         );
 
         self::assertSame(
-            ['Guide page hundred and guide page two-hundred share 90% of their text.'],
+            ['Service page hundred and service page two-hundred share 90% of their text.'],
             (new ContentRules())->problems($content),
         );
     }

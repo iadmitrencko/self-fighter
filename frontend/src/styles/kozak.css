@@ -1,7 +1,8 @@
 /*
- * §24: the fonts and tokens of the cossack game, from kozak_design/tokens.css. Only the pages of
- * /game load them. Cormorant names the journey, its campaigns, stages, levels and bosses; Manrope
- * writes everything else, the numbers included. Both are served from this site (OFL).
+ * §24: the fonts and tokens of the cossack game, from kozak_design/tokens.css. Every page loads
+ * them, so the whole site wears the colors of the game. Cormorant names the journey, its campaigns,
+ * stages, levels and bosses and heads the pages of the site; Manrope writes everything else, the
+ * numbers included. Both are served from this site (OFL).
  */
 
 @font-face {
@@ -103,7 +104,7 @@
   line-gap-override: 0%;
 }
 
-.kozak-page {
+:root {
   /* Surfaces */
   --k-bg: #121416;
   --k-bg-training: #0e1011;
@@ -222,7 +223,7 @@
   --k-marker-locked: 2.75rem;
   --k-marker-boss: 3.5rem;
 
-  /* The site takes the colors of the game on its pages: gold for the player, ember for the enemy. */
+  /* The colors of the site are those of the game: gold for the player, ember for the enemy. */
   --color-bg: var(--k-bg);
   --color-surface: var(--k-surface);
   --color-text: var(--k-parchment);
@@ -232,10 +233,12 @@
   --color-on-accent: var(--k-text-on-gold);
   --color-rival: var(--k-ember);
   --color-rival-text: var(--k-ember-soft);
+  /* An error is a danger, and red stands for the danger in the game. 8:1 on the surface. */
+  --color-error: var(--k-ember-soft);
 }
 
 @media (min-width: 75rem) {
-  .kozak-page {
+  :root {
     --k-btn-h: 3.25rem;
     --k-marker-done: 3rem;
     --k-marker-current: 3.75rem;
