@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DUEL, roundSets } from './duel';
 import { allLevels, SICH, type JourneyDefinition } from './journey';
 import { campaignOf, currentLevel, currentStage, journeyProgress, levelProgress } from './progress';
 
@@ -14,13 +15,13 @@ const upTo = (id: string) => {
 const ravensOf = (passed: readonly string[]) => campaignOf(journeyProgress(SICH, passed), RAVENS);
 
 describe('the progress of the journey', () => {
-  // §24.5: «Чорний прапор» and «Лісові круки» can be played; «Степові вовки» is still being prepared.
+  // §24.5: the three campaigns can be played; the final battle waits for them.
   it('opens the campaigns that have their levels', () => {
     const journey = journeyProgress(SICH, []);
 
     expect(journey.campaigns.map(({ campaign, status }) => [campaign.id, status])).toEqual([
       ['black-flag', 'open'],
-      ['steppe-wolves', 'locked'],
+      ['steppe-wolves', 'open'],
       ['forest-ravens', 'open'],
       ['final-battle', 'locked'],
     ]);
@@ -62,8 +63,31 @@ describe('the progress of the journey', () => {
     expect(ravens?.passed).toBe(10);
     expect(currentLevel(ravens ?? (undefined as never))).toBeNull();
     expect(currentStage(ravens ?? (undefined as never))?.stage.number).toBe(10);
-    // The other campaigns are still being prepared, so the final battle waits.
+    // The other campaigns are not passed yet, so the final battle waits.
     expect(campaignOf(journey, 'final-battle')?.status).toBe('locked');
+  });
+
+  // §24.9: the duel with the King opens once the three campaigns are passed.
+  it('opens the duel with the King after the three campaigns', () => {
+    const levels = allLevels(SICH).map(({ id }) => id);
+    const journey = journeyProgress(SICH, levels);
+    const final = campaignOf(journey, 'final-battle');
+
+    expect(journey.campaigns.map(({ status }) => status)).toEqual(['done', 'done', 'done', 'open']);
+    expect(final?.duel?.current?.round.id).toBe('final-battle/1/1');
+    expect(final?.duel?.health).toBe(100);
+    expect(journey.done).toBe(false);
+    expect(campaignOf(journeyProgress(SICH, levels.slice(1)), 'final-battle')?.duel?.current).toBeNull();
+  });
+
+  // §24.9: the King with no health left ends the journey.
+  it('passes the journey with the King defeated', () => {
+    const levels = allLevels(SICH).map(({ id }) => id);
+    const done = Object.fromEntries(DUEL.rounds.map((round) => [round.id, roundSets(round).map(({ position }) => position)]));
+    const journey = journeyProgress(SICH, levels, done);
+
+    expect(campaignOf(journey, 'final-battle')).toMatchObject({ status: 'done', duel: { health: 0, stage: 'defeated', current: null } });
+    expect(journey.done).toBe(true);
   });
 
   // A level opens with the one before it, and a stage with the stage before it, whatever else the
@@ -90,7 +114,7 @@ describe('the progress of the journey', () => {
     const locked = { ...(ravensOf([]) ?? (undefined as never)), status: 'locked' as const };
 
     expect(currentStage(locked)?.stage.number).toBe(1);
-    expect(currentStage(campaignOf(journey, 'steppe-wolves') ?? (undefined as never))).toBeNull();
+    expect(currentStage(campaignOf(journey, 'final-battle') ?? (undefined as never))).toBeNull();
   });
 
   // §24.5: the final battle opens once every other campaign is passed, and its win ends the journey.
@@ -109,6 +133,7 @@ describe('the progress of the journey', () => {
       exercise: 'push-ups',
       peak: 1,
       final,
+      duel: null,
       stages: [{ campaign: id as 'black-flag', number: 1, levels: [level(id)] }],
     });
     const journey: JourneyDefinition = {

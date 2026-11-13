@@ -7,8 +7,9 @@ namespace App\Tests\Workout;
 use App\Workout\Domain\AttemptId;
 
 /**
- * Valid documents of format version 4 as frontend/src/domain produces them or the server stores
- * them. The server checks their structure only, so a test may set any outcome.
+ * Valid documents of format version 5 as frontend/src/domain produces them or the server stores
+ * them. The server checks their structure and the energy of a battle (§24.4), so a test may set
+ * any outcome.
  */
 final class Documents
 {
@@ -27,7 +28,7 @@ final class Documents
         array $overrides = [],
     ): array {
         return array_replace([
-            'schemaVersion' => 4,
+            'schemaVersion' => 5,
             'id' => AttemptId::generate()->value,
             'startedAt' => '2026-11-02T10:00:00.000Z',
             'finishedAt' => $finishedAt,
@@ -38,7 +39,7 @@ final class Documents
             'config' => self::fightConfig(),
             'result' => [
                 'exercises' => [
-                    ['exercise' => ['id' => 'push-ups', 'name' => 'Віджимання'], 'sets' => [['target' => 10, 'done' => true], ['target' => 12, 'done' => true]]],
+                    ['exercise' => ['id' => 'push-ups', 'name' => 'Відтискання'], 'sets' => [['target' => 10, 'done' => true], ['target' => 12, 'done' => true]]],
                     ['exercise' => ['id' => 'squats', 'name' => 'Присідання'], 'sets' => [['target' => 15, 'done' => true], ['target' => 20, 'done' => 'win' === $outcome]]],
                 ],
                 'outcome' => $outcome,
@@ -55,10 +56,10 @@ final class Documents
      */
     public static function target(string $outcome = 'win', string $finishedAt = '2026-11-02T10:18:24.000Z', array $overrides = []): array
     {
-        $pushUps = ['id' => 'push-ups', 'name' => 'Віджимання'];
+        $pushUps = ['id' => 'push-ups', 'name' => 'Відтискання'];
 
         return array_replace([
-            'schemaVersion' => 4,
+            'schemaVersion' => 5,
             'id' => AttemptId::generate()->value,
             'startedAt' => '2026-11-02T10:00:00.000Z',
             'finishedAt' => $finishedAt,
@@ -90,7 +91,7 @@ final class Documents
     public static function ladder(string $outcome = 'win', string $finishedAt = '2026-11-02T10:05:00.000Z', array $overrides = []): array
     {
         return array_replace([
-            'schemaVersion' => 4,
+            'schemaVersion' => 5,
             'id' => AttemptId::generate()->value,
             'startedAt' => '2026-11-02T10:00:00.000Z',
             'finishedAt' => $finishedAt,
@@ -131,7 +132,7 @@ final class Documents
         $last = \count($sets) - 1;
 
         return array_replace([
-            'schemaVersion' => 4,
+            'schemaVersion' => 5,
             'id' => AttemptId::generate()->value,
             'startedAt' => '2026-11-02T10:00:00.000Z',
             'finishedAt' => '2026-11-02T10:06:00.000Z',
@@ -147,6 +148,52 @@ final class Documents
             ],
             'result' => [
                 'sets' => array_map(static fn (int $reps, int $index): array => ['target' => $reps, 'done' => 'win' === $outcome || $index < $last], $sets, array_keys($sets)),
+                'outcome' => $outcome,
+            ],
+        ], $overrides);
+    }
+
+    /**
+     * §24.9: a battle of the duel with the King: the sets of its round from the place `from`. Every
+     * set but the last is done unless the battle is won.
+     *
+     * @param list<array{string, int}> $sets      the exercise and the repetitions of every set
+     * @param array<string, mixed>     $overrides
+     *
+     * @return array<string, mixed>
+     */
+    public static function duel(
+        string $round = 'final-battle/1/4',
+        string $outcome = 'win',
+        int $from = 0,
+        array $sets = [['push-ups', 15], ['squats', 25], ['pull-ups', 5]],
+        array $overrides = [],
+    ): array {
+        $names = ['push-ups' => 'Відтискання', 'squats' => 'Присідання', 'pull-ups' => 'Підтягування'];
+        $exercise = static fn (string $id): array => ['id' => $id, 'name' => $names[$id] ?? $id];
+        $last = \count($sets) - 1;
+
+        return array_replace([
+            'schemaVersion' => 5,
+            'id' => AttemptId::generate()->value,
+            'startedAt' => '2026-11-02T10:00:00.000Z',
+            'finishedAt' => '2026-11-02T10:10:00.000Z',
+            'durationMs' => 600_000,
+            'challenge' => null,
+            'game' => self::game('campaign', '2026-11-02T12:00:00.000Z'),
+            'mode' => 'duel',
+            'config' => [
+                'mode' => 'duel',
+                'round' => $round,
+                'from' => $from,
+                'sets' => array_map(static fn (array $set): array => ['exercise' => $exercise($set[0]), 'reps' => $set[1]], $sets),
+            ],
+            'result' => [
+                'sets' => array_map(
+                    static fn (array $set, int $index): array => ['exercise' => $exercise($set[0]), 'target' => $set[1], 'done' => 'win' === $outcome || $index < $last],
+                    $sets,
+                    array_keys($sets),
+                ),
                 'outcome' => $outcome,
             ],
         ], $overrides);
@@ -182,7 +229,7 @@ final class Documents
         return [
             'mode' => 'fight',
             'exercises' => [
-                ['id' => 'push-ups', 'name' => 'Віджимання', 'sets' => [10, 12]],
+                ['id' => 'push-ups', 'name' => 'Відтискання', 'sets' => [10, 12]],
                 ['id' => 'squats', 'name' => 'Присідання', 'sets' => [15, 20]],
             ],
         ];
@@ -197,7 +244,7 @@ final class Documents
             'mode' => 'target',
             'rule' => 'over',
             'rounds' => 1,
-            'exercises' => [['id' => 'push-ups', 'name' => 'Віджимання', 'targets' => [10]]],
+            'exercises' => [['id' => 'push-ups', 'name' => 'Відтискання', 'targets' => [10]]],
         ];
     }
 

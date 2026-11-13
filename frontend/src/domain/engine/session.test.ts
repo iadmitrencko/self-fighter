@@ -19,14 +19,14 @@ describe('createSession', () => {
     const session = createSession(fightConfig(), testDeps());
 
     expect(session).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       id: 'attempt-1',
       startedAt: STARTED_AT.toISOString(),
       challenge: null,
       game: null,
       mode: 'fight',
     });
-    expect(SCHEMA_VERSION).toBe(4);
+    expect(SCHEMA_VERSION).toBe(5);
   });
 
   // §6: every exercise of the first round, then every one of the second.

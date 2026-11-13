@@ -9,7 +9,7 @@ import { newId } from './ids';
 import { createMemoryStorage, type TestGoogleAccount } from './memory';
 import { levelConfig } from '../domain/kozak/battle';
 import { findLevel, SICH } from '../domain/kozak/journey';
-import { finishedAttempt, gameFight, levelAttempt, oldGameFight } from './testing/attempts';
+import { duelAttempt, finishedAttempt, gameFight, levelAttempt, oldGameFight } from './testing/attempts';
 import { createFakeServer } from './testing/fakeServer';
 
 // Screens rely on these rules whichever storage runs underneath (section 3.7 of the plan).
@@ -188,16 +188,20 @@ describe.each([
       await storage.attempts.save(oldGameFight('draw', '2026-11-01T12:00:00.000Z', '2026-11-01T15:00:00.000Z'));
       await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'loss', '2026-11-02T09:00:00.000Z', '2026-11-02T14:00:00.000Z'));
       await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'win', '2026-11-02T10:00:00.000Z', '2026-11-02T19:00:00.000Z'));
+      // §24.9: the first round of the duel, left after two of its three sets.
+      await storage.attempts.save(duelAttempt(1, '2026-11-02T11:00:00.000Z', '2026-11-02T21:00:00.000Z', { retreatAt: 2 }));
       await storage.attempts.flush();
 
       expect(await storage.attempts.game()).toEqual({
         fights: { wins: 1, draws: 1, losses: 0 },
-        campaign: { wins: 1, draws: 0, losses: 1 },
+        campaign: { wins: 1, draws: 0, losses: 2 },
         passed: ['forest-ravens/1/1'],
-        energy: { fight: '2026-11-01T15:00:00.000Z', campaign: '2026-11-02T19:00:00.000Z' },
-        best: { 'pull-ups': 1 },
+        energy: { fight: '2026-11-01T15:00:00.000Z', campaign: '2026-11-02T21:00:00.000Z' },
+        best: { 'pull-ups': 1, 'push-ups': 20 },
+        duel: { 'final-battle/1/1': [0, 1] },
+        duelAt: '2026-11-02T11:00:00.000Z',
       });
-      expect((await storage.attempts.stats()).total).toBe(5);
+      expect((await storage.attempts.stats()).total).toBe(6);
     });
 
     it('has an empty record before the first battle', async () => {
@@ -207,6 +211,8 @@ describe.each([
         passed: [],
         energy: { fight: null, campaign: null },
         best: {},
+        duel: {},
+        duelAt: null,
       });
     });
 

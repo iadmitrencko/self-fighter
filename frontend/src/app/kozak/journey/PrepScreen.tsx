@@ -10,12 +10,11 @@ import {
   counts,
   energyStatus,
   formatWait,
-  levelText,
   levelTypeNames,
   prepTexts,
   stageMapTexts,
-  stageText,
 } from '../../../i18n/kozak';
+import { levelText, stageText } from '../../../i18n/kozak-story';
 import { Title } from '../../components/Screen';
 import { MemoryWarning } from '../../components/notices';
 import { useGame } from '../../game';
@@ -23,7 +22,7 @@ import { BossPortrait, PrepScene } from '../art/Scenes';
 import { kozakPaths } from '../paths';
 import { EnergyMeter, KozakIcon, KozakScreen, WithCossack } from '../parts';
 import { useCossack, useNow, type Cossack } from '../record';
-import { KozakNotFound, scheme, useCampaignExercise, useJourneyPlace } from './common';
+import { journeyBattleName, KozakNotFound, scheme, useCampaignExercise, useJourneyPlace } from './common';
 
 // Screen 5 of kozak_design: the task of a level before the battle.
 export function PrepScreen() {
@@ -117,9 +116,9 @@ function Prep({ campaign, level, cossack }: { campaign: CampaignDefinition; leve
       <div className="k-prep__action">
         {battle !== null ? (
           <div className="k-refusal">
-            {battle.config.level !== level.id && (
+            {(battle.mode !== 'campaign' || battle.config.level !== level.id) && (
               <p className="k-refusal__text">
-                <b>{prepTexts.busyTitle}.</b> {prepTexts.busy(levelText(battle.config.level).name)}
+                <b>{prepTexts.busyTitle}.</b> {prepTexts.busy(journeyBattleName(battle))}
               </p>
             )}
             <Link className="k-button k-button--primary k-button--large" to={kozakPaths.battle}>

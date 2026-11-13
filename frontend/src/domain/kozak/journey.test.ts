@@ -3,6 +3,9 @@ import { allLevels, findCampaign, findLevel, findStage, SICH, totalReps } from '
 
 const ravens = findCampaign(SICH, 'forest-ravens');
 const flag = findCampaign(SICH, 'black-flag');
+const wolves = findCampaign(SICH, 'steppe-wolves');
+// Every number is larger than the one before it.
+const climbs = (numbers: readonly number[]) => numbers.every((n, index) => index === 0 || n > (numbers[index - 1] ?? n));
 const bossLast = ({ stages }: { stages: readonly { levels: readonly { boss: boolean }[] }[] }) =>
   stages.every(({ levels }) => levels.map(({ boss }) => boss).lastIndexOf(true) === levels.length - 1);
 
@@ -18,7 +21,7 @@ describe('the journey «Січ»', () => {
   });
 
   it('gives the glory of the brief', () => {
-    expect(SICH.rewards).toEqual({ level: 2, boss: 5, campaign: 10, journey: 30 });
+    expect(SICH.rewards).toEqual({ level: 2, boss: 5, campaign: 10, round: 5, journey: 30 });
   });
 
   // §24.5: «Лісові круки» has ten stages and 61 levels, a boss at the end of each stage.
@@ -33,9 +36,15 @@ describe('the journey «Січ»', () => {
     expect(bossLast(flag ?? (undefined as never))).toBe(true);
   });
 
+  // §24.5: «Степові вовки» has ten stages of six levels, a boss at the end of each stage.
+  it('has the stages and levels of «Степові вовки»', () => {
+    expect(wolves?.stages.map(({ levels }) => levels.length)).toEqual(Array<number>(10).fill(6));
+    expect(bossLast(wolves ?? (undefined as never))).toBe(true);
+  });
+
   it('has one boss in every stage', () => {
-    expect(allLevels(SICH)).toHaveLength(121);
-    expect(allLevels(SICH).filter(({ boss }) => boss)).toHaveLength(20);
+    expect(allLevels(SICH)).toHaveLength(181);
+    expect(allLevels(SICH).filter(({ boss }) => boss)).toHaveLength(30);
   });
 
   // The column «Повторень загалом» of the brief, stage by stage.
@@ -73,9 +82,43 @@ describe('the journey «Січ»', () => {
     ]);
   });
 
+  it('asks the repetitions of the brief of «Степові вовки»', () => {
+    expect(wolves?.stages.map(({ levels }) => levels.map(totalReps))).toEqual([
+      [8, 10, 11, 9, 12, 13],
+      [14, 17, 21, 19, 24, 24],
+      [21, 27, 45, 39, 50, 50],
+      [54, 60, 67, 50, 73, 80],
+      [62, 68, 75, 70, 85, 115],
+      [75, 82, 89, 75, 103, 120],
+      [87, 96, 105, 90, 120, 145],
+      [98, 105, 120, 100, 140, 160],
+      [108, 117, 131, 113, 153, 181],
+      [117, 127, 139, 125, 170, 200],
+    ]);
+    // The column «Максимум в одному підході» of the stages.
+    expect(wolves?.stages.map(({ levels }) => Math.max(...levels.flatMap(({ sets }) => sets)))).toEqual([
+      5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+    ]);
+  });
+
+  // The brief of «Степові вовки»: three levels of a growing load, a ladder up to the top of the
+  // stage, a level whose last set is the top and a boss whose ladder with a return reaches it too.
+  it('builds every stage of «Степові вовки» the same way', () => {
+    for (const { levels } of wolves?.stages ?? []) {
+      const top = Math.max(...levels.flatMap(({ sets }) => sets));
+      const [ladder, last, boss] = levels.slice(3).map(({ sets }) => sets);
+
+      expect(levels.map(({ type }) => type)).toEqual(['normal', 'normal', 'normal', 'ladder-up', 'normal', 'ladder-return']);
+      expect(climbs(levels.slice(0, 3).map(totalReps))).toBe(true);
+      expect(ladder?.at(-1)).toBe(top);
+      expect(last?.at(-1)).toBe(top);
+      expect(Math.max(...(boss ?? []))).toBe(top);
+    }
+  });
+
   // The most repetitions in one set of a campaign is its peak, reached only at its end.
   it('leads every campaign up to its peak', () => {
-    for (const campaign of [ravens, flag]) {
+    for (const campaign of [ravens, flag, wolves]) {
       const levels = campaign?.stages.flatMap((stage) => stage.levels) ?? [];
 
       expect(Math.max(...levels.flatMap(({ sets }) => sets))).toBe(campaign?.peak);
@@ -86,7 +129,6 @@ describe('the journey «Січ»', () => {
   // A ladder up only climbs and a ladder down never climbs; a ladder with a return climbs to its
   // top and comes back down.
   it('builds the ladders as their types say', () => {
-    const climbs = (sets: readonly number[]) => sets.every((reps, index) => index === 0 || reps > (sets[index - 1] ?? reps));
     const neverClimbs = (sets: readonly number[]) => sets.every((reps, index) => index === 0 || reps <= (sets[index - 1] ?? reps));
 
     for (const { type, sets } of allLevels(SICH)) {
@@ -137,13 +179,28 @@ describe('the journey «Січ»', () => {
     expect(findLevel(SICH, 'forest-ravens/10/7')).toMatchObject({ boss: true, type: 'ladder-return' });
     expect(findLevel(SICH, 'forest-ravens/1/4')).toMatchObject({ boss: true, type: 'normal', sets: Array<number>(10).fill(1) });
     expect(findLevel(SICH, 'black-flag/10/6')).toMatchObject({ boss: true, type: 'ladder-return', sets: [5, 10, 15, 25, 15, 10, 5] });
-    expect(new Set(allLevels(SICH).map(({ id }) => id)).size).toBe(121);
+    expect(findLevel(SICH, 'steppe-wolves/1/1')).toEqual({
+      id: 'steppe-wolves/1/1',
+      campaign: 'steppe-wolves',
+      stage: 1,
+      number: 1,
+      type: 'normal',
+      boss: false,
+      sets: [2, 3, 3],
+    });
+    expect(findLevel(SICH, 'steppe-wolves/10/6')).toMatchObject({
+      boss: true,
+      type: 'ladder-return',
+      sets: [15, 25, 35, 50, 35, 25, 15],
+    });
+    expect(new Set(allLevels(SICH).map(({ id }) => id)).size).toBe(181);
   });
 
   it('finds nothing that does not exist', () => {
     expect(findCampaign(SICH, 'white-swans')).toBeNull();
     expect(findLevel(SICH, 'forest-ravens/1/5')).toBeNull();
     expect(findLevel(SICH, 'black-flag/1/7')).toBeNull();
+    expect(findLevel(SICH, 'steppe-wolves/11/1')).toBeNull();
     expect(findStage(ravens ?? (undefined as never), 11)).toBeNull();
     expect(findStage(ravens ?? (undefined as never), 3)?.levels).toHaveLength(7);
   });

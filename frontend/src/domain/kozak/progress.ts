@@ -1,3 +1,4 @@
+import { duelProgress, type DuelDone, type DuelProgress } from './duel';
 import type { CampaignDefinition, JourneyDefinition, LevelDefinition, StageDefinition } from './journey';
 
 // done: passed; current: the next to take; locked: waits for the one before it (§24.5).
@@ -25,6 +26,8 @@ export interface CampaignProgress {
   readonly stages: readonly StageProgress[];
   // Stages passed.
   readonly passed: number;
+  // §24.9: the duel with the King the final battle is, or null for a campaign of levels.
+  readonly duel: DuelProgress | null;
 }
 
 export interface JourneyProgress {
@@ -36,24 +39,31 @@ export interface JourneyProgress {
 /**
  * Levels open one after another: the first level of a stage opens with the stage, the next one
  * with the level before it, and a stage opens once the stage before it is passed. A level passed
- * stays passed, so the order of the history does not matter.
+ * stays passed, so the order of the history does not matter. The final battle opens once every
+ * other campaign is passed; a duel is passed once the King has no health left (§24.9).
  */
-export function journeyProgress(journey: JourneyDefinition, passed: readonly string[]): JourneyProgress {
+export function journeyProgress(journey: JourneyDefinition, passed: readonly string[], duel: DuelDone = {}): JourneyProgress {
   const won = new Set(passed);
   const regular = journey.campaigns
     .filter(({ final }) => !final)
-    .map((campaign) => campaignProgress(campaign, campaign.stages.length > 0, won));
+    .map((campaign) => campaignProgress(campaign, campaign.stages.length > 0, won, duel));
   const allPassed = regular.every(({ status }) => status === 'done');
   const campaigns = journey.campaigns.map(
     (campaign) =>
       regular.find((progress) => progress.campaign === campaign) ??
-      campaignProgress(campaign, allPassed && campaign.stages.length > 0, won),
+      campaignProgress(campaign, allPassed && (campaign.stages.length > 0 || campaign.duel !== null), won, duel),
   );
 
   return { campaigns, done: campaigns.some(({ campaign, status }) => campaign.final && status === 'done') };
 }
 
-function campaignProgress(campaign: CampaignDefinition, open: boolean, won: ReadonlySet<string>): CampaignProgress {
+function campaignProgress(campaign: CampaignDefinition, open: boolean, won: ReadonlySet<string>, done: DuelDone): CampaignProgress {
+  if (campaign.duel !== null) {
+    const duel = duelProgress(campaign.duel, done, open);
+    const status: CampaignStatus = !open ? 'locked' : duel.health === 0 ? 'done' : 'open';
+
+    return { campaign, status, stages: [], passed: 0, duel };
+  }
   let previousDone = open;
   const stages = campaign.stages.map((stage) => {
     const progress = stageProgress(stage, previousDone, won);
@@ -64,7 +74,7 @@ function campaignProgress(campaign: CampaignDefinition, open: boolean, won: Read
   const passed = stages.filter(({ status }) => status === 'done').length;
   const status: CampaignStatus = !open ? 'locked' : passed === stages.length ? 'done' : 'open';
 
-  return { campaign, status, stages, passed };
+  return { campaign, status, stages, passed, duel: null };
 }
 
 function stageProgress(stage: StageDefinition, open: boolean, won: ReadonlySet<string>): StageProgress {

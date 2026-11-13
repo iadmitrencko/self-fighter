@@ -15,7 +15,7 @@ test('the landing explains the game and opens it without signing up', async ({ p
   await expect(page).toHaveURL('/game/fight');
   await expect(page.getByRole('heading', { level: 1, name: 'Бій' })).toBeVisible();
   // §6: the hall offers a fight of the ready-made exercises at once.
-  await expect(page.getByRole('textbox', { name: 'Віджимання, раунд 1' })).toHaveValue('10');
+  await expect(page.getByRole('textbox', { name: 'Відтискання, раунд 1' })).toHaveValue('10');
   await expect(page.getByRole('button', { name: /^До бою/ })).toBeEnabled();
   await expectAccessible(page);
 });

@@ -1,11 +1,12 @@
 import type { ExerciseRef } from '../catalog/exercise';
 import { roundsOf } from '../config/grid';
-import type { CampaignConfig, FightConfig } from '../config/types';
+import type { CampaignConfig, DuelConfig, FightConfig } from '../config/types';
 import type { EnergyPool } from '../kozak/energy';
 
-// Version 4 puts a fight together from exercises and rounds (§6) instead of the modes of the site;
+// Version 5 adds the duel with the King of robbers, the final battle of the journey (§24.9);
+// version 4 puts a fight together from exercises and rounds (§6) instead of the modes of the site;
 // version 3 marked the battles of the game, version 2 a ready-made challenge (section 3.7 of the plan).
-export const SCHEMA_VERSION = 4 as const;
+export const SCHEMA_VERSION = 5 as const;
 
 // A battle of the game: the pool of energy it took and when that pool is full again (§24.4).
 export interface GameMark {
@@ -23,6 +24,11 @@ export interface SetStage {
 // A set of a fight: one exercise in one round.
 export interface FightStage extends SetStage {
   readonly round: number;
+  readonly exercise: ExerciseRef;
+}
+
+// A set of a round of the duel and its exercise.
+export interface DuelStage extends SetStage {
   readonly exercise: ExerciseRef;
 }
 
@@ -49,7 +55,17 @@ export interface CampaignSession extends SessionBase {
   readonly stages: readonly SetStage[];
 }
 
-export type Session = FightSession | CampaignSession;
+// §24.9: a battle of the duel with the King: a stage per set of the round it goes on with.
+export interface DuelSession extends SessionBase {
+  readonly mode: 'duel';
+  readonly config: DuelConfig;
+  readonly stages: readonly DuelStage[];
+}
+
+export type Session = FightSession | CampaignSession | DuelSession;
+
+// The battles of the journey take its energy, so one of them is in progress at a time (§24.4).
+export type JourneySession = CampaignSession | DuelSession;
 
 export function isFightSession(session: Session): session is FightSession {
   return session.mode === 'fight';
@@ -57,6 +73,10 @@ export function isFightSession(session: Session): session is FightSession {
 
 export function isCampaignSession(session: Session): session is CampaignSession {
   return session.mode === 'campaign';
+}
+
+export function isJourneySession(session: Session): session is JourneySession {
+  return session.mode === 'campaign' || session.mode === 'duel';
 }
 
 export interface SessionDeps {
@@ -79,12 +99,17 @@ function campaignStages({ sets }: CampaignConfig): SetStage[] {
   return sets.map((target) => ({ target, done: null }));
 }
 
+function duelStages({ sets }: DuelConfig): DuelStage[] {
+  return sets.map(({ exercise, reps }) => ({ exercise, target: reps, done: null }));
+}
+
 export function createSession(config: FightConfig, deps: SessionDeps): FightSession;
 export function createSession(config: CampaignConfig, deps: SessionDeps): CampaignSession;
-export function createSession(config: FightConfig | CampaignConfig, deps: SessionDeps): Session;
+export function createSession(config: DuelConfig, deps: SessionDeps): DuelSession;
+export function createSession(config: FightConfig | CampaignConfig | DuelConfig, deps: SessionDeps): Session;
 // Everything the battle depends on is fixed here, so a reload or a change of the catalog cannot change it.
-export function createSession(source: FightConfig | CampaignConfig, { now, newId }: SessionDeps): Session {
-  const config = JSON.parse(JSON.stringify(source)) as FightConfig | CampaignConfig;
+export function createSession(source: FightConfig | CampaignConfig | DuelConfig, { now, newId }: SessionDeps): Session {
+  const config = JSON.parse(JSON.stringify(source)) as FightConfig | CampaignConfig | DuelConfig;
   const base = {
     schemaVersion: SCHEMA_VERSION,
     id: newId(),
@@ -93,9 +118,14 @@ export function createSession(source: FightConfig | CampaignConfig, { now, newId
     game: null,
   };
 
-  return config.mode === 'campaign'
-    ? { ...base, mode: config.mode, config, stages: campaignStages(config) }
-    : { ...base, mode: config.mode, config, stages: fightStages(config) };
+  switch (config.mode) {
+    case 'campaign':
+      return { ...base, mode: config.mode, config, stages: campaignStages(config) };
+    case 'duel':
+      return { ...base, mode: config.mode, config, stages: duelStages(config) };
+    case 'fight':
+      return { ...base, mode: config.mode, config, stages: fightStages(config) };
+  }
 }
 
 // The set to do now, or null once the battle is over: every set is done or the player retreated.

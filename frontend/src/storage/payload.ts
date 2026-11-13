@@ -111,7 +111,8 @@ export function parseGameRecord(body: unknown): GameRecord {
     !body.passed.every((level) => typeof level === 'string') ||
     !isRecord(body.energy) ||
     !isOptionalText(body.energy.fight) ||
-    !isOptionalText(body.energy.campaign)
+    !isOptionalText(body.energy.campaign) ||
+    !isOptionalText(body.duelAt)
   ) {
     throw unexpected();
   }
@@ -122,7 +123,26 @@ export function parseGameRecord(body: unknown): GameRecord {
     passed: body.passed,
     energy: { fight: body.energy.fight, campaign: body.energy.campaign },
     best: parseBest(body.best),
+    duel: parseDuel(body.duel),
+    duelAt: body.duelAt,
   };
+}
+
+// §24.9: the places of the sets of the duel done, by the round.
+function parseDuel(value: unknown): Readonly<Record<string, readonly number[]>> {
+  if (!isRecord(value)) {
+    throw unexpected();
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([round, places]) => {
+      if (!Array.isArray(places) || !places.every(isCount)) {
+        throw unexpected();
+      }
+
+      return [round, places];
+    }),
+  );
 }
 
 // §24.8: the best set of every exercise of the journey, by its id.

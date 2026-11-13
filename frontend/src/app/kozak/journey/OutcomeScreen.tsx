@@ -8,12 +8,11 @@ import { awardFor } from '../../../domain/kozak/glory';
 import {
   campaignTexts,
   defeatTexts,
-  levelText,
   rankNames,
   resultTexts,
-  stageText,
   victoryTexts,
 } from '../../../i18n/kozak';
+import { levelText, stageText } from '../../../i18n/kozak-story';
 import type { AttemptStatus } from '../../../storage/contract';
 import { Title } from '../../components/Screen';
 import { ErrorNotice } from '../../components/notices';
@@ -23,7 +22,8 @@ import { BossVictoryScene, DefeatScene, VictoryScene } from '../art/Scenes';
 import { kozakPaths } from '../paths';
 import { KozakScreen, WithCossack } from '../parts';
 import { useCossack, useFresh, type Cossack } from '../record';
-import { KozakNotFound } from './common';
+import { KozakNotFound, Pending } from './common';
+import { DuelOutcome } from './DuelOutcome';
 
 // Screens 7–8 of kozak_design and the retreat: how a level of the journey ended.
 export function OutcomeScreen() {
@@ -48,6 +48,13 @@ export function OutcomeScreen() {
     );
   }
   const attempt = stored.value?.attempt;
+
+  // §24.9: a battle of the duel with the King tells the damage it did.
+  if (attempt?.mode === 'duel' && stored.value !== null) {
+    const { status } = stored.value;
+
+    return <WithCossack>{(cossack) => <DuelOutcome attempt={attempt} cossack={cossack} status={status} />}</WithCossack>;
+  }
   const level = attempt?.mode === 'campaign' ? findLevel(SICH, attempt.config.level) : null;
 
   if (attempt?.mode !== 'campaign' || level === null || stored.value === null) {
@@ -261,13 +268,4 @@ function Defeat({ attempt, level, status }: { attempt: CampaignAttempt; level: L
       </div>
     </KozakScreen>
   );
-}
-
-// §15.4: a battle that has not reached the server yet says so.
-function Pending({ status }: { status: AttemptStatus }) {
-  if (status === 'saved') {
-    return null;
-  }
-
-  return <p className="notice notice--warning">{status === 'pending' ? resultTexts.pending : resultTexts.rejected}</p>;
 }

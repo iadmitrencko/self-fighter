@@ -1,12 +1,14 @@
 import { useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { campaignOf, type CampaignProgress } from '../../../domain/kozak/progress';
-import { campaignTexts, journeyTexts, mapTexts, stageText } from '../../../i18n/kozak';
+import { campaignTexts, journeyTexts, mapTexts } from '../../../i18n/kozak';
+import { stageText } from '../../../i18n/kozak-story';
 import { Title } from '../../components/Screen';
 import { CampaignMap, pinStyle, TALL, WIDE, type MapLayout } from '../art/CampaignMap';
 import { kozakPaths } from '../paths';
 import { Bar, KozakIcon, KozakScreen, WithCossack } from '../parts';
 import { KozakNotFound, useJourneyPlace } from './common';
+import { DuelScreen } from './DuelScreen';
 import { MarkerLink, MarkerStill, Pin } from './markers';
 
 // Screen 2 of kozak_design: the map of the ten stages of a campaign.
@@ -15,6 +17,10 @@ export function CampaignScreen() {
 
   if (campaign === null) {
     return <KozakNotFound />;
+  }
+  // §24.9: the final battle is a duel with the King rather than a map of stages.
+  if (campaign.duel !== null) {
+    return <DuelScreen />;
   }
 
   return (

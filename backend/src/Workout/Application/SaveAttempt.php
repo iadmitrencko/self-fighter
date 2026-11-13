@@ -17,13 +17,14 @@ final readonly class SaveAttempt
         private AttemptRepository $attempts,
         private AttemptFormat $format,
         private UserTransaction $transaction,
+        private BattleEnergy $energy,
     ) {
     }
 
     /**
      * @return bool true for a new attempt, false when the same attempt was saved before
      *
-     * @throws Refusal
+     * @throws Refusal when the attempt breaks the format, its id is taken or its battle had no energy (§24.4)
      */
     public function __invoke(UserId $owner, AttemptId $id, string $json): bool
     {
@@ -38,7 +39,8 @@ final readonly class SaveAttempt
             $saved = $this->attempts->find($attempt->id());
 
             if (null === $saved) {
-                $this->attempts->add($attempt);
+                // The user is locked, so two battles of one pool are counted one after the other.
+                $this->attempts->add($this->energy->admit($owner, $attempt));
 
                 return true;
             }

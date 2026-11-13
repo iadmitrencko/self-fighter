@@ -149,7 +149,7 @@ final class PagesTest extends WebTestCase
         self::assertSelectorTextSame('title', 'Гра — Self-Fighter');
         self::assertSame('noindex, follow', $game->filter('meta[name="robots"]')->attr('content'));
         self::assertSame(
-            ['exercises' => [['id' => 'push-ups', 'name' => 'Віджимання'], ['id' => 'squats', 'name' => 'Присідання'], ['id' => 'pull-ups', 'name' => 'Підтягування']], 'signIn' => ['google']],
+            ['exercises' => [['id' => 'push-ups', 'name' => 'Відтискання'], ['id' => 'squats', 'name' => 'Присідання'], ['id' => 'pull-ups', 'name' => 'Підтягування']], 'signIn' => ['google']],
             json_decode((string) $game->filter('#root')->attr('data-game'), true, 512, \JSON_THROW_ON_ERROR),
         );
     }
@@ -169,6 +169,8 @@ final class PagesTest extends WebTestCase
             '/game/journey',
             '/game/journey/forest-ravens',
             '/game/journey/black-flag',
+            '/game/journey/steppe-wolves',
+            '/game/journey/steppe-wolves/10/6',
             '/game/journey/forest-ravens/1',
             '/game/journey/forest-ravens/10/7',
             '/game/journey/battle',

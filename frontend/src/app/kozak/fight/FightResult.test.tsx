@@ -84,7 +84,7 @@ describe('the result of a fight', () => {
     expect(screen.getByText('29 жовтня о 17:42')).toBeTruthy();
     expect(within(screen.getByRole('article')).getAllByRole('row').map((row) => row.textContent)).toEqual([
       'РаундиТиЦільРезультат',
-      'Віджимання1110▲перемога',
+      'Відтискання1110▲перемога',
       'Присідання910▼поразка',
     ]);
     expect(screen.queryByRole('button', { name: /^Повторити/ })).toBeNull();

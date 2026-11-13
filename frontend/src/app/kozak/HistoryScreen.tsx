@@ -19,10 +19,16 @@ import { errorCode, useLoad } from '../useLoad';
 import { kozakPaths } from './paths';
 import { KozakScreen } from './parts';
 
-type HistoryMode = Extract<Attempt['mode'], 'fight' | 'campaign'>;
+type HistoryMode = Extract<Attempt['mode'], 'fight' | 'campaign' | 'duel'>;
 
-// §6, §24.5: the fights and the journey of the game. The attempts of the old modes of the site show among all.
-const MODE_FILTERS: readonly HistoryMode[] = ['fight', 'campaign'];
+// §6, §24.5, §24.9: the fights, the journey and the duel with the King. The attempts of the old
+// modes of the site show among all.
+const MODE_FILTERS: readonly HistoryMode[] = ['fight', 'campaign', 'duel'];
+const MODE_LABELS: Readonly<Record<HistoryMode, string>> = {
+  fight: gameHistoryTexts.kinds.fight,
+  campaign: gameHistoryTexts.journey,
+  duel: gameHistoryTexts.kinds.duel,
+};
 const OUTCOMES: readonly Outcome[] = ['win', 'draw', 'loss'];
 
 // Pages loaded with «Показати ще» belong to the filter they were loaded for.
@@ -93,10 +99,7 @@ export function HistoryScreen() {
             legend={historyTexts.modeFilter}
             name="mode"
             value={mode}
-            options={MODE_FILTERS.map((item) => ({
-              value: item,
-              label: item === 'campaign' ? gameHistoryTexts.journey : gameHistoryTexts.kinds.fight,
-            }))}
+            options={MODE_FILTERS.map((item) => ({ value: item, label: MODE_LABELS[item] }))}
             onChange={setMode}
           />
           <FilterGroup
@@ -242,20 +245,25 @@ function Empty({ filtered }: { filtered: boolean }) {
   );
 }
 
-// A fight of the game, a level of the journey or a workout of the site.
+// A fight of the game, a level of the journey, a battle of the duel or a workout of the site.
 function kindOf(attempt: Attempt): keyof typeof gameHistoryTexts.kinds {
   if (attempt.mode === 'campaign') {
     return 'journey';
+  }
+  if (attempt.mode === 'duel') {
+    return 'duel';
   }
 
   return attempt.game === null ? 'workout' : 'fight';
 }
 
-// A level by its name, a fight by its exercises, an attempt of an old mode by the mode.
+// A level or a round of the duel by its name, a fight by its exercises, an attempt of an old mode by the mode.
 function nameOf(attempt: Attempt): string {
   switch (attempt.mode) {
     case 'campaign':
       return levelName(attempt.config.level);
+    case 'duel':
+      return levelName(attempt.config.round);
     case 'fight':
       return attempt.config.exercises.map(({ name }) => name).join(', ');
     default:
@@ -275,6 +283,11 @@ function details(attempt: Attempt): string {
       sets.length,
     );
   }
+  if (attempt.mode === 'duel') {
+    const { sets } = attempt.result;
+
+    return gameHistoryTexts.round(levelPlace(attempt.config.round)?.number ?? 0, sets.filter(({ done }) => done).length, sets.length);
+  }
   if (attempt.mode === 'fight') {
     const sets = attempt.result.exercises.flatMap((exercise) => exercise.sets);
 
@@ -289,13 +302,13 @@ function details(attempt: Attempt): string {
   return historyTexts.fightDetails(attempt.config.rounds, attempt.config.exercises.length, attempt.result.won, attempt.result.lost);
 }
 
-// The whole card opens the result: a level has its own, a fight and an old workout of the site
-// open as a fight of the game.
+// The whole card opens the result: a level and a battle of the duel have their own, a fight and
+// an old workout of the site open as a fight of the game.
 function EntryLink({ attempt, className, children }: { attempt: Attempt; className: string; children: ReactNode }) {
   return (
     <Link
       className={className}
-      to={attempt.mode === 'campaign' ? kozakPaths.outcome(attempt.id) : kozakPaths.fightResult(attempt.id)}
+      to={attempt.mode === 'campaign' || attempt.mode === 'duel' ? kozakPaths.outcome(attempt.id) : kozakPaths.fightResult(attempt.id)}
     >
       {children}
     </Link>
@@ -314,7 +327,7 @@ function HistoryEntry({ stored: { attempt, status } }: { stored: StoredAttempt }
         </span>
         {/* The spaces keep the words apart for a screen reader; the grid does not show them. */}
         <span className="k-entry__body">
-          <span className={attempt.mode === 'campaign' ? 'k-entry__name k-entry__name--level' : 'k-entry__name'}>
+          <span className={attempt.mode === 'campaign' || attempt.mode === 'duel' ? 'k-entry__name k-entry__name--level' : 'k-entry__name'}>
             {nameOf(attempt)}
           </span>{' '}
           <span className="k-entry__outcome">{name}</span>{' '}

@@ -1,10 +1,12 @@
 import type { ChallengeRef } from '../../domain/catalog/challenge';
 import { createSession } from '../../domain/engine/session';
-import { finalize, type Attempt, type CampaignAttempt, type FightAttempt } from '../../domain/history/attempt';
+import { finalize, type Attempt, type CampaignAttempt, type DuelAttempt, type FightAttempt } from '../../domain/history/attempt';
 import { levelConfig, retreat } from '../../domain/kozak/battle';
+import type { DuelDone } from '../../domain/kozak/duel';
 import { findLevel, SICH } from '../../domain/kozak/journey';
 import type { BattleOutcome, Outcome } from '../../domain/results/results';
 import {
+  duelBattle,
   fightConfig,
   legacyLadderAttempt,
   legacyTargetAttempt,
@@ -58,4 +60,14 @@ export function levelAttempt(
   const played = outcome === 'win' ? play(session) : retreat(session);
 
   return { ...finalize(played, new Date(finishedAt)), game: { pool: 'campaign', energyFullAt } };
+}
+
+// §24.9: a battle of the duel with the King, its id made of the time it finished, as the browser makes it.
+export function duelAttempt(
+  round: number,
+  finishedAt: string,
+  energyFullAt: string,
+  options: { readonly done?: DuelDone; readonly retreatAt?: number | null } = {},
+): DuelAttempt {
+  return duelBattle(round, finishedAt, energyFullAt, { ...options, newId: () => newId(Date.parse(finishedAt)) });
 }

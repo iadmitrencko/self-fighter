@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ContentRulesTest extends TestCase
 {
-    private const string TEXT = '<p>Сто віджимань за тренування звучать серйозно, але десять підходів по десять посильні для тих, хто впевнено робить 15–20 повторень за раз.</p>';
+    private const string TEXT = '<p>Сто відтискань за тренування звучать серйозно, але десять підходів по десять посильні для тих, хто впевнено робить 15–20 повторень за раз.</p>';
 
     public function testAcceptsContentThatKeepsTheRules(): void
     {

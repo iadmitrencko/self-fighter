@@ -1,5 +1,6 @@
-import type { Attempt, CampaignAttempt } from '../history/attempt';
-import type { Outcome } from '../results/results';
+import type { Attempt } from '../history/attempt';
+import type { Outcome, SetResult } from '../results/results';
+import { addDuelDone, donePlaces, type DuelDone } from './duel';
 import { laterFullAt, type EnergyPool } from './energy';
 import type { CampaignId, JourneyDefinition } from './journey';
 
@@ -22,8 +23,12 @@ export interface GameRecord {
   readonly passed: readonly string[];
   // When each pool of energy is full again, by the newest battle that took from it.
   readonly energy: Readonly<Record<EnergyPool, string | null>>;
-  // §24.8: the most repetitions done in one set of a level, by the exercise.
+  // §24.8: the most repetitions done in one set of a level or of the duel, by the exercise.
   readonly best: Readonly<Record<string, number>>;
+  // §24.9: the places of the sets of the duel with the King done, by the round.
+  readonly duel: DuelDone;
+  // When the latest battle of the duel ended, or null before the first one.
+  readonly duelAt: string | null;
 }
 
 // §24.8: the record of an exercise of the journey.
@@ -45,6 +50,8 @@ export const EMPTY_RECORD: GameRecord = {
   passed: [],
   energy: { fight: null, campaign: null },
   best: {},
+  duel: {},
+  duelAt: null,
 };
 
 // Attempts of the site's workouts have no game and stay out of it.
@@ -62,7 +69,9 @@ export function computeGameRecord(attempts: readonly Attempt[]): GameRecord {
       campaign: game.pool === 'campaign' ? tally : NO_TALLY,
       passed: attempt.mode === 'campaign' && result.outcome === 'win' ? [attempt.config.level] : [],
       energy: { ...EMPTY_RECORD.energy, [game.pool]: game.energyFullAt },
-      best: attempt.mode === 'campaign' ? bestOf(attempt) : {},
+      best: bestOf(attempt),
+      duel: attempt.mode === 'duel' ? { [attempt.config.round]: donePlaces(attempt) } : {},
+      duelAt: attempt.mode === 'duel' ? attempt.finishedAt : null,
     });
   }, EMPTY_RECORD);
 }
@@ -88,14 +97,27 @@ export function addGameRecords(a: GameRecord, b: GameRecord): GameRecord {
         .sort()
         .map((exercise) => [exercise, Math.max(a.best[exercise] ?? 0, b.best[exercise] ?? 0)]),
     ),
+    duel: addDuelDone(a.duel, b.duel),
+    duelAt: a.duelAt === null || b.duelAt === null ? (a.duelAt ?? b.duelAt) : a.duelAt > b.duelAt ? a.duelAt : b.duelAt,
   };
 }
 
-// A set counts once it is done, in a level won or left in the middle alike.
-function bestOf({ config, result }: CampaignAttempt): Readonly<Record<string, number>> {
-  const done = result.sets.filter((set) => set.done).map(({ target }) => target);
+/**
+ * A set counts once it is done, in a battle won or left in the middle alike: a level of the journey
+ * trains the exercise of its campaign, a round of the duel all three. Fights stay out (§24.8).
+ */
+function bestOf(attempt: Attempt): Readonly<Record<string, number>> {
+  const sets: readonly (SetResult & { readonly exercise: string })[] =
+    attempt.mode === 'campaign'
+      ? attempt.result.sets.map((set) => ({ ...set, exercise: attempt.config.exercise.id }))
+      : attempt.mode === 'duel'
+        ? attempt.result.sets.map((set) => ({ ...set, exercise: set.exercise.id }))
+        : [];
 
-  return done.length === 0 ? {} : { [config.exercise.id]: Math.max(...done) };
+  return sets.reduce<Readonly<Record<string, number>>>(
+    (best, { exercise, target, done }) => (done && target > (best[exercise] ?? 0) ? { ...best, [exercise]: target } : best),
+    {},
+  );
 }
 
 // §24.8: one record for every exercise the campaigns of the journey train, in their order.

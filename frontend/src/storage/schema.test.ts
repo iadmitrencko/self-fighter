@@ -8,6 +8,7 @@ import type { FightConfig } from '../domain/config/types';
 import { createSession } from '../domain/engine/session';
 import { finalize } from '../domain/history/attempt';
 import { completeSet, enterBattle, levelConfig, retreat } from '../domain/kozak/battle';
+import { DUEL, duelConfig, duelProgress, roundSets } from '../domain/kozak/duel';
 import { allLevels, SICH } from '../domain/kozak/journey';
 import {
   fightConfig,
@@ -16,6 +17,8 @@ import {
   legacyTargetAttempt,
   play,
   pullUps,
+  pushUps,
+  squats,
   STARTED_AT,
   testDeps,
 } from '../domain/testing/fixtures';
@@ -83,7 +86,7 @@ describe('the format of attempts', () => {
 
   it.each([
     ['an unknown field', { rating: 5 }],
-    ['an unknown format version', { schemaVersion: 5 }],
+    ['an unknown format version', { schemaVersion: 6 }],
     ['the version 3 that knew no such fight', { schemaVersion: 3 }],
     ['no game', { game: null }],
     ['the energy of the journey', { game: { pool: 'campaign', energyFullAt: '2026-11-02T12:00:00.000Z' } }],
@@ -103,6 +106,29 @@ describe('the format of attempts', () => {
     ['no exercise', { exercises: [] }],
   ])('refuses the settings of a fight with %s', (_, change) => {
     expect(check('fightConfig', { ...fightConfig(), ...change })).not.toBeNull();
+  });
+
+  // §24.9: every round of the duel with the King, from its first set or from any set it stopped at.
+  it.each(DUEL.rounds.map((round) => [round.id, round] as const))('accepts every battle of the round %s', (_, round) => {
+    for (const { position } of roundSets(round)) {
+      const progress = duelProgress(DUEL, { [round.id]: Array.from({ length: position }, (__, place) => place) }, true);
+      const config = duelConfig(progress.rounds[round.number - 1] ?? (undefined as never), [pushUps, squats, pullUps]);
+      const start = enterBattle(createSession(config ?? (undefined as never), testDeps({ newId: () => newId() })), 'campaign', null);
+
+      expect(check(null, finalize(play(start ?? (undefined as never)), FINISHED_AT))).toBeNull();
+      expect(check(null, finalize(retreat(start ?? (undefined as never)), FINISHED_AT))).toBeNull();
+    }
+  });
+
+  it.each([
+    ['the energy of fights', { game: { pool: 'fight', energyFullAt: '2026-11-02T12:00:00.000Z' } }],
+    ['the version 4 that knew no duel', { schemaVersion: 4 }],
+    ['no place in its round', { config: { mode: 'duel', round: 'final-battle/1/1', sets: [{ exercise: pushUps, reps: 15 }] } }],
+  ])('refuses a battle of the duel with %s', (_, change) => {
+    const config = duelConfig(duelProgress(DUEL, {}, true).rounds[0] ?? (undefined as never), [pushUps]);
+    const start = enterBattle(createSession(config ?? (undefined as never), testDeps({ newId: () => newId() })), 'campaign', null);
+
+    expect(check(null, { ...finalize(play(start ?? (undefined as never)), FINISHED_AT), ...change })).not.toBeNull();
   });
 
   // §24.5: every level of the journey, won or left in the middle.

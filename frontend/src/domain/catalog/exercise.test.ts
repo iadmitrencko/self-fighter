@@ -64,7 +64,7 @@ describe('validateExerciseDraft', () => {
   });
 
   // §5.2: names are unique without regard to case.
-  it.each(['Віджимання', 'віджимання', 'ВІДЖИМАННЯ', ' вІдЖиМаННя '])(
+  it.each(['Відтискання', 'відтискання', 'ВІДТИСКАННЯ', ' вІдТиСкАННя '])(
     'rejects the taken name %j',
     (name) => {
       expect(errorsOf(validateExerciseDraft({ name, description: '' }, catalog))).toEqual([
@@ -104,7 +104,7 @@ describe('validateExerciseDraft', () => {
 
   it('lets an edited exercise keep its own name', () => {
     const validation = validateExerciseDraft(
-      { name: 'ВІДЖИМАННЯ', description: '' },
+      { name: 'ВІДТИСКАННЯ', description: '' },
       catalog,
       pushUps.id,
     );

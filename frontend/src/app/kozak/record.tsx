@@ -97,7 +97,7 @@ function describe(record: GameRecord, sessions: GameSessions): Cossack {
     record,
     glory,
     standing: standingOf(glory),
-    progress: journeyProgress(SICH, record.passed),
+    progress: journeyProgress(SICH, record.passed, record.duel),
     fullAt,
     energy: (pool, now) => energyAt(pool, fullAt(pool), now),
   };

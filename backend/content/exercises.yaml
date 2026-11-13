@@ -1,7 +1,7 @@
 # §5.1: the ready-made exercises of the game, in the order of its catalog. An attempt keeps the
 # slug as the id of its exercise, so a slug never changes.
 - slug: push-ups
-  name: Віджимання
+  name: Відтискання
 - slug: squats
   name: Присідання
 - slug: pull-ups

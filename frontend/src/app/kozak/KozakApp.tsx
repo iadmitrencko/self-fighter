@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, Route, Routes, useLocation } from 'react-router';
 import { kozakTexts } from '../../i18n/kozak';
 import { ScrollToTop, SiteLinks } from '../components/routing';
@@ -11,18 +11,23 @@ import { FightBattle } from './fight/FightBattle';
 import { FightHall } from './fight/FightHall';
 import { FightResult } from './fight/FightResult';
 import { HistoryScreen } from './HistoryScreen';
-import { BattleScreen } from './journey/BattleScreen';
-import { CampaignScreen } from './journey/CampaignScreen';
 import { KozakNotFound } from './journey/common';
-import { JourneyScreen } from './journey/JourneyScreen';
-import { OutcomeScreen } from './journey/OutcomeScreen';
-import { PrepScreen } from './journey/PrepScreen';
-import { StageScreen } from './journey/StageScreen';
 import { KOZAK_BASE, kozakPaths } from './paths';
 import { KozakIcon, type KozakIconName } from './parts';
 import { RanksScreen } from './RanksScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { CossackProvider } from './record';
+
+/*
+ * §24.5: the journey loads when the player opens it. Its maps, its story and the duel with the King
+ * are the largest part of the game, so the other sections start without them (section 6.4 of the plan).
+ */
+const BattleScreen = lazy(() => import('./journey/BattleScreen').then((module) => ({ default: module.BattleScreen })));
+const CampaignScreen = lazy(() => import('./journey/CampaignScreen').then((module) => ({ default: module.CampaignScreen })));
+const JourneyScreen = lazy(() => import('./journey/JourneyScreen').then((module) => ({ default: module.JourneyScreen })));
+const OutcomeScreen = lazy(() => import('./journey/OutcomeScreen').then((module) => ({ default: module.OutcomeScreen })));
+const PrepScreen = lazy(() => import('./journey/PrepScreen').then((module) => ({ default: module.PrepScreen })));
+const StageScreen = lazy(() => import('./journey/StageScreen').then((module) => ({ default: module.StageScreen })));
 
 // §24: the section «Гра» under /game, the cossack game of the site and the only place of its workouts.
 export function KozakApp({ game }: { game: Game }) {
@@ -50,7 +55,14 @@ function KozakRoutes() {
   return (
     <Routes>
       {/* A battle covers the whole screen. */}
-      <Route path="journey/battle" element={<BattleScreen />} />
+      <Route
+        path="journey/battle"
+        element={
+          <Suspense fallback={null}>
+            <BattleScreen />
+          </Suspense>
+        }
+      />
       <Route path="fight/battle" element={<FightBattle />} />
       <Route element={<KozakLayout />}>
         <Route index element={<CossackScreen />} />
@@ -106,7 +118,10 @@ function KozakLayout() {
         </nav>
       </div>
       <div className="kozak__main">
-        <Outlet />
+        {/* The screens of the journey come a moment later, while the sections stay in place. */}
+        <Suspense fallback={null}>
+          <Outlet />
+        </Suspense>
       </div>
     </div>
   );

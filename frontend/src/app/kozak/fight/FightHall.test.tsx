@@ -38,7 +38,7 @@ describe('the hall of fights', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Бій' })).toBeTruthy();
     const grid = await hall();
     expect(grid.getAllByRole('textbox').map((field) => (field as HTMLInputElement).value)).toEqual(['10', '10', '10', '10', '10', '10']);
-    expect(cell('Віджимання, раунд 1')).toBeTruthy();
+    expect(cell('Відтискання, раунд 1')).toBeTruthy();
     expect(cell('Присідання, раунд 3')).toBeTruthy();
     const summary = within(screen.getByRole('region', { name: 'Твій бій' }));
     expect(summary.getAllByRole('listitem').map((item) => item.textContent)).toEqual(['2 вправи', '3 раунди', '60 повторів']);
@@ -52,31 +52,31 @@ describe('the hall of fights', () => {
     const { user } = renderKozak('/fight');
     const grid = await hall();
 
-    await user.click(grid.getByRole('button', { name: 'Більше: Віджимання, раунд 1' }));
+    await user.click(grid.getByRole('button', { name: 'Більше: Відтискання, раунд 1' }));
     await user.click(grid.getByRole('button', { name: 'Менше: Присідання, раунд 3' }));
 
-    expect([cell('Віджимання, раунд 1').value, cell('Присідання, раунд 3').value]).toEqual(['11', '9']);
+    expect([cell('Відтискання, раунд 1').value, cell('Присідання, раунд 3').value]).toEqual(['11', '9']);
 
     // A new round repeats the last one.
     await user.click(grid.getByRole('button', { name: 'Додати раунд' }));
 
-    expect([cell('Віджимання, раунд 4').value, cell('Присідання, раунд 4').value]).toEqual(['10', '9']);
+    expect([cell('Відтискання, раунд 4').value, cell('Присідання, раунд 4').value]).toEqual(['10', '9']);
 
     await user.click(grid.getByRole('button', { name: 'Прибрати раунд 2' }));
 
     expect(grid.getAllByRole('textbox')).toHaveLength(6);
-    expect(grid.queryByRole('textbox', { name: 'Віджимання, раунд 4' })).toBeNull();
+    expect(grid.queryByRole('textbox', { name: 'Відтискання, раунд 4' })).toBeNull();
 
     // A number can be typed in as well; it stays within the limits.
-    await user.clear(cell('Віджимання, раунд 2'));
-    await user.type(cell('Віджимання, раунд 2'), '25');
+    await user.clear(cell('Відтискання, раунд 2'));
+    await user.type(cell('Відтискання, раунд 2'), '25');
     await user.tab();
     await user.clear(cell('Присідання, раунд 1'));
     await user.type(cell('Присідання, раунд 1'), '0');
     await user.tab();
 
-    expect([cell('Віджимання, раунд 2').value, cell('Присідання, раунд 1').value]).toEqual(['25', '1']);
-    expect(grid.getByText(/^Разом Віджимання/).closest('p')?.textContent).toBe('Разом Віджимання: 46');
+    expect([cell('Відтискання, раунд 2').value, cell('Присідання, раунд 1').value]).toEqual(['25', '1']);
+    expect(grid.getByText(/^Разом Відтискання/).closest('p')?.textContent).toBe('Разом Відтискання: 46');
     expect(grid.getByText(/^Разом за раунд 1/).closest('p')?.textContent).toBe('Σ Разом за раунд 1: 12');
     expect(grid.getByRole('button', { name: 'Менше: Присідання, раунд 1' })).toHaveProperty('disabled', true);
 
@@ -93,7 +93,7 @@ describe('the hall of fights', () => {
 
     await user.click(screen.getByRole('button', { name: 'Додати вправу' }));
     const pick = within(screen.getByRole('dialog', { name: 'Додати вправу' }));
-    expect(pick.queryByRole('button', { name: 'Віджимання' })).toBeNull();
+    expect(pick.queryByRole('button', { name: 'Відтискання' })).toBeNull();
     await user.click(pick.getByRole('button', { name: 'Підтягування' }));
 
     expect(cell('Підтягування, раунд 3').value).toBe('10');
@@ -145,14 +145,14 @@ describe('the hall of fights', () => {
     await hall();
 
     expect([cell('Підтягування, раунд 1').value, cell('Підтягування, раунд 2').value]).toEqual(['3', '5']);
-    expect(screen.queryByRole('textbox', { name: /^Віджимання/ })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: /^Відтискання/ })).toBeNull();
   });
 
   it('starts no fight without an exercise', async () => {
     const { user } = renderKozak('/fight');
     const grid = await hall();
 
-    await user.click(grid.getByRole('button', { name: 'Прибрати вправу Віджимання' }));
+    await user.click(grid.getByRole('button', { name: 'Прибрати вправу Відтискання' }));
     await user.click(grid.getByRole('button', { name: 'Прибрати вправу Присідання' }));
 
     expect(screen.getByText('Додай хоча б одну вправу.')).toBeTruthy();
@@ -192,6 +192,6 @@ describe('the hall of fights', () => {
     renderKozak('/fight', { storage });
 
     expect(await screen.findByText('Не вдалося завантажити твої вправи, доступні лише готові.')).toBeTruthy();
-    expect(cell('Віджимання, раунд 1')).toBeTruthy();
+    expect(cell('Відтискання, раунд 1')).toBeTruthy();
   });
 });

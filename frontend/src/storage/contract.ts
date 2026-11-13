@@ -1,6 +1,6 @@
 import type { ExerciseRef } from '../domain/catalog/exercise';
 import type { FightConfig } from '../domain/config/types';
-import type { CampaignSession, FightSession, Session } from '../domain/engine/session';
+import type { FightSession, JourneySession, Session } from '../domain/engine/session';
 import type { Attempt } from '../domain/history/attempt';
 import type { Statistics } from '../domain/history/statistics';
 import type { EnergyPool } from '../domain/kozak/energy';
@@ -125,7 +125,8 @@ export interface ActiveSessionStore<TSession extends Session = Session> {
 
 export interface GameSessions extends Readonly<Record<EnergyPool, ActiveSessionStore>> {
   readonly fight: ActiveSessionStore<FightSession>;
-  readonly campaign: ActiveSessionStore<CampaignSession>;
+  // A level of the journey or a battle of the duel with the King: both take the energy of the journey.
+  readonly campaign: ActiveSessionStore<JourneySession>;
 }
 
 export interface GameStorage {

@@ -25,7 +25,7 @@ describe('finalize', () => {
     const attempt = finalize(session, FINISHED_AT);
 
     expect(attempt).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       id: session.id,
       challenge: null,
       game: null,

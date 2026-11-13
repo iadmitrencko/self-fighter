@@ -1,12 +1,14 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { CampaignId } from '../../../domain/kozak/journey';
 import { useSvgId } from './svgId';
+import { FIELD, FIELD_DARK, FIELD_LIGHT, Ford, Grass, Horse, Kurgan, Pavises, Ravine, Standard, Wolf } from './WildField';
 
 /*
  * Screen 2 of kozak_design: the map of a campaign. The wide map runs from the start of the route
  * on the left to its end on the right, the tall one of a phone from the bottom up. The route of
  * «Лісові круки» leads from the edge of the forest to the Nest, the route of «Чорний прапор» from
- * the Sich along the roads to the fortress of the king. Coordinates come from the mockups.
+ * the Sich along the roads to the fortress of the king, the route of «Степові вовки» from the Sich
+ * across the Wild Field to the last camp of the Grey Wolf. Coordinates come from the mockups.
  */
 
 type Point = readonly [x: number, y: number];
@@ -161,17 +163,7 @@ export function CampaignMap({
             <stop offset="1" stopColor="#000" stopOpacity=".55" />
           </radialGradient>
         </defs>
-        {campaign === 'black-flag' ? (
-          wide ? (
-            <RoadsWide trees={id('trees')} />
-          ) : (
-            <RoadsTall />
-          )
-        ) : wide ? (
-          <WideLand trees={id('trees')} dark={id('dark')} />
-        ) : (
-          <TallLand trees={id('trees')} />
-        )}
+        <Land campaign={campaign} wide={wide} trees={id('trees')} dark={id('dark')} />
         <path d={routeTo(layout, reached)} className="k-route k-route--passed" />
         {!passedAll && <path d={routeFrom(layout, reached)} className="k-route k-route--ahead" />}
         {!passedAll && <rect width={layout.width} height={layout.height} fill={`url(#${id('fog')})`} />}
@@ -180,6 +172,18 @@ export function CampaignMap({
       {children}
     </div>
   );
+}
+
+// The land of the campaign under its route: roads, the steppe or the forest.
+function Land({ campaign, wide, trees, dark }: { campaign: CampaignId; wide: boolean; trees: string; dark: string }) {
+  if (campaign === 'black-flag') {
+    return wide ? <RoadsWide trees={trees} /> : <RoadsTall />;
+  }
+  if (campaign === 'steppe-wolves') {
+    return wide ? <FieldWide /> : <FieldTall />;
+  }
+
+  return wide ? <WideLand trees={trees} dark={dark} /> : <TallLand trees={trees} />;
 }
 
 function WideLand({ trees, dark }: { trees: string; dark: string }) {
@@ -405,6 +409,127 @@ function RoadsTall() {
         <path d="M-5 -60 L10 -82 L25 -60Z" />
       </g>
       <BlackFlag x={330} y={60} />
+    </g>
+  );
+}
+
+/*
+ * «Степові вовки»: the Wild Field from the Sich to the last camp of the Grey Wolf. The trade road
+ * crosses it from the west and fords the river, the band camps between burial mounds and ravines,
+ * and the trampled track of its riders runs under the route.
+ */
+const FIELD_RIVER_WIDE = 'M700 0 C660 140 740 260 690 380 S640 560 700 768';
+const FIELD_RIVER_TALL = 'M-10 640 C80 610 180 660 260 630 S360 610 400 630';
+
+function FieldWide() {
+  const track = `M40 720 C90 700 130 670 150 640 ${WIDE.segments.join(' ')}`;
+
+  return (
+    <g>
+      <rect width="1440" height="768" fill={FIELD} />
+      <path d="M0 0 H1440 V130 C1300 170 1160 120 1000 150 C820 186 640 130 460 160 C300 186 140 150 0 170Z" fill={FIELD_DARK} />
+      <ellipse cx="300" cy="420" rx="260" ry="90" fill={FIELD_LIGHT} />
+      <ellipse cx="980" cy="660" rx="320" ry="100" fill={FIELD_LIGHT} />
+      <ellipse cx="1250" cy="420" rx="160" ry="66" fill={FIELD_LIGHT} />
+      <Grass
+        tufts={[
+          [60, 300],
+          [180, 440],
+          [400, 340],
+          [560, 720],
+          [860, 280],
+          [920, 560],
+          [1160, 640],
+          [1340, 380],
+          [1400, 690],
+          [330, 640],
+          [600, 240],
+          [1100, 210],
+        ]}
+      />
+      <path d={track} fill="none" stroke="#4A5042" strokeWidth="14" strokeLinecap="round" opacity=".6" />
+      <path
+        d="M0 420 C160 420 300 460 450 470 S570 470 610 470 C700 470 760 490 860 520 S1000 590 1100 600 S1340 600 1440 590"
+        fill="none"
+        stroke="#6E5C40"
+        strokeWidth="14"
+        strokeLinecap="round"
+        opacity=".55"
+      />
+      <path d={FIELD_RIVER_WIDE} fill="none" stroke="#2E4652" strokeWidth="30" strokeLinecap="round" />
+      <path d={FIELD_RIVER_WIDE} fill="none" stroke="#3E5866" strokeWidth="18" />
+      <Ford x={666} y={470} />
+      <Ravine d="M40 200 C90 230 120 280 180 300 S240 320 260 330" />
+      <Ravine d="M240 768 C260 730 310 716 360 722 S420 740 440 768" />
+      <Kurgan x={300} y={398} idol />
+      <Kurgan x={480} y={330} scale={0.7} />
+      <Kurgan x={1000} y={660} idol />
+      <Kurgan x={1260} y={430} scale={0.8} />
+      <g transform="translate(20 740)" fill="#3B2A1E" stroke="#1E1610" strokeWidth="1.5">
+        <path d={PALISADE} />
+      </g>
+      <path d="M60 700 l6 -30 M66 670 l22 6 l-22 8" stroke="#8E2620" strokeWidth="3" fill="#8E2620" />
+      <Camp x={30} y={470} />
+      <Horse x={455} y={735} />
+      <Horse x={500} y={742} turned />
+      <Pavises x={760} y={465} />
+      <Camp x={960} y={392} />
+      <Standard x={1050} y={385} />
+      <Horse x={1280} y={335} spear />
+      <Horse x={1322} y={341} />
+      <Kurgan x={1400} y={345} scale={0.5} />
+      <Wolf x={1385} y={333} scale={0.55} />
+      <Camp x={1365} y={215} />
+      <Standard x={1428} y={192} />
+    </g>
+  );
+}
+
+function FieldTall() {
+  const track = `M60 1000 C70 970 80 950 90 930 ${TALL.segments.join(' ')}`;
+
+  return (
+    <g>
+      <rect width="390" height="1000" fill={FIELD} />
+      <path d="M0 0 H390 V80 C300 110 200 70 100 100 C60 110 20 106 0 100Z" fill={FIELD_DARK} />
+      <ellipse cx="200" cy="820" rx="200" ry="70" fill={FIELD_LIGHT} />
+      <ellipse cx="190" cy="360" rx="190" ry="80" fill={FIELD_LIGHT} />
+      <Grass
+        tufts={[
+          [30, 960],
+          [350, 880],
+          [30, 690],
+          [360, 690],
+          [60, 450],
+          [340, 330],
+          [30, 230],
+          [360, 200],
+        ]}
+      />
+      <path d={track} fill="none" stroke="#4A5042" strokeWidth="12" strokeLinecap="round" opacity=".6" />
+      <path d="M-10 735 C100 715 260 745 400 715" fill="none" stroke="#6E5C40" strokeWidth="12" strokeLinecap="round" opacity=".55" />
+      <path d={FIELD_RIVER_TALL} fill="none" stroke="#2E4652" strokeWidth="26" />
+      <path d={FIELD_RIVER_TALL} fill="none" stroke="#3E5866" strokeWidth="15" />
+      <Ford x={230} y={634} />
+      <Ravine d="M330 1000 C320 960 360 940 350 900" />
+      <Kurgan x={45} y={860} scale={0.55} idol />
+      <Kurgan x={345} y={770} scale={0.5} />
+      <Kurgan x={40} y={520} scale={0.5} />
+      <Kurgan x={350} y={410} scale={0.5} idol />
+      <g transform="translate(150 996)" fill="#3B2A1E" stroke="#1E1610" strokeWidth="1.2">
+        <path d={PALISADE} />
+      </g>
+      <path d="M200 990 l5 -26 M205 964 l18 5 l-18 7" stroke="#8E2620" strokeWidth="3" fill="#8E2620" />
+      <Camp x={300} y={820} />
+      <Horse x={45} y={770} scale={0.9} />
+      <Pavises x={20} y={580} count={2} />
+      <Horse x={350} y={575} scale={0.9} turned />
+      <Camp x={305} y={470} />
+      <Standard x={20} y={470} scale={0.8} />
+      <Horse x={40} y={300} scale={0.9} spear />
+      <Camp x={300} y={280} />
+      <Camp x={290} y={72} />
+      <Wolf x={330} y={140} scale={0.6} />
     </g>
   );
 }

@@ -1,7 +1,9 @@
+import { DUEL, type DuelDefinition } from './duel';
+
 /**
  * §24.5: the journey «Січ». Three campaigns against the bands of robbers and the final battle
- * with their king. The structure and the sets of every level are rules of the game; the names
- * and the story live in src/i18n.
+ * with their king (§24.9). The structure and the sets of every level are rules of the game; the
+ * names and the story live in src/i18n.
  */
 
 export type CampaignId = 'black-flag' | 'steppe-wolves' | 'forest-ravens' | 'final-battle';
@@ -34,10 +36,12 @@ export interface CampaignDefinition {
   readonly exercise: string | null;
   // The most repetitions in one set the campaign leads to.
   readonly peak: number | null;
-  // Empty while the campaign is still being prepared.
+  // Empty while the campaign is still being prepared, and for the final battle, which is a duel.
   readonly stages: readonly StageDefinition[];
   // The final battle opens once every other campaign of the journey is passed.
   readonly final: boolean;
+  // §24.9: the duel with the King of robbers the final battle is, or null.
+  readonly duel: DuelDefinition | null;
 }
 
 // The glory the journey gives. The next journey may give other amounts (§24.3).
@@ -46,6 +50,8 @@ export interface JourneyRewards {
   readonly boss: number;
   // For a campaign passed, on top of its levels.
   readonly campaign: number;
+  // For every round of the duel with the King finished (§24.9).
+  readonly round: number;
   // For the final battle won: the journey is passed.
   readonly journey: number;
 }
@@ -243,6 +249,104 @@ const BLACK_FLAG: readonly (readonly LevelSpec[])[] = [
   ],
 ];
 
+/*
+ * §24.5, «Степові вовки»: squats, ten stages of six levels, up to 50 in one set. Every stage
+ * raises the load over its first three levels and reaches its top three times: in the ladder up
+ * of its fourth level, in the last set of its fifth and in the ladder of its boss.
+ */
+const STEPPE_WOLVES: readonly (readonly LevelSpec[])[] = [
+  // 1. Перші сліди
+  [
+    ['normal', '2-3-3'],
+    ['normal', '3-3-4'],
+    ['normal', '3-4-4'],
+    ['ladder-up', '1-3-5'],
+    ['normal', '3-4-5'],
+    ['ladder-return', '1-3-5-3-1', 'boss'],
+  ],
+  // 2. Степові нальоти
+  [
+    ['normal', '4-5-5'],
+    ['normal', '5-6-6'],
+    ['normal', '6-7-8'],
+    ['ladder-up', '3-6-10'],
+    ['normal', '6-8-10'],
+    ['ladder-return', '2-5-10-5-2', 'boss'],
+  ],
+  // 3. Вовчі вершники
+  [
+    ['normal', '6-7-8'],
+    ['normal', '8-9-10'],
+    ['normal', '9-11-12-13'],
+    ['ladder-up', '4-8-12-15'],
+    ['normal', '10-12-13-15'],
+    ['ladder-return', '3-6-10-15-10-6', 'boss'],
+  ],
+  // 4. Кривавий тракт
+  [
+    ['normal', '10-13-15-16'],
+    ['normal', '12-14-16-18'],
+    ['normal', '14-16-18-19'],
+    ['ladder-up', '5-10-15-20'],
+    ['normal', '16-18-19-20'],
+    ['ladder-return', '5-10-15-20-15-10-5', 'boss'],
+  ],
+  // 5. Арбалетна засідка
+  [
+    ['normal', '12-15-17-18'],
+    ['normal', '14-16-18-20'],
+    ['normal', '15-18-20-22'],
+    ['ladder-up', '10-15-20-25'],
+    ['normal', '18-20-22-25'],
+    ['ladder-return', '10-15-20-25-20-15-10', 'boss'],
+  ],
+  // 6. Вовче лігво
+  [
+    ['normal', '15-18-20-22'],
+    ['normal', '17-19-22-24'],
+    ['normal', '18-21-24-26'],
+    ['ladder-up', '8-15-22-30'],
+    ['normal', '22-24-27-30'],
+    ['ladder-return', '8-15-22-30-22-15-8', 'boss'],
+  ],
+  // 7. Степові рубаки
+  [
+    ['normal', '18-21-23-25'],
+    ['normal', '20-23-25-28'],
+    ['normal', '22-25-28-30'],
+    ['ladder-up', '10-18-27-35'],
+    ['normal', '25-28-32-35'],
+    ['ladder-return', '10-18-27-35-27-18-10', 'boss'],
+  ],
+  // 8. Великий загін
+  [
+    ['normal', '20-24-26-28'],
+    ['normal', '22-25-28-30'],
+    ['normal', '25-28-32-35'],
+    ['ladder-up', '10-20-30-40'],
+    ['normal', '30-33-37-40'],
+    ['ladder-return', '10-20-30-40-30-20-10', 'boss'],
+  ],
+  // 9. Останнє полювання
+  [
+    ['normal', '22-26-29-31'],
+    ['normal', '24-28-31-34'],
+    ['normal', '27-31-35-38'],
+    ['ladder-up', '12-22-34-45'],
+    ['normal', '32-36-40-45'],
+    ['ladder-return', '12-22-34-45-34-22-12', 'boss'],
+  ],
+  // 10. Сірий Вовк
+  [
+    ['normal', '24-28-31-34'],
+    ['normal', '26-30-34-37'],
+    ['normal', '29-33-37-40'],
+    ['ladder-up', '12-25-38-50'],
+    ['normal', '35-40-45-50'],
+    ['ladder-return', '15-25-35-50-35-25-15', 'boss'],
+  ],
+];
+
 function campaign(
   id: CampaignId,
   exercise: string,
@@ -254,6 +358,7 @@ function campaign(
     exercise,
     peak,
     final: false,
+    duel: null,
     stages: stages.map((levels, stageIndex) => ({
       campaign: id,
       number: stageIndex + 1,
@@ -272,14 +377,14 @@ function campaign(
 
 export const SICH: JourneyDefinition = {
   id: 'sich',
-  // In the order of the story. «Степові вовки» and the final battle are still being prepared.
+  // In the order of the story. The final battle is a duel with the King of all three exercises.
   campaigns: [
     campaign('black-flag', 'push-ups', 25, BLACK_FLAG),
-    campaign('steppe-wolves', 'squats', 50, []),
+    campaign('steppe-wolves', 'squats', 50, STEPPE_WOLVES),
     campaign('forest-ravens', 'pull-ups', 10, FOREST_RAVENS),
-    { id: 'final-battle', exercise: null, peak: null, stages: [], final: true },
+    { id: 'final-battle', exercise: null, peak: null, stages: [], final: true, duel: DUEL },
   ],
-  rewards: { level: 2, boss: 5, campaign: 10, journey: 30 },
+  rewards: { level: 2, boss: 5, campaign: 10, round: 5, journey: 30 },
 };
 
 export function findCampaign(journey: JourneyDefinition, id: string): CampaignDefinition | null {

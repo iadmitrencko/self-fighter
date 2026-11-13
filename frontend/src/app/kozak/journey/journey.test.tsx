@@ -3,16 +3,20 @@ import { describe, expect, it } from 'vitest';
 import { createSession, type CampaignSession } from '../../../domain/engine/session';
 import { levelConfig } from '../../../domain/kozak/battle';
 import { allLevels, findLevel, SICH } from '../../../domain/kozak/journey';
-import { pullUps, testDeps } from '../../../domain/testing/fixtures';
+import type { ExerciseRef } from '../../../domain/catalog/exercise';
+import { pullUps, squats, testDeps } from '../../../domain/testing/fixtures';
 import { createMemoryStorage, type MemoryStorage } from '../../../storage/memory';
-import { levelAttempt } from '../../../storage/testing/attempts';
+import { duelAttempt, levelAttempt } from '../../../storage/testing/attempts';
 import { renderKozak } from '../../testing/render';
 import { scheme } from './common';
 
-// The levels of «Лісові круки» in their order.
-const LEVELS = allLevels(SICH)
-  .filter(({ campaign }) => campaign === 'forest-ravens')
-  .map(({ id }) => id);
+// The levels of a campaign in their order.
+const levelsOf = (campaign: string) =>
+  allLevels(SICH)
+    .filter((level) => level.campaign === campaign)
+    .map(({ id }) => id);
+const LEVELS = levelsOf('forest-ravens');
+const WOLVES = levelsOf('steppe-wolves');
 
 // A player who has won the given levels a day before the clock of the tests, with full energy.
 async function passed(levels: readonly string[]): Promise<MemoryStorage> {
@@ -27,15 +31,15 @@ async function passed(levels: readonly string[]): Promise<MemoryStorage> {
 }
 
 // A battle the screen of preparation has started: it has taken a unit of the energy of the journey.
-function battleOf(level: string): CampaignSession {
+function battleOf(level: string, exercise: ExerciseRef = pullUps): CampaignSession {
   return {
-    ...createSession(levelConfig(findLevel(SICH, level) ?? (undefined as never), pullUps), testDeps()),
+    ...createSession(levelConfig(findLevel(SICH, level) ?? (undefined as never), exercise), testDeps()),
     game: { pool: 'campaign', energyFullAt: '2026-10-30T15:00:00.000Z' },
   };
 }
 
 describe('the journey «Січ»', () => {
-  // §24.5: «Чорний прапор» and «Лісові круки» have their levels; the rest is still being prepared.
+  // §24.5: the three campaigns have their levels; the final battle waits for them.
   it('opens the campaigns that have their levels', async () => {
     renderKozak('/journey');
 
@@ -49,10 +53,12 @@ describe('the journey «Січ»', () => {
     expect(flag.getByRole('link', { name: 'Вирушити в кампанію' }).getAttribute('href')).toBe('/journey/black-flag');
 
     const wolves = within(screen.getByRole('heading', { name: 'Степові вовки' }).closest('article') as HTMLElement);
-    expect(wolves.getByText('Закрита')).toBeTruthy();
-    expect(wolves.getByText('Ще готується')).toBeTruthy();
-    expect(wolves.getByRole('button', { name: 'Недоступно' })).toHaveProperty('disabled', true);
+    expect(wolves.getByText('Присідання · до 50 за підхід')).toBeTruthy();
+    expect(wolves.getByRole('link', { name: 'Вирушити в кампанію' }).getAttribute('href')).toBe('/journey/steppe-wolves');
+
     const finale = within(screen.getByRole('heading', { name: 'Фінальна битва' }).closest('article') as HTMLElement);
+    expect(finale.getByText('Закрита')).toBeTruthy();
+    expect(finale.getByRole('button', { name: 'Недоступно' })).toHaveProperty('disabled', true);
     expect(finale.getByText('Відкриється після трьох кампаній')).toBeTruthy();
   });
 
@@ -91,11 +97,16 @@ describe('the map of a campaign', () => {
     expect(screen.queryByRole('link', { name: 'Відкрити етап' })).toBeNull();
   });
 
-  it('keeps a campaign that is being prepared closed', async () => {
-    renderKozak('/journey/steppe-wolves');
 
-    expect(await screen.findByRole('heading', { name: 'Кампанія ще закрита' })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /Етап/ })).toBeNull();
+  // §24.5: «Степові вовки» has the ten stages of its brief on a map of its own.
+  it('leads to the stages of «Степові вовки»', async () => {
+    renderKozak('/journey/steppe-wolves', { storage: await passed(WOLVES.slice(0, 6)) });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Степові вовки' })).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: 'Етап 1: Перші сліди, пройдено' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Етап 2: Степові нальоти, доступно' })).toHaveLength(2);
+    expect(screen.getAllByRole('img', { name: 'Етап 10: Сірий Вовк, закрито' })).toHaveLength(2);
+    expect(screen.getAllByText('Ти тут · Степові нальоти')).toHaveLength(1);
   });
 });
 
@@ -143,6 +154,19 @@ describe('the map of a stage', () => {
     expect(card.getByRole('img', { name: 'Портрет: Ватажок розвідників' })).toBeTruthy();
     expect(card.getByText('10 × 1')).toBeTruthy();
     expect(card.getByRole('link', { name: 'Кинути виклик ватажку' }).getAttribute('href')).toBe('/journey/forest-ravens/1/4');
+  });
+
+  it('shows the first level of «Степові вовки» with its squats', async () => {
+    renderKozak('/journey/steppe-wolves/1');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Перші сліди' })).toBeTruthy();
+    const card = within(screen.getByRole('complementary', { name: 'Вибраний рівень' }));
+    expect(card.getByRole('heading', { name: 'Покинутий віз' })).toBeTruthy();
+    expect(card.getByText('Ти знаходиш розграбований віз і перші докази нападу.')).toBeTruthy();
+    expect(card.getByText('Присідання')).toBeTruthy();
+    expect(card.getByText('2-3-3')).toBeTruthy();
+    expect(card.getByText('8')).toBeTruthy();
+    expect(card.getByRole('link', { name: 'Перейти до випробування' }).getAttribute('href')).toBe('/journey/steppe-wolves/1/1');
   });
 
   it('knows only the stages of the campaign', async () => {
@@ -345,10 +369,132 @@ describe('the victories over a boss', () => {
     expect(screen.getByRole('link', { name: 'Далі — до походу' }).getAttribute('href')).toBe('/journey');
   });
 
+  // §24.5: the Grey Wolf is the last boss of «Степові вовки».
+  it('passes «Степові вовки» with the Grey Wolf', async () => {
+    const storage = await passed(WOLVES.slice(0, -1));
+    storage.gameSessions.campaign.save(battleOf('steppe-wolves/10/6', squats));
+    const { user } = renderKozak('/journey/battle', { storage });
+
+    expect(await screen.findByText('Присідання · 15-25-35-50-35-25-15')).toBeTruthy();
+    for (let set = 0; set < 7; set += 1) {
+      await user.click(await screen.findByRole('button', { name: 'Підхід виконано' }));
+    }
+    await user.click(await screen.findByRole('button', { name: 'Завершити тренування' }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Сірого Вовка переможено' })).toBeTruthy();
+    expect(screen.getByText('+10 слави за кампанію')).toBeTruthy();
+    expect(await screen.findByText('Кампанію «Степові вовки» пройдено')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Далі — до походу' }).getAttribute('href')).toBe('/journey');
+  });
+
   it('finds no battle the history does not have', async () => {
     renderKozak('/journey/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Тут нічого немає' })).toBeTruthy();
+  });
+});
+
+// §24.9: the duel with the King of robbers, the final battle of the journey.
+describe('the duel with the King', () => {
+  const ALL = allLevels(SICH).map(({ id }) => id);
+
+  it('waits for the three campaigns', async () => {
+    renderKozak('/journey/final-battle');
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Король чекає' })).toBeTruthy();
+    expect(screen.getByText('Двобій із Королем розбійників почнеться, коли ти пройдеш усі три кампанії походу.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /До бою з Королем/ })).toBeNull();
+  });
+
+  it('opens with the King at full health', async () => {
+    const storage = await passed(ALL);
+    const { unmount } = renderKozak('/journey', { storage });
+
+    const card = within((await screen.findByRole('heading', { name: 'Фінальна битва' })).closest('article') as HTMLElement);
+    expect(card.getByText('Доступна')).toBeTruthy();
+    expect(card.getByRole('progressbar', { name: 'Здоров’я Короля: 100 з 100' })).toBeTruthy();
+    expect(card.getByRole('link', { name: 'До бою з Королем' }).getAttribute('href')).toBe('/journey/final-battle');
+    unmount();
+    renderKozak('/journey/final-battle', { storage });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Король розбійників' })).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: 'Здоров’я Короля: 100 з 100' })).toBeTruthy();
+    expect(screen.getByText('Незламний Король')).toBeTruthy();
+    expect(within(screen.getByRole('region', { name: 'Раунди двобою' })).getAllByRole('listitem')).toHaveLength(5);
+    const next = within(screen.getByRole('region', { name: 'Наступний бій' }));
+    expect(next.getByRole('heading', { name: 'Перша сутичка' })).toBeTruthy();
+    expect(next.getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Відтискання15повт.', 'Відтискання20повт.', 'Відтискання25повт.']);
+    expect(next.getByRole('button', { name: 'До бою з Королем · 3 підходи' })).toBeTruthy();
+  });
+
+  // A retreat keeps the damage done, and the next battle goes on from the first set not done.
+  it('keeps the damage of a battle left in the middle', async () => {
+    const { user, storage } = renderKozak('/journey/final-battle', { storage: await passed(ALL) });
+
+    await user.click(await screen.findByRole('button', { name: 'До бою з Королем · 3 підходи' }));
+    const battle = within(await screen.findByRole('dialog', { name: 'Раунд 1 · Перша сутичка' }));
+    expect(storage.gameSessions.campaign.load()?.game?.pool).toBe('campaign');
+    expect(battle.getAllByText('Відтискання').length).toBeGreaterThan(0);
+    await user.click(battle.getByRole('button', { name: 'Підхід виконано' }));
+    await user.click(battle.getByRole('button', { name: 'Підхід виконано' }));
+    await user.click(battle.getByRole('button', { name: 'Завершити' }));
+    await user.click(within(screen.getByRole('dialog', { name: 'Відступити з бою?' })).getByRole('button', { name: 'Відступити' }));
+
+    // 15 and 20 of 60 push-ups.
+    expect(await screen.findByRole('heading', { level: 1, name: 'Король утратив 11 здоров’я' })).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: 'Здоров’я Короля: 89 з 100' })).toBeTruthy();
+    expect(screen.getByText('2 / 3')).toBeTruthy();
+
+    await user.click(screen.getByRole('link', { name: 'Продовжити двобій' }));
+
+    expect(await screen.findByRole('button', { name: 'Продовжити двобій · 1 підхід' })).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: 'Здоров’я Короля: 89 з 100' })).toBeTruthy();
+  });
+
+  it('opens the next round once a round is done', async () => {
+    const storage = await passed(ALL);
+    await storage.attempts.save(duelAttempt(1, '2026-10-29T12:00:00.000Z', '2026-10-29T14:00:00.000Z', { retreatAt: 2 }));
+    const { user } = renderKozak('/journey/final-battle', { storage });
+
+    await user.click(await screen.findByRole('button', { name: 'Продовжити двобій · 1 підхід' }));
+    const battle = within(await screen.findByRole('dialog', { name: 'Раунд 1 · Перша сутичка' }));
+    await user.click(battle.getByRole('button', { name: 'Підхід виконано' }));
+    await user.click(await battle.findByRole('button', { name: 'Завершити тренування' }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Король утратив 9 здоров’я' })).toBeTruthy();
+    // 80 health: the King still stands unbroken.
+    expect(screen.getByRole('progressbar', { name: 'Здоров’я Короля: 80 з 100' })).toBeTruthy();
+    expect(screen.getByText(/^Король ще тримається/)).toBeTruthy();
+    expect(screen.getByText('Раунд «Перша сутичка» пройдено')).toBeTruthy();
+    expect(screen.getByText('Відкрито раунд 2')).toBeTruthy();
+    expect(screen.getByText('+5')).toBeTruthy();
+  });
+
+  // The last set of the last round defeats the King and ends the journey.
+  it('ends the journey with the King defeated', async () => {
+    const storage = await passed(ALL);
+    for (const round of [1, 2, 3, 4]) {
+      await storage.attempts.save(duelAttempt(round, `2026-10-29T1${round}:00:00.000Z`, '2026-10-29T15:00:00.000Z'));
+    }
+    await storage.attempts.save(duelAttempt(5, '2026-10-29T15:00:00.000Z', '2026-10-29T16:00:00.000Z', { retreatAt: 9 }));
+    const { user } = renderKozak('/journey/final-battle', { storage });
+
+    expect(await screen.findByText('Останній подих')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Продовжити двобій · 1 підхід' }));
+    const battle = within(await screen.findByRole('dialog', { name: 'Раунд 5 · Смертельний поєдинок' }));
+    await user.click(battle.getByRole('button', { name: 'Підхід виконано' }));
+    await user.click(await battle.findByRole('button', { name: 'Завершити тренування' }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Короля розбійників переможено' })).toBeTruthy();
+    expect(screen.getByText('+35')).toBeTruthy();
+    expect(screen.getByText('+30 слави за похід')).toBeTruthy();
+    const legend = within(screen.getByRole('region', { name: 'Легенда Січі' }));
+    expect(legend.getByText('Оборонець Січі')).toBeTruthy();
+    expect(legend.getByText('Шабля Короля розбійників')).toBeTruthy();
+
+    await user.click(screen.getByRole('link', { name: 'До козака' }));
+
+    expect(await screen.findByRole('region', { name: 'Легенда Січі' })).toBeTruthy();
   });
 });
 

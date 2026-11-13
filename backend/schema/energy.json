@@ -1,0 +1,56 @@
+{
+  "$comment": "§24.4: the energy of the game. The server checks every battle by these numbers (backend/src/Workout/Application/BattleEnergy.php). The browser counts with the same numbers (frontend/src/domain/kozak/energy.ts) to answer at once and to play without the network. PHPUnit and Vitest both check the numbers and the examples, so the two never part.",
+  "pools": {
+    "fight": { "max": 10, "periodMinutes": 120 },
+    "campaign": { "max": 6, "periodMinutes": 120 }
+  },
+  "examples": [
+    {
+      "$comment": "A pool nothing was taken from is full.",
+      "pool": "fight",
+      "fullAt": null,
+      "at": "2026-11-02T10:00:00.000Z",
+      "allows": true,
+      "spent": "2026-11-02T12:00:00.000Z"
+    },
+    {
+      "$comment": "A pool that is full again before the battle counts from its start.",
+      "pool": "fight",
+      "fullAt": "2026-11-02T09:00:00.000Z",
+      "at": "2026-11-02T10:00:00.000Z",
+      "allows": true,
+      "spent": "2026-11-02T12:00:00.000Z"
+    },
+    {
+      "$comment": "The last unit: the pool is full again nine periods later.",
+      "pool": "fight",
+      "fullAt": "2026-11-03T04:00:00.000Z",
+      "at": "2026-11-02T10:00:00.000Z",
+      "allows": true,
+      "spent": "2026-11-03T06:00:00.000Z"
+    },
+    {
+      "$comment": "A millisecond more and no unit is left.",
+      "pool": "fight",
+      "fullAt": "2026-11-03T04:00:00.001Z",
+      "at": "2026-11-02T10:00:00.000Z",
+      "allows": false,
+      "spent": "2026-11-03T06:00:00.001Z"
+    },
+    {
+      "$comment": "The journey holds six units.",
+      "pool": "campaign",
+      "fullAt": "2026-11-02T20:00:00.000Z",
+      "at": "2026-11-02T10:00:00.000Z",
+      "allows": true,
+      "spent": "2026-11-02T22:00:00.000Z"
+    },
+    {
+      "pool": "campaign",
+      "fullAt": "2026-11-02T20:00:00.001Z",
+      "at": "2026-11-02T10:00:00.000Z",
+      "allows": false,
+      "spent": "2026-11-02T22:00:00.001Z"
+    }
+  ]
+}

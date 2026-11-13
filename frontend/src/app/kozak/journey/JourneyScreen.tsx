@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import type { CampaignProgress, JourneyProgress } from '../../../domain/kozak/progress';
-import { campaignTexts, journeyTexts } from '../../../i18n/kozak';
+import { KING_HEALTH } from '../../../domain/kozak/duel';
+import { campaignTexts, duelTexts, journeyTexts } from '../../../i18n/kozak';
 import { Title } from '../../components/Screen';
 import { CampaignArt } from '../art/Scenes';
 import { kozakPaths } from '../paths';
@@ -49,9 +50,14 @@ function Campaigns({ progress }: { progress: JourneyProgress }) {
 }
 
 function CampaignCard({ progress }: { progress: CampaignProgress }) {
-  const { campaign, status, passed, stages } = progress;
+  const { campaign, status, passed, stages, duel } = progress;
   const texts = campaignTexts[campaign.id];
   const open = status !== 'locked';
+  // §24.9: the duel goes by the health of the King rather than by stages.
+  const started = duel === null ? passed > 0 : duel.health < KING_HEALTH;
+  const going = duel === null ? journeyTexts.started(passed, stages.length) : duelTexts.going;
+  const goOn = duel === null ? journeyTexts.continue : duelTexts.goOn;
+  const enter = duel === null ? journeyTexts.enter : duelTexts.start;
 
   return (
     <article className={`k-campaign k-campaign--${open ? 'open' : 'locked'}`}>
@@ -61,7 +67,7 @@ function CampaignCard({ progress }: { progress: CampaignProgress }) {
           {status === 'done' ? (
             <Badge tone="done">{journeyTexts.passed}</Badge>
           ) : open ? (
-            <Badge tone="open">{passed > 0 ? journeyTexts.started(passed, stages.length) : journeyTexts.available}</Badge>
+            <Badge tone="open">{started ? going : journeyTexts.available}</Badge>
           ) : (
             <Badge tone="locked">{journeyTexts.locked}</Badge>
           )}
@@ -69,19 +75,35 @@ function CampaignCard({ progress }: { progress: CampaignProgress }) {
       </div>
       <div className="k-campaign__body">
         <h2 className="k-campaign__name">{texts.name}</h2>
-        {campaign.peak !== null && <p className="k-campaign__exercise">{journeyTexts.peak(texts.exercise, campaign.peak)}</p>}
+        {campaign.peak !== null ? (
+          <p className="k-campaign__exercise">{journeyTexts.peak(texts.exercise, campaign.peak)}</p>
+        ) : (
+          duel !== null && <p className="k-campaign__exercise">{texts.exercise}</p>
+        )}
         <p className="k-campaign__lead">{texts.lead}</p>
         {open ? (
           <>
-            <div className="k-campaign__progress">
-              <p className="k-campaign__progress-head">
-                <span>{journeyTexts.progress}</span>
-                <b>{journeyTexts.stagesOf(passed, stages.length)}</b>
-              </p>
-              <Bar value={passed} max={stages.length} label={journeyTexts.stagesOf(passed, stages.length)} thin />
-            </div>
+            {duel !== null ? (
+              <div className="k-campaign__progress">
+                <p className="k-campaign__progress-head">
+                  <span>{duelTexts.health}</span>
+                  <b>
+                    {duel.health} / {KING_HEALTH}
+                  </b>
+                </p>
+                <Bar value={duel.health} max={KING_HEALTH} label={duelTexts.healthLabel(duel.health, KING_HEALTH)} thin />
+              </div>
+            ) : (
+              <div className="k-campaign__progress">
+                <p className="k-campaign__progress-head">
+                  <span>{journeyTexts.progress}</span>
+                  <b>{journeyTexts.stagesOf(passed, stages.length)}</b>
+                </p>
+                <Bar value={passed} max={stages.length} label={journeyTexts.stagesOf(passed, stages.length)} thin />
+              </div>
+            )}
             <Link className="k-button k-button--primary k-campaign__go" to={kozakPaths.campaign(campaign.id)}>
-              {status === 'done' ? journeyTexts.review : passed > 0 ? journeyTexts.continue : journeyTexts.enter}
+              {status === 'done' ? journeyTexts.review : started ? goOn : enter}
             </Link>
           </>
         ) : (

@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { Attempt } from '../../domain/history/attempt';
 import { createMemoryStorage, type MemoryStorage } from '../../storage/memory';
-import { finishedAttempt, gameFight, levelAttempt, oldGameFight } from '../../storage/testing/attempts';
+import { duelAttempt, finishedAttempt, gameFight, levelAttempt, oldGameFight } from '../../storage/testing/attempts';
 import { renderKozak } from '../testing/render';
 
 async function storageWith(...attempts: Attempt[]): Promise<MemoryStorage> {
@@ -51,7 +51,7 @@ describe('the history of the game', () => {
     expect(items.map((item) => item.querySelector('.k-entry__outcome')?.textContent)).toEqual(['Поразка', 'Нічия', 'Поразка', 'Перемога']);
     // A level opens its own result; a fight and an old attempt open as a fight (§24.1).
     expect(entry(/^Лісова варта/).getAttribute('href')).toBe(`/journey/result/${level.id}`);
-    expect(entry(/^Віджимання, Присідання Поразка/).getAttribute('href')).toBe(`/fight/result/${fight.id}`);
+    expect(entry(/^Відтискання, Присідання Поразка/).getAttribute('href')).toBe(`/fight/result/${fight.id}`);
     expect(entry(/^Ціль Нічия/).getAttribute('href')).toBe(`/fight/result/${oldFight.id}`);
     expect(entry(/^Ціль Перемога/).getAttribute('href')).toBe(`/fight/result/${workout.id}`);
   });
@@ -60,7 +60,7 @@ describe('the history of the game', () => {
     const fight = gameFight('win', '2026-10-29T11:00:00.000Z', '2026-10-29T13:00:00.000Z');
     const { user } = renderKozak('/history', { storage: await storageWith(fight) });
 
-    await user.click(await screen.findByRole('link', { name: /^Віджимання, Присідання/ }));
+    await user.click(await screen.findByRole('link', { name: /^Відтискання, Присідання/ }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Бій виграно' })).toBeTruthy();
   });
@@ -111,12 +111,18 @@ describe('the history of the game', () => {
       gameFight('loss', '2026-10-29T11:00:00.000Z', '2026-10-29T13:00:00.000Z'),
       gameFight('win', '2026-10-29T12:00:00.000Z', '2026-10-29T15:00:00.000Z'),
       levelAttempt('forest-ravens/1/1', 'win', '2026-10-29T13:00:00.000Z', '2026-10-29T18:00:00.000Z'),
+      duelAttempt(2, '2026-10-29T14:00:00.000Z', '2026-10-29T20:00:00.000Z', { retreatAt: 1 }),
     );
     const { user } = renderKozak('/history', { storage });
     const modes = within(await screen.findByRole('group', { name: 'Режим' }));
     await screen.findAllByRole('listitem');
 
-    expect(modes.getAllByRole('radio').map((radio) => radio.closest('label')?.textContent)).toEqual(['Усі', 'Бій', 'Похід']);
+    expect(modes.getAllByRole('radio').map((radio) => radio.closest('label')?.textContent)).toEqual([
+      'Усі',
+      'Бій',
+      'Похід',
+      'Фінальна битва',
+    ]);
 
     await user.click(modes.getByRole('radio', { name: 'Бій' }));
 
@@ -128,11 +134,17 @@ describe('the history of the game', () => {
     expect(await screen.findByRole('link', { name: /^Перше випробування Перемога Похід/ })).toBeTruthy();
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
 
+    // §24.9: the battles of the duel with the King open their own result.
+    await user.click(modes.getByRole('radio', { name: 'Фінальна битва' }));
+
+    const duel = await screen.findByRole('link', { name: /^Важкий удар Поразка Фінальна битва · Король розбійників · раунд/ });
+    expect(duel.getAttribute('href')).toMatch(/^\/journey\/result\//);
+
     await user.click(modes.getByRole('radio', { name: 'Усі' }));
     await user.click(screen.getByRole('radio', { name: 'Поразки' }));
 
-    await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(1));
-    expect(tally()).toEqual({ total: '1 тренування', counts: ['0', '0', '1'] });
+    await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(2));
+    expect(tally()).toEqual({ total: '2 тренування', counts: ['0', '0', '2'] });
   });
 
   it('leads to the first battle while the history is empty', async () => {

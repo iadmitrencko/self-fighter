@@ -13,6 +13,13 @@ const shortDateTime = new Intl.DateTimeFormat('uk', {
   minute: '2-digit',
 });
 
+// «12 листопада 2026 р.»
+const date = new Intl.DateTimeFormat('uk', { day: 'numeric', month: 'long', year: 'numeric' });
+
+export function formatDate(instant: string): string {
+  return date.format(new Date(instant));
+}
+
 export function formatDateTime(instant: string): string {
   return dateTime.format(new Date(instant));
 }

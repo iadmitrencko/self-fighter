@@ -21,8 +21,32 @@ final class AttemptTest extends TestCase
 
         self::assertNotNull($attempt);
         self::assertSame($document['id'], $attempt->id()->value);
+        self::assertEquals(new \DateTimeImmutable('2026-11-02 10:00:00 UTC'), $attempt->startedAt());
         self::assertEquals(new \DateTimeImmutable('2026-11-02 10:18:24.051 UTC'), $attempt->finishedAt());
         self::assertSame($document, $attempt->document());
+    }
+
+    // §24.9: a battle of the duel takes the energy of the journey and names its round as a level.
+    public function testRemembersTheBattleOfTheDuel(): void
+    {
+        $duel = $this->attemptOf(UserId::generate(), Documents::duel('final-battle/1/5'));
+
+        self::assertSame(GamePool::Campaign, $duel->pool());
+        self::assertSame('final-battle/1/5', $duel->level());
+        self::assertNull(Attempt::fromDocument(UserId::generate(), [...Documents::duel(), 'config' => ['mode' => 'duel', 'from' => 0, 'sets' => []]]));
+    }
+
+    // §24.4: the server counts the energy of a battle itself and keeps the document as it came.
+    public function testTakesTheEnergyTheServerCounted(): void
+    {
+        $document = Documents::level(energyFullAt: '2026-11-01T00:00:00.000Z');
+        $counted = new \DateTimeImmutable('2026-11-02 12:00:00 UTC');
+
+        $attempt = $this->attemptOf(UserId::generate(), $document)->withEnergyFullAt($counted);
+
+        self::assertEquals($counted, $attempt->energyFullAt());
+        self::assertSame($document, $attempt->document());
+        self::assertSame(GamePool::Campaign, $attempt->pool());
     }
 
     // §24: the record of the game counts the battles by pool, the levels won and the energy.
@@ -61,6 +85,7 @@ final class AttemptTest extends TestCase
         yield 'id' => [['id' => 'attempt-1']];
         yield 'mode' => [['mode' => 'boxing']];
         yield 'outcome' => [['result' => []]];
+        yield 'start time' => [['startedAt' => 'this morning']];
         yield 'finish time' => [['finishedAt' => '2026-02-30T10:00:00.000Z']];
         yield 'format version' => [['schemaVersion' => '1']];
         yield 'pool of the game' => [['game' => ['pool' => 'arena', 'energyFullAt' => '2026-11-02T12:00:00.000Z']]];

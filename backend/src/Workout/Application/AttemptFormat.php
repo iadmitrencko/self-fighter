@@ -13,9 +13,10 @@ use App\Workout\Domain\Mode;
 interface AttemptFormat
 {
     // Version 2 added the ready-made challenge of an attempt, version 3 the battles of the game and
-    // the levels of its journey (§24), version 4 the fight the player puts together (§6). Versions
-    // 2 and 3 are still accepted (section 3.7 of the plan).
-    public const int VERSION = 4;
+    // the levels of its journey (§24), version 4 the fight the player puts together (§6), version 5
+    // the duel with the King of robbers (§24.9). Versions 2 to 4 are still accepted (section 3.7 of
+    // the plan).
+    public const int VERSION = 5;
 
     /**
      * @return array<mixed>|null the attempt in the current format version, or null when the JSON is not

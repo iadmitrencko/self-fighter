@@ -38,6 +38,7 @@ services:
     App\Workout\Domain\AttemptRepository: '@App\Workout\Infrastructure\Doctrine\DoctrineAttemptRepository'
     App\Workout\Domain\CustomExerciseRepository: '@App\Workout\Infrastructure\Doctrine\DoctrineCustomExerciseRepository'
     App\Workout\Domain\SettingsRepository: '@App\Workout\Infrastructure\Doctrine\DoctrineSettingsRepository'
+    App\Workout\Application\EnergyRules: '@App\Workout\Infrastructure\Json\JsonEnergyRules'
     App\Content\Domain\ExerciseRepository: '@App\Content\Infrastructure\Doctrine\DoctrineExerciseRepository'
     App\Content\Domain\PageRepository: '@App\Content\Infrastructure\Doctrine\DoctrinePageRepository'
     App\Content\Application\ContentSource: '@App\Content\Infrastructure\Files\FileContentSource'

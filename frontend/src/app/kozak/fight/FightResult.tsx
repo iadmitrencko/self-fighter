@@ -56,8 +56,8 @@ export function FightResult() {
   }
   const { attempt, status } = stored.value;
 
-  // §24.5: a level of the journey has a result of its own, which tells its story.
-  if (attempt.mode === 'campaign') {
+  // §24.5, §24.9: a level of the journey and a battle of the duel have a result of their own, which tells their story.
+  if (attempt.mode === 'campaign' || attempt.mode === 'duel') {
     return <Navigate to={kozakPaths.outcome(attempt.id)} replace />;
   }
 

@@ -24,6 +24,7 @@ final readonly class WorkoutData implements UserDataHolder
         private CustomExerciseRepository $exercises,
         private SettingsRepository $settings,
         private AttemptRepository $attempts,
+        private BattleEnergy $energy,
         private ClockInterface $clock,
     ) {
     }
@@ -45,13 +46,15 @@ final readonly class WorkoutData implements UserDataHolder
     }
 
     /**
-     * Attempts keep the names of their exercises (§5.3), so they move as they are. A custom
-     * exercise with a name the account already has gives way to the one of the account, and so
-     * do the settings of a mode both have set up.
+     * Attempts keep the names of their exercises (§5.3), so they move as they are, and the account
+     * counts the energy of its battles anew with those of the guest (§24.4). A custom exercise with
+     * a name the account already has gives way to the one of the account, and so do the settings
+     * of a mode both have set up.
      */
     public function transfer(UserId $guest, UserId $account): void
     {
         $this->attempts->transfer($guest, $account);
+        $this->energy->recount($account);
 
         $taken = array_map(static fn (CustomExercise $exercise): string => $exercise->nameKey(), $this->exercises->findAllOf($account));
 

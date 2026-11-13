@@ -1,14 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "A finished attempt, format version 4",
-  "description": "The structure and limits of an attempt; the game rules stay in frontend/src/domain. Version 4 puts a fight of the game together freely from exercises and rounds (§6); the old modes of the site stay readable for the attempts the history keeps. Version 3 marked the battles of the game and added the levels of its journey (§24). The API also accepts versions 2 and 3 and stores them as version 4; version 2 knows no game and becomes a workout of the site. Section 3.7 of the plan.",
+  "title": "A finished attempt, format version 5",
+  "description": "The structure and limits of an attempt. The server also checks the energy of a battle of the game by backend/schema/energy.json (§24.4); the other rules of the game stay in frontend/src/domain. Version 5 adds the duel with the King of robbers, the final battle of the journey (§24.9). Version 4 puts a fight of the game together freely from exercises and rounds (§6); the old modes of the site stay readable for the attempts the history keeps. Version 3 marked the battles of the game and added the levels of its journey (§24). The API also accepts versions 2, 3 and 4 and stores them as version 5; version 2 knows no game and becomes a workout of the site. Section 3.7 of the plan.",
   "oneOf": [
     { "$ref": "#/definitions/fightAttempt" },
     { "$ref": "#/definitions/targetAttempt" },
     { "$ref": "#/definitions/randomOpponentAttempt" },
     { "$ref": "#/definitions/opponentLevelsAttempt" },
     { "$ref": "#/definitions/ladderAttempt" },
-    { "$ref": "#/definitions/campaignAttempt" }
+    { "$ref": "#/definitions/campaignAttempt" },
+    { "$ref": "#/definitions/duelAttempt" }
   ],
   "if": { "properties": { "schemaVersion": { "const": 2 } } },
   "then": { "not": { "required": ["game"] } },
@@ -19,7 +20,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [2, 3, 4] },
+        "schemaVersion": { "enum": [2, 3, 4, 5] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -36,7 +37,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [2, 3, 4] },
+        "schemaVersion": { "enum": [2, 3, 4, 5] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -53,7 +54,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [2, 3, 4] },
+        "schemaVersion": { "enum": [2, 3, 4, 5] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -70,7 +71,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [2, 3, 4] },
+        "schemaVersion": { "enum": [2, 3, 4, 5] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -88,7 +89,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "game", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [4] },
+        "schemaVersion": { "enum": [4, 5] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -106,7 +107,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "game", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [3, 4] },
+        "schemaVersion": { "enum": [3, 4, 5] },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
@@ -116,6 +117,24 @@
         "mode": { "enum": ["campaign"] },
         "config": { "$ref": "#/definitions/campaignConfig" },
         "result": { "$ref": "#/definitions/campaignResult" }
+      }
+    },
+    "duelAttempt": {
+      "description": "Version 5: a battle of the duel with the King of robbers, the final battle of the journey (§24.9). It takes the energy of the journey.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "game", "mode", "config", "result"],
+      "properties": {
+        "schemaVersion": { "enum": [5] },
+        "id": { "$ref": "#/definitions/attemptId" },
+        "startedAt": { "$ref": "#/definitions/instant" },
+        "finishedAt": { "$ref": "#/definitions/instant" },
+        "durationMs": { "$ref": "#/definitions/duration" },
+        "challenge": { "type": "null" },
+        "game": { "$ref": "#/definitions/campaignGame" },
+        "mode": { "enum": ["duel"] },
+        "config": { "$ref": "#/definitions/duelConfig" },
+        "result": { "$ref": "#/definitions/duelResult" }
       }
     },
 
@@ -385,6 +404,56 @@
       "additionalProperties": false,
       "required": ["target", "done"],
       "properties": {
+        "target": { "$ref": "#/definitions/setReps" },
+        "done": { "type": "boolean" }
+      }
+    },
+    "duelConfig": {
+      "description": "The sets of a round of the duel from the one the last battle stopped at: from is the place of the first of them in the round.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "round", "from", "sets"],
+      "properties": {
+        "mode": { "enum": ["duel"] },
+        "round": { "$ref": "#/definitions/levelId" },
+        "from": { "type": "integer", "minimum": 0, "maximum": 198 },
+        "sets": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 199,
+          "items": { "$ref": "#/definitions/duelSet" }
+        }
+      }
+    },
+    "duelSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exercise", "reps"],
+      "properties": {
+        "exercise": { "$ref": "#/definitions/exercise" },
+        "reps": { "$ref": "#/definitions/setReps" }
+      }
+    },
+    "duelResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sets", "outcome"],
+      "properties": {
+        "sets": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 199,
+          "items": { "$ref": "#/definitions/duelSetResult" }
+        },
+        "outcome": { "$ref": "#/definitions/decisiveOutcome" }
+      }
+    },
+    "duelSetResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exercise", "target", "done"],
+      "properties": {
+        "exercise": { "$ref": "#/definitions/exercise" },
         "target": { "$ref": "#/definitions/setReps" },
         "done": { "type": "boolean" }
       }

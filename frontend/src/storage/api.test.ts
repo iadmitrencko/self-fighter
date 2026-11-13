@@ -223,6 +223,21 @@ describe('storage over the API', () => {
       });
     });
 
+    // §24.4: the server keeps the energy, so a battle it refused takes no unit and wins no level.
+    it('counts nothing of a battle the server refused', async () => {
+      await storage.settings.save(fightConfig());
+      server.failNext(409);
+      await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
+      await storage.attempts.flush();
+
+      expect((await storage.attempts.list()).items.map(({ status }) => status)).toEqual(['rejected']);
+      expect(await storage.attempts.game()).toMatchObject({
+        campaign: NO_TALLY,
+        passed: [],
+        energy: { fight: null, campaign: null },
+      });
+    });
+
     // A guest made just now has nothing on the server yet, so its first battle ends without the network.
     it('knows the record of a guest made just now', async () => {
       await storage.settings.save(fightConfig());

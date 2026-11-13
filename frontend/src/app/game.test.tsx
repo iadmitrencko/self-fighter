@@ -14,15 +14,15 @@ function root(data?: unknown): HTMLElement {
 describe('data of the page', () => {
   // §5.1: Symfony puts the ready-made exercises into the page of the game.
   it('reads the ready-made exercises', () => {
-    const data = { exercises: [{ id: 'push-ups', name: 'Віджимання' }] };
+    const data = { exercises: [{ id: 'push-ups', name: 'Відтискання' }] };
 
-    expect(readPage(root(data)).exercises).toEqual([{ id: 'push-ups', name: 'Віджимання' }]);
+    expect(readPage(root(data)).exercises).toEqual([{ id: 'push-ups', name: 'Відтискання' }]);
   });
 
   it('skips anything that is not an exercise', () => {
-    const data = { exercises: [{ id: 'squats' }, 'pull-ups', { id: 'push-ups', name: 'Віджимання' }] };
+    const data = { exercises: [{ id: 'squats' }, 'pull-ups', { id: 'push-ups', name: 'Відтискання' }] };
 
-    expect(readPage(root(data)).exercises).toEqual([{ id: 'push-ups', name: 'Віджимання' }]);
+    expect(readPage(root(data)).exercises).toEqual([{ id: 'push-ups', name: 'Відтискання' }]);
     expect(readPage(root({ exercises: {} })).exercises).toEqual([]);
     expect(readPage(root())).toEqual({ exercises: [], signIn: [] });
   });

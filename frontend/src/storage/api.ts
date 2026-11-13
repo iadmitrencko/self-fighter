@@ -1,4 +1,4 @@
-import { isCampaignSession, isFightSession } from '../domain/engine/session';
+import { isFightSession, isJourneySession } from '../domain/engine/session';
 import { computeStatistics } from '../domain/history/statistics';
 import { addGameRecords, computeGameRecord, EMPTY_RECORD, type GameRecord } from '../domain/kozak/record';
 import {
@@ -70,7 +70,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   const outbox = createOutbox(buffer);
   const gameSessions = {
     fight: createActiveSessionStore(buffer, `${GAME_SESSION}fight`, isFightSession),
-    campaign: createActiveSessionStore(buffer, `${GAME_SESSION}campaign`, isCampaignSession),
+    campaign: createActiveSessionStore(buffer, `${GAME_SESSION}campaign`, isJourneySession),
   };
   // Nothing in progress goes on with the next person on this browser.
   const clearSessions = () => {
@@ -405,8 +405,13 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
           saved = lastGame;
         }
       }
-      // A battle finished without the network has spent its energy and won its level already.
-      const queued = computeGameRecord(waiting(browser, {}).map(({ attempt }) => attempt));
+      // A battle finished without the network has spent its energy and won its level already. One
+      // the server refused counts for nothing: the server keeps the energy (§24.4).
+      const queued = computeGameRecord(
+        waiting(browser, {})
+          .filter(({ status }) => status === 'pending')
+          .map(({ attempt }) => attempt),
+      );
 
       return addGameRecords(saved, queued);
     },

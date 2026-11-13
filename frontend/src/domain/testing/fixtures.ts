@@ -11,13 +11,14 @@ import {
   type Session,
   type SessionDeps,
 } from '../engine/session';
-import { finalize, type CampaignAttempt, type FightAttempt } from '../history/attempt';
+import { finalize, type CampaignAttempt, type DuelAttempt, type FightAttempt } from '../history/attempt';
 import type { LadderAttempt, RoundsAttempt } from '../history/legacy';
 import { completeSet, levelConfig, retreat } from '../kozak/battle';
+import { DUEL, duelConfig, duelProgress, type DuelDone } from '../kozak/duel';
 import { findLevel, SICH } from '../kozak/journey';
 import type { BattleOutcome, Outcome } from '../results/results';
 
-export const pushUps: ExerciseRef = { id: 'push-ups', name: 'Віджимання' };
+export const pushUps: ExerciseRef = { id: 'push-ups', name: 'Відтискання' };
 export const squats: ExerciseRef = { id: 'squats', name: 'Присідання' };
 export const pullUps: ExerciseRef = { id: 'pull-ups', name: 'Підтягування' };
 
@@ -193,4 +194,29 @@ export function legacyLadderAttempt(outcome: BattleOutcome, options: LegacyOptio
       outcome,
     },
   };
+}
+
+/**
+ * §24.9: a battle of the duel with the King that goes on with its round after the sets done before,
+ * every set done or left at the set `retreatAt`.
+ */
+export function duelBattle(
+  round: number,
+  finishedAt: string,
+  energyFullAt: string,
+  {
+    done = {},
+    retreatAt = null,
+    newId,
+  }: { readonly done?: DuelDone; readonly retreatAt?: number | null; readonly newId?: () => string } = {},
+): DuelAttempt {
+  const progress = duelProgress(DUEL, done, true).rounds[round - 1];
+  const config = progress === undefined ? null : duelConfig(progress, [pushUps, squats, pullUps]);
+
+  if (config === null) {
+    throw new Error(`The duel has no sets left in round ${round}`);
+  }
+  const session = createSession(config, testDeps(newId === undefined ? {} : { newId }));
+
+  return { ...finalize(play(session, retreatAt), new Date(finishedAt)), game: { pool: 'campaign', energyFullAt } };
 }

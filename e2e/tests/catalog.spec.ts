@@ -13,7 +13,7 @@ test('custom exercises are created, used, renamed and deleted', async ({ page })
   await create.getByRole('button', { name: 'Зберегти' }).click();
 
   await expect(page.getByRole('textbox', { name: 'Бурпі, раунд 1' })).toHaveValue('10');
-  await page.getByRole('button', { name: 'Прибрати вправу Віджимання' }).click();
+  await page.getByRole('button', { name: 'Прибрати вправу Відтискання' }).click();
   await page.getByRole('button', { name: 'Прибрати вправу Присідання' }).click();
   await page.getByRole('button', { name: /^До бою/ }).click();
   await finishSets(page);
@@ -26,13 +26,13 @@ test('custom exercises are created, used, renamed and deleted', async ({ page })
   await page.getByRole('dialog', { name: 'Додати вправу' }).getByRole('button', { name: 'Мої вправи' }).click();
   await page.getByRole('button', { name: 'Змінити вправу Бурпі' }).click();
   const edit = page.getByRole('dialog', { name: 'Змінити вправу' });
-  await edit.getByRole('textbox', { name: 'Назва' }).fill('Бурпі з віджиманням');
+  await edit.getByRole('textbox', { name: 'Назва' }).fill('Бурпі з відтисканням');
   await edit.getByRole('button', { name: 'Зберегти' }).click();
 
   const manage = page.getByRole('dialog', { name: 'Мої вправи' });
-  await expect(manage.getByText('Бурпі з віджиманням')).toBeVisible();
-  await expect(page.getByRole('textbox', { name: 'Бурпі з віджиманням, раунд 1' })).toBeAttached();
-  await manage.getByRole('button', { name: 'Видалити вправу Бурпі з віджиманням' }).click();
+  await expect(manage.getByText('Бурпі з відтисканням')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Бурпі з відтисканням, раунд 1' })).toBeAttached();
+  await manage.getByRole('button', { name: 'Видалити вправу Бурпі з відтисканням' }).click();
   await manage.getByRole('button', { name: 'Видалити', exact: true }).click();
   await expect(manage.getByText('Власних вправ ще немає.')).toBeVisible();
   await manage.getByRole('button', { name: 'Закрити' }).click();

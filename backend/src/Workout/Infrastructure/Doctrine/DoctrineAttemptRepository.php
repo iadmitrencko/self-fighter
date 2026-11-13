@@ -10,9 +10,11 @@ use App\Workout\Domain\Attempt;
 use App\Workout\Domain\AttemptFilter;
 use App\Workout\Domain\AttemptId;
 use App\Workout\Domain\AttemptRepository;
+use App\Workout\Domain\Battle;
 use App\Workout\Domain\GamePool;
 use App\Workout\Domain\Mode;
 use App\Workout\Domain\Outcome;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 
@@ -78,19 +80,24 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
         return array_values(array_filter($levels, 'is_string'));
     }
 
-    // The sets live in the document of the attempt (backend/schema/attempt.schema.json).
+    // The sets live in the document of the attempt (backend/schema/attempt.schema.json). A level
+    // names the exercise of its campaign once, a battle of the duel names it in every set.
     public function bestSets(UserId $owner): array
     {
         $rows = $this->entityManager->getConnection()->fetchAllKeyValue(
             <<<'SQL'
-                SELECT a.document->>'$.config.exercise.id' AS exercise, MAX(s.target) AS best
+                SELECT COALESCE(s.set_exercise, a.document->>'$.config.exercise.id') AS exercise, MAX(s.target) AS best
                 FROM attempt a,
-                    JSON_TABLE(a.document, '$.result.sets[*]' COLUMNS (target INT PATH '$.target', done BOOLEAN PATH '$.done')) s
-                WHERE a.user_id = :owner AND a.mode = :mode AND s.done
+                    JSON_TABLE(a.document, '$.result.sets[*]' COLUMNS (
+                        target INT PATH '$.target',
+                        done BOOLEAN PATH '$.done',
+                        set_exercise VARCHAR(80) PATH '$.exercise.id'
+                    )) s
+                WHERE a.user_id = :owner AND a.mode IN (:campaign, :duel) AND s.done
                 GROUP BY exercise
                 ORDER BY exercise
                 SQL,
-            ['owner' => $owner, 'mode' => Mode::Campaign->value],
+            ['owner' => $owner, 'campaign' => Mode::Campaign->value, 'duel' => Mode::Duel->value],
             ['owner' => UserIdType::NAME],
         );
         $best = [];
@@ -102,6 +109,39 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
         return $best;
     }
 
+    // The place of a set in its round is where its battle started plus its place in the battle.
+    public function duelDone(UserId $owner): array
+    {
+        $rows = $this->entityManager->getConnection()->fetchAllAssociative(
+            <<<'SQL'
+                SELECT DISTINCT a.level AS round, CAST(a.document->>'$.config.from' AS UNSIGNED) + s.place - 1 AS place
+                FROM attempt a,
+                    JSON_TABLE(a.document, '$.result.sets[*]' COLUMNS (place FOR ORDINALITY, done BOOLEAN PATH '$.done')) s
+                WHERE a.user_id = :owner AND a.mode = :mode AND s.done
+                ORDER BY round, place
+                SQL,
+            ['owner' => $owner, 'mode' => Mode::Duel->value],
+            ['owner' => UserIdType::NAME],
+        );
+        $done = [];
+
+        foreach ($rows as $row) {
+            $done[(string) $row['round']][] = (int) $row['place'];
+        }
+
+        return $done;
+    }
+
+    public function duelAt(UserId $owner): ?\DateTimeImmutable
+    {
+        $latest = $this->filtered($owner, new AttemptFilter(Mode::Duel))
+            ->select('MAX(a.finishedAt)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return \is_string($latest) ? new \DateTimeImmutable($latest, new \DateTimeZone('UTC')) : null;
+    }
+
     // Every battle moves the moment later, so the latest one has seen them all.
     public function energyFullAt(UserId $owner, GamePool $pool): ?\DateTimeImmutable
     {
@@ -111,6 +151,52 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
             ->getSingleScalarResult();
 
         return \is_string($latest) ? new \DateTimeImmutable($latest, new \DateTimeZone('UTC')) : null;
+    }
+
+    public function energyFullAtBefore(UserId $owner, GamePool $pool, Battle $battle): ?\DateTimeImmutable
+    {
+        $latest = $this->filtered($owner, new AttemptFilter(pool: $pool))
+            ->select('MAX(a.energyFullAt)')
+            ->andWhere('a.startedAt < :startedAt OR (a.startedAt = :startedAt AND a.id < :id)')
+            ->setParameter('startedAt', $battle->startedAt, Types::DATETIME_IMMUTABLE)
+            ->setParameter('id', $battle->id, AttemptIdType::NAME)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return \is_string($latest) ? new \DateTimeImmutable($latest, new \DateTimeZone('UTC')) : null;
+    }
+
+    public function battles(UserId $owner, GamePool $pool, ?Battle $after = null): array
+    {
+        $query = $this->filtered($owner, new AttemptFilter(pool: $pool))
+            ->select('a.id AS id, a.startedAt AS startedAt, a.energyFullAt AS energyFullAt')
+            ->orderBy('a.startedAt')
+            ->addOrderBy('a.id');
+
+        if (null !== $after) {
+            $query
+                ->andWhere('a.startedAt > :startedAt OR (a.startedAt = :startedAt AND a.id > :id)')
+                ->setParameter('startedAt', $after->startedAt, Types::DATETIME_IMMUTABLE)
+                ->setParameter('id', $after->id, AttemptIdType::NAME);
+        }
+
+        return array_values(array_map(
+            static fn (array $row): Battle => new Battle(
+                $row['id'] instanceof AttemptId ? $row['id'] : AttemptId::fromString((string) $row['id']),
+                self::time($row['startedAt']) ?? throw new \UnexpectedValueException('A battle without its start.'),
+                self::time($row['energyFullAt']),
+            ),
+            $query->getQuery()->getArrayResult(),
+        ));
+    }
+
+    public function recountEnergy(AttemptId $id, \DateTimeImmutable $energyFullAt): void
+    {
+        $this->entityManager
+            ->createQuery('UPDATE App\Workout\Domain\Attempt a SET a.energyFullAt = :energyFullAt WHERE a.id = :id')
+            ->setParameter('energyFullAt', $energyFullAt, Types::DATETIME_IMMUTABLE)
+            ->setParameter('id', $id, AttemptIdType::NAME)
+            ->execute();
     }
 
     public function transfer(UserId $from, UserId $to): void
@@ -155,6 +241,16 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
         }
 
         return $query;
+    }
+
+    // A field picked from an attempt comes converted, a computed one as the text of the database.
+    private static function time(mixed $value): ?\DateTimeImmutable
+    {
+        return match (true) {
+            $value instanceof \DateTimeImmutable => $value,
+            \is_string($value) => new \DateTimeImmutable($value, new \DateTimeZone('UTC')),
+            default => null,
+        };
     }
 
     /**

@@ -1,5 +1,6 @@
 import { useParams } from 'react-router';
 import type { ExerciseRef } from '../../../domain/catalog/exercise';
+import type { JourneySession } from '../../../domain/engine/session';
 import {
   findCampaign,
   findLevel,
@@ -9,7 +10,9 @@ import {
   type LevelDefinition,
   type StageDefinition,
 } from '../../../domain/kozak/journey';
-import { campaignTexts, kozakTexts } from '../../../i18n/kozak';
+import { campaignTexts, kozakTexts, resultTexts } from '../../../i18n/kozak';
+import { levelName } from '../../../i18n/kozak-names';
+import type { AttemptStatus } from '../../../storage/contract';
 import { Title } from '../../components/Screen';
 import { useGame } from '../../game';
 import { kozakPaths } from '../paths';
@@ -36,6 +39,11 @@ export function useCampaignExercise(campaign: CampaignDefinition): ExerciseRef {
   const id = campaign.exercise ?? '';
 
   return exercises.find((exercise) => exercise.id === id) ?? { id, name: campaignTexts[campaign.id].exercise };
+}
+
+// The battle of the journey in progress by its name: a level, or a round of the duel with the King.
+export function journeyBattleName(session: JourneySession): string {
+  return levelName(session.mode === 'duel' ? session.config.round : session.config.level);
 }
 
 // «1-1-1», as the brief writes the sets of a level; a long level in short: «10 × 1», «1 → 10 → 1».
@@ -77,4 +85,13 @@ export function KozakNotFound() {
       </div>
     </KozakScreen>
   );
+}
+
+// §15.4: a battle that has not reached the server yet says so, and so does one it refused.
+export function Pending({ status }: { status: AttemptStatus }) {
+  if (status === 'saved') {
+    return null;
+  }
+
+  return <p className="notice notice--warning">{status === 'pending' ? resultTexts.pending : resultTexts.rejected}</p>;
 }

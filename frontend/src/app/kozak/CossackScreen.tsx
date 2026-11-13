@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { SICH } from '../../domain/kozak/journey';
 import { bestSets, totalTally } from '../../domain/kozak/record';
+import { Legend } from './Legend';
 import { campaignTexts, cossackTexts, lookTexts, rankNames } from '../../i18n/kozak';
 import { Title } from '../components/Screen';
 import { CossackFigure } from './art/Cossack';
@@ -10,7 +11,8 @@ import { Bar, EnergyMeter, GloryRewards, KozakIcon, KozakScreen, WithCossack } f
 import { useNow } from './record';
 
 // §24.1–§24.4, §24.8, resesign/kozak.html: the cossack of the player, his glory, energy, record and
-// the best sets of the journey, and the way to the next battle.
+// the best sets of the journey, and the way to the next battle. The one who defeated the King of
+// robbers carries the title and the trophy of the legend as well (§24.9).
 export function CossackScreen() {
   const now = useNow();
   const recordId = useId();
@@ -19,7 +21,7 @@ export function CossackScreen() {
   return (
     <KozakScreen title={cossackTexts.title} className="k-cossack">
       <WithCossack>
-        {({ glory, standing, record, energy }) => {
+        {({ glory, standing, record, energy, progress }) => {
           const tally = totalTally(record);
           const { next } = standing;
 
@@ -116,6 +118,7 @@ export function CossackScreen() {
                   ))}
                 </dl>
               </section>
+              {progress.done && <Legend at={record.duelAt} />}
             </>
           );
         }}

@@ -67,6 +67,8 @@ final readonly class AttemptHistory
             $this->attempts->passedLevels($owner),
             $energy,
             $this->attempts->bestSets($owner),
+            $this->attempts->duelDone($owner),
+            $this->attempts->duelAt($owner),
         );
     }
 }

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { campaignAttempt, fightAttempt, fightGame, legacyLadderAttempt, legacyTargetAttempt, pushUps } from '../testing/fixtures';
+import {
+  campaignAttempt,
+  duelBattle,
+  fightAttempt,
+  fightGame,
+  legacyLadderAttempt,
+  legacyTargetAttempt,
+  pushUps,
+} from '../testing/fixtures';
 import { SICH } from './journey';
 import { addGameRecords, bestSets, computeGameRecord, EMPTY_RECORD, totalTally, type GameRecord } from './record';
 
@@ -28,6 +36,8 @@ describe('the record of the game', () => {
       passed: ['forest-ravens/1/1', 'forest-ravens/1/2'],
       energy: { fight: '2026-10-30T16:00:00.000Z', campaign: '2026-10-31T01:00:00.000Z' },
       best: { 'pull-ups': 1 },
+      duel: {},
+      duelAt: null,
     });
     expect(totalTally(record)).toEqual({ wins: 4, draws: 1, losses: 3 });
   });
@@ -54,6 +64,25 @@ describe('the record of the game', () => {
     expect(bestSets(SICH, EMPTY_RECORD).map(({ reps }) => reps)).toEqual([null, null, null]);
   });
 
+  // §24.9: the duel counts the sets done in their places, and its sets count for the records too.
+  it('keeps the sets of the duel done', () => {
+    const first = duelBattle(4, '2026-10-30T11:00:00.000Z', '2026-10-30T13:00:00.000Z', { retreatAt: 4 });
+    const record = computeGameRecord([
+      first,
+      // The next battle goes on from the fifth set and leaves after one more.
+      duelBattle(4, '2026-10-30T12:00:00.000Z', '2026-10-30T15:00:00.000Z', { done: { 'final-battle/1/4': [0, 1, 2, 3] }, retreatAt: 1 }),
+    ]);
+
+    expect(record).toMatchObject({
+      campaign: { wins: 0, draws: 0, losses: 2 },
+      passed: [],
+      duel: { 'final-battle/1/4': [0, 1, 2, 3, 4] },
+      duelAt: '2026-10-30T12:00:00.000Z',
+      best: { 'pull-ups': 5, 'push-ups': 20, squats: 30 },
+    });
+    expect(addGameRecords(record, computeGameRecord([first])).duel).toEqual(record.duel);
+  });
+
   // An attempt waits in the browser while the server knows the rest: together they count once.
   it('adds two records without counting a level twice', () => {
     const a: GameRecord = {
@@ -62,6 +91,8 @@ describe('the record of the game', () => {
       passed: ['forest-ravens/1/2'],
       energy: { fight: '2026-10-30T16:00:00.000Z', campaign: null },
       best: { 'push-ups': 9, 'pull-ups': 2 },
+      duel: { 'final-battle/1/2': [0, 1] },
+      duelAt: '2026-10-30T13:00:00.000Z',
     };
     const b: GameRecord = {
       fights: { wins: 0, draws: 1, losses: 0 },
@@ -69,6 +100,9 @@ describe('the record of the game', () => {
       passed: ['forest-ravens/1/1', 'forest-ravens/1/2'],
       energy: { fight: '2026-10-30T12:00:00.000Z', campaign: '2026-10-30T15:00:00.000Z' },
       best: { 'pull-ups': 3 },
+      // The same sets of the duel done on another device count once.
+      duel: { 'final-battle/1/1': [0, 1, 2], 'final-battle/1/2': [1, 2] },
+      duelAt: '2026-10-30T14:00:00.000Z',
     };
 
     expect(addGameRecords(a, b)).toEqual({
@@ -77,6 +111,8 @@ describe('the record of the game', () => {
       passed: ['forest-ravens/1/1', 'forest-ravens/1/2'],
       energy: { fight: '2026-10-30T16:00:00.000Z', campaign: '2026-10-30T15:00:00.000Z' },
       best: { 'pull-ups': 3, 'push-ups': 9 },
+      duel: { 'final-battle/1/1': [0, 1, 2], 'final-battle/1/2': [0, 1, 2] },
+      duelAt: '2026-10-30T14:00:00.000Z',
     });
   });
 });

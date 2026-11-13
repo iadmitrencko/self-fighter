@@ -103,8 +103,10 @@ final readonly class AttemptController
             'campaign' => $tally($record->campaign),
             'passed' => $record->passed,
             'energy' => array_map(static fn (?\DateTimeImmutable $time): ?string => null === $time ? null : Instant::format($time), $record->energy),
-            // An object even when empty, as the browser expects it.
+            // Objects even when empty, as the browser expects them.
             'best' => (object) $record->best,
+            'duel' => (object) $record->duel,
+            'duelAt' => null === $record->duelAt ? null : Instant::format($record->duelAt),
         ]);
     }
 

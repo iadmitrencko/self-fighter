@@ -15,4 +15,6 @@ enum Mode: string
     case Ladder = 'ladder';
     // §24.5: a level of the journey of the game. The journey sets it, so it has no settings.
     case Campaign = 'campaign';
+    // §24.9: a battle of the duel with the King of robbers, the final battle of the journey.
+    case Duel = 'duel';
 }

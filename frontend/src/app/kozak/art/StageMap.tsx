@@ -2,12 +2,30 @@ import type { ReactNode } from 'react';
 import type { CampaignId } from '../../../domain/kozak/journey';
 import { routeFrom, routeTo, type LabelSide, type MapLayout } from './CampaignMap';
 import { useSvgId } from './svgId';
+import {
+  Bolts,
+  Corral,
+  FIELD,
+  FIELD_DARK,
+  FIELD_LIGHT,
+  Ford,
+  Grass,
+  Hoofprints,
+  Horse,
+  Kurgan,
+  Pavises,
+  Ravine,
+  Spears,
+  Standard,
+  Wolf,
+} from './WildField';
 
 /*
  * Screens 3–4 of kozak_design: the local map of a stage with a point for every level. The first
  * stage of «Лісові круки» follows the mockup; the others are put together from the same pieces,
  * each with the places its story names: the river, the traps and the nest of the forest, the
- * roads, camps and the fortress of «Чорний прапор».
+ * roads, camps and the fortress of «Чорний прапор», the mounds, ravines and camps of riders of
+ * «Степові вовки».
  */
 
 type Point = readonly [number, number];
@@ -37,7 +55,14 @@ function segmentsThrough(points: readonly Point[]): string[] {
 }
 
 function sceneOf(campaign: CampaignId, stage: number): StageScene {
-  return campaign === 'black-flag' ? (ROAD_SCENES[stage] ?? ROADS_FIRST) : (SCENES[stage] ?? FIRST_STAGE);
+  if (campaign === 'black-flag') {
+    return ROAD_SCENES[stage] ?? ROADS_FIRST;
+  }
+  if (campaign === 'steppe-wolves') {
+    return FIELD_SCENES[stage] ?? FIELD_FIRST;
+  }
+
+  return SCENES[stage] ?? FIRST_STAGE;
 }
 
 export function stageLayout(campaign: CampaignId, stage: number): MapLayout {
@@ -647,7 +672,8 @@ const STEPPE = '#3A3428';
  * The road zigzags up to the camp of the leader in the top right corner. Every point is a hollow
  * with its label below or a rise with its label above, the hollows a step apart in height, so the
  * long names of the levels meet neither each other nor a marker, and the labels stay inside the
- * map down to the width of a small phone.
+ * map down to the width of a small phone. The stages of «Степові вовки» have six levels as well
+ * and take the same three routes.
  */
 const HOLLOWS: Pick<StageScene, 'points' | 'labels'> = {
   points: [
@@ -906,6 +932,299 @@ const ROAD_SCENES: Readonly<Record<number, StageScene>> = {
           <rect x="630" y="270" width="70" height="36" />
           <path d="M622 270 L665 248 L708 270Z" />
         </g>
+      </>
+    ),
+  },
+};
+
+// «Степові вовки»: the Wild Field, in the same coordinates (1040 × 768) and on the same routes.
+function Grassland() {
+  return (
+    <g>
+      <path d="M0 0 H1040 V140 C920 180 780 120 640 160 C500 200 340 140 200 180 C120 202 50 196 0 186Z" fill={FIELD_DARK} />
+      <ellipse cx="240" cy="420" rx="230" ry="90" fill={FIELD_LIGHT} />
+      <ellipse cx="800" cy="660" rx="280" ry="96" fill={FIELD_LIGHT} />
+      <ellipse cx="900" cy="330" rx="150" ry="60" fill={FIELD_LIGHT} />
+      <Grass
+        tufts={[
+          [60, 330],
+          [130, 650],
+          [300, 720],
+          [420, 220],
+          [560, 660],
+          [660, 400],
+          [760, 310],
+          [960, 520],
+          [990, 710],
+          [540, 110],
+          [720, 120],
+          [960, 420],
+          [260, 200],
+          [390, 620],
+          [880, 620],
+        ]}
+      />
+    </g>
+  );
+}
+
+// 1. Перші сліди: the robbed cart on the road, the tracks of hooves, the watch on the mound, the
+// ravine of the ambush and the camp of the leader.
+const FIELD_FIRST: StageScene = {
+  ...HOLLOWS,
+  ground: FIELD,
+  draw: () => (
+    <>
+      <Grassland />
+      <Kurgan x={110} y={300} scale={0.7} idol />
+      <Road d="M0 640 C80 610 140 560 185 540" />
+      <Cart x={60} y={600} broken />
+      <Hoofprints d="M175 500 C200 450 240 390 285 345" />
+      <Kurgan x={540} y={470} scale={0.8} />
+      <Horse x={525} y={448} scale={0.9} />
+      <Horse x={562} y={450} scale={0.9} turned />
+      <Ravine d="M820 440 C850 500 850 560 880 600 S930 680 950 768" />
+      <Bandit x={890} y={650} />
+      <Bandit x={912} y={660} />
+      <Tent x={925} y={240} />
+      <Fire x={1000} y={255} />
+      <Standard x={990} y={150} />
+    </>
+  ),
+};
+
+const FIELD_SCENES: Readonly<Record<number, StageScene>> = {
+  1: FIELD_FIRST,
+  // 2. Степові нальоти: the riders who watch the road, the robbed train, the rider with a spear,
+  // the chase and the camp of the riders.
+  2: {
+    ...RISES,
+    ground: FIELD,
+    draw: () => (
+      <>
+        <Grassland />
+        <Ravine d="M0 300 C60 290 100 250 150 240 S220 200 240 160" />
+        <Road d="M0 560 C100 540 200 560 300 600 S480 700 560 768" />
+        <Horse x={110} y={455} />
+        <Horse x={70} y={452} turned />
+        <Cart x={175} y={305} broken />
+        <Cart x={95} y={335} />
+        <Horse x={565} y={548} spear />
+        <Hoofprints d="M600 360 C630 368 650 368 680 362" />
+        <Horse x={700} y={365} />
+        <Horse x={745} y={358} />
+        <Tent x={770} y={470} />
+        <Fire x={850} y={480} />
+        <Horse x={960} y={200} spear />
+        <Standard x={1012} y={180} />
+        <Kurgan x={640} y={660} idol />
+      </>
+    ),
+  },
+  // 3. Вовчі вершники: the ambush of the riders, the spearmen, the caravan, the chase and the pens
+  // of the horse camp.
+  3: {
+    ...SLOPES,
+    ground: FIELD,
+    draw: () => (
+      <>
+        <Grassland />
+        <Kurgan x={120} y={660} idol />
+        <Ravine d="M380 768 C400 700 460 680 520 690 S600 720 640 680" />
+        <Horse x={90} y={505} />
+        <Horse x={120} y={470} />
+        <Horse x={130} y={280} spear />
+        <Horse x={168} y={274} spear />
+        <Cart x={530} y={418} />
+        <Cart x={605} y={425} />
+        <Hoofprints d="M612 268 C640 300 680 330 720 350" />
+        <Horse x={760} y={362} />
+        <Corral x={770} y={505} />
+        <Horse x={800} y={500} rider={false} />
+        <Horse x={858} y={500} rider={false} turned />
+        <Tent x={905} y={195} />
+        <Standard x={985} y={180} />
+      </>
+    ),
+  },
+  // 4. Кривавий тракт: the road blocked with stakes, the crossbowmen on the mound, the ambush at the
+  // ford, the open steppe and the fortified ravine.
+  4: {
+    ...HOLLOWS,
+    ground: FIELD,
+    draw: () => (
+      <>
+        <Grassland />
+        <Road d={`${HOLLOWS_ROAD} C880 150 960 110 1040 100`} />
+        <Creek d="M330 0 C360 120 420 220 480 320 S560 480 600 600 S640 720 660 768" />
+        <Ford x={511} y={378} />
+        <Barricade x={215} y={500} stakes={2} />
+        <Kurgan x={160} y={330} scale={0.7} />
+        <Pavises x={140} y={308} count={2} />
+        <Bandit x={545} y={410} />
+        <Bandit x={565} y={416} />
+        <Horse x={665} y={285} />
+        <Horse x={705} y={300} turned />
+        <Ravine wide d="M600 730 C700 700 760 730 830 710 S920 700 1000 740" />
+        <Palisade x={870} y={700} posts={3} />
+        <Pavises x={940} y={230} />
+        <Standard x={1020} y={160} />
+      </>
+    ),
+  },
+  // 5. Арбалетна засідка: the shooting positions, their guard, the road under fire, the height and
+  // the camp of the shooters.
+  5: {
+    ...RISES,
+    ground: FIELD,
+    draw: () => (
+      <>
+        <Grassland />
+        <Kurgan x={120} y={660} idol />
+        <Road d={RISES_ROAD} />
+        <Pavises x={70} y={458} count={2} />
+        <Pavises x={370} y={290} count={2} />
+        <Bandit x={440} y={292} />
+        <Bolts x={360} y={505} />
+        <Bolts x={490} y={528} />
+        <Kurgan x={680} y={385} />
+        <Pavises x={658} y={354} count={2} />
+        <Tent x={770} y={470} />
+        <Fire x={848} y={480} />
+        <Pavises x={940} y={200} />
+        <Standard x={1015} y={140} />
+      </>
+    ),
+  },
+  // 6. Вовче лігво: the outer guard, the horse pens, the store of weapons, the fence of the lair and
+  // its inner camp.
+  6: {
+    ...SLOPES,
+    ground: FIELD,
+    draw: () => (
+      <>
+        <Grassland />
+        <ellipse cx="680" cy="380" rx="330" ry="190" fill={FIELD_DARK} />
+        <Kurgan x={110} y={680} idol />
+        <WatchPost x={90} y={510} />
+        <Standard x={60} y={380} />
+        <Corral x={420} y={300} />
+        <Horse x={455} y={296} scale={0.8} rider={false} />
+        <Horse x={510} y={298} scale={0.8} rider={false} turned />
+        <Spears x={540} y={430} />
+        <Chests x={590} y={430} />
+        <Palisade x={650} y={265} posts={4} />
+        <Bandit x={700} y={350} />
+        <Bandit x={722} y={356} />
+        <Tent x={770} y={500} />
+        <Tent x={850} y={465} scale={0.8} />
+        <Fire x={860} y={500} />
+        <Tent x={925} y={215} scale={1.1} />
+        <Standard x={1022} y={170} />
+      </>
+    ),
+  },
+  // 7. Степові рубаки: the tracks of the heavy band, its guard of shields, the fight in the open, the
+  // breakthrough and the last camp.
+  7: {
+    ...HOLLOWS,
+    ground: FIELD,
+    draw: () => (
+      <>
+        <Grassland />
+        <Hoofprints d="M20 620 C70 600 120 580 160 560" />
+        <Rocks x={40} y={400} scale={0.6} />
+        <Kurgan x={140} y={300} scale={0.7} idol />
+        <Shields x={400} y={336} count={3} />
+        <Bandit x={475} y={345} />
+        <Bandit x={520} y={452} />
+        <Bandit x={542} y={458} />
+        <Bandit x={564} y={454} />
+        <Bandit x={640} y={292} />
+        <Bandit x={662} y={298} />
+        <Shields x={662} y={330} count={2} />
+        <Tent x={770} y={545} />
+        <Fire x={846} y={556} />
+        <Tent x={930} y={240} />
+        <Standard x={1015} y={175} />
+        <Ravine d="M880 768 C890 700 940 680 1000 690 S1040 700 1060 680" />
+      </>
+    ),
+  },
+  // 8. Великий загін: the riders gathering, the line of crossbows, the great ambush in the ravine,
+  // the fort of wagons and the camp of the command.
+  8: {
+    ...RISES,
+    ground: FIELD,
+    draw: () => (
+      <>
+        <Grassland />
+        <Kurgan x={920} y={650} idol />
+        <Horse x={60} y={425} />
+        <Horse x={95} y={455} spear />
+        <Horse x={125} y={425} turned />
+        <Pavises x={360} y={292} count={4} />
+        <Ravine d="M300 690 C360 670 420 700 480 670 S560 650 640 690" />
+        <Bandit x={530} y={520} />
+        <Bandit x={552} y={526} />
+        <Cart x={660} y={350} />
+        <Cart x={728} y={342} />
+        <Tent x={770} y={470} scale={1.2} />
+        <Standard x={880} y={470} />
+        <Tent x={925} y={215} />
+        <Standard x={985} y={175} />
+        <Standard x={1015} y={190} />
+      </>
+    ),
+  },
+  // 9. Останнє полювання: the tracks of the Grey Wolf, the last watch on the mound, his riders, the
+  // chase and the personal guard.
+  9: {
+    ...SLOPES,
+    ground: FIELD,
+    draw: () => (
+      <>
+        <Grassland />
+        <Kurgan x={900} y={650} idol />
+        <Hoofprints d="M20 560 C60 540 110 520 160 505" />
+        <Rocks x={60} y={400} scale={0.6} />
+        <Kurgan x={200} y={345} scale={0.6} />
+        <Horse x={195} y={327} scale={0.9} turned />
+        <Horse x={530} y={418} />
+        <Horse x={575} y={412} spear />
+        <Hoofprints d="M610 268 C640 300 665 330 690 345" />
+        <Horse x={705} y={360} />
+        <Horse x={748} y={352} />
+        <Shields x={770} y={500} count={3} />
+        <Bandit x={850} y={505} />
+        <Tent x={930} y={225} />
+        <Standard x={1018} y={160} />
+      </>
+    ),
+  },
+  // 10. Сірий Вовк: the last camp, the guard of the leader, the breakout of the riders, the last
+  // fence and the nest of the wolf.
+  10: {
+    ...HOLLOWS,
+    ground: FIELD,
+    draw: () => (
+      <>
+        <Grassland />
+        <ellipse cx="800" cy="330" rx="260" ry="170" fill={FIELD_DARK} />
+        <Kurgan x={100} y={300} idol />
+        <Tent x={240} y={548} />
+        <Fire x={322} y={556} />
+        <Shields x={400} y={336} count={3} />
+        <Horse x={535} y={456} />
+        <Horse x={577} y={446} spear />
+        <Palisade x={640} y={300} posts={3} />
+        <Tent x={770} y={545} />
+        <Tent x={840} y={520} scale={0.8} />
+        <Fire x={850} y={560} />
+        <Tent x={925} y={235} scale={1.1} />
+        <Standard x={1025} y={190} />
+        <Kurgan x={965} y={122} scale={0.8} />
+        <Wolf x={945} y={102} scale={0.8} />
       </>
     ),
   },

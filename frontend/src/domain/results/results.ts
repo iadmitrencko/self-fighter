@@ -1,6 +1,6 @@
 import type { ExerciseRef } from '../catalog/exercise';
 import type { FightConfig } from '../config/types';
-import type { FightStage, SetStage } from '../engine/session';
+import type { DuelStage, FightStage, SetStage } from '../engine/session';
 
 // A battle is won or lost. The attempts of the old modes of the site could also end in a draw,
 // and the history still counts them (§14.2).
@@ -30,6 +30,17 @@ export interface CampaignResult {
   readonly outcome: BattleOutcome;
 }
 
+// §24.9: a set of the duel with its exercise.
+export interface DuelSetResult extends SetResult {
+  readonly exercise: ExerciseRef;
+}
+
+// A battle of the duel is won when it does every set left in its round.
+export interface DuelResult {
+  readonly sets: readonly DuelSetResult[];
+  readonly outcome: BattleOutcome;
+}
+
 function setResult({ target, done }: SetStage): SetResult {
   return { target, done: done === true };
 }
@@ -49,6 +60,12 @@ export function computeFightResult(config: FightConfig, stages: readonly FightSt
 
 export function computeCampaignResult(stages: readonly SetStage[]): CampaignResult {
   const sets = stages.map(setResult);
+
+  return { sets, outcome: decide(sets) };
+}
+
+export function computeDuelResult(stages: readonly DuelStage[]): DuelResult {
+  const sets = stages.map((stage) => ({ exercise: stage.exercise, ...setResult(stage) }));
 
   return { sets, outcome: decide(sets) };
 }

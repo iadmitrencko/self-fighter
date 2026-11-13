@@ -23,3 +23,20 @@ export interface CampaignConfig {
   readonly exercise: ExerciseRef;
   readonly sets: readonly number[];
 }
+
+// One set of a round of the duel: its exercise and its repetitions.
+export interface DuelSet {
+  readonly exercise: ExerciseRef;
+  readonly reps: number;
+}
+
+// §24.9: a battle of the duel with the King of robbers, the final battle of the journey. It plays
+// the sets of a round from the one the last battle stopped at, in the order of the round.
+export interface DuelConfig {
+  readonly mode: 'duel';
+  // The round of the duel, such as final-battle/1/4.
+  readonly round: string;
+  // The place in the round of the first set of this battle.
+  readonly from: number;
+  readonly sets: readonly DuelSet[];
+}

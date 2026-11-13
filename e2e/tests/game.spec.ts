@@ -102,6 +102,24 @@ test('the campaign «Чорний прапор» leads to its first level', asyn
   await expectAccessible(page);
 });
 
+// §24.5: «Степові вовки» opens beside the other campaigns, with the maps of the Wild Field.
+test('the campaign «Степові вовки» leads to its first level', async ({ page }) => {
+  await page.goto('/game/journey');
+  await page.getByRole('article').filter({ hasText: 'Степові вовки' }).getByRole('link', { name: 'Вирушити в кампанію' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Степові вовки' })).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('link', { name: 'Відкрити етап' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Перші сліди' })).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('link', { name: 'Перейти до випробування' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Покинутий віз' })).toBeVisible();
+  await expect(page.getByText('Схема 2-3-3 · 3 підходи')).toBeVisible();
+  await expectAccessible(page);
+});
+
 // §24.5: a retreat loses the level and keeps it open for another try.
 test('a retreat from a level is a defeat', async ({ page }) => {
   await page.goto('/game/journey/forest-ravens/1/1');
@@ -122,14 +140,14 @@ test('a retreat from a level is a defeat', async ({ page }) => {
 test('a fight of the game spends energy and brings glory', async ({ page }) => {
   await page.goto('/game/fight');
   await expect(page.getByRole('heading', { level: 1, name: 'Бій' })).toBeVisible();
-  await expect(page.getByRole('textbox', { name: 'Віджимання, раунд 1' })).toHaveValue('10');
+  await expect(page.getByRole('textbox', { name: 'Відтискання, раунд 1' })).toHaveValue('10');
   await expectAccessible(page);
 
   await page.getByRole('button', { name: 'Прибрати вправу Присідання' }).click();
   await page.getByRole('button', { name: 'Прибрати раунд 3' }).click();
   await page.getByRole('button', { name: 'Прибрати раунд 2' }).click();
-  await page.getByRole('button', { name: 'Більше: Віджимання, раунд 1' }).click();
-  await expect(page.getByRole('textbox', { name: 'Віджимання, раунд 1' })).toHaveValue('11');
+  await page.getByRole('button', { name: 'Більше: Відтискання, раунд 1' }).click();
+  await expect(page.getByRole('textbox', { name: 'Відтискання, раунд 1' })).toHaveValue('11');
   await expect(page.getByRole('region', { name: 'Твій бій' }).getByText('Виконано єдину клітинку.')).toBeVisible();
   await page.getByRole('button', { name: /^До бою/ }).click();
 

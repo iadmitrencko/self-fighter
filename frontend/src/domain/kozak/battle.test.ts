@@ -22,7 +22,7 @@ describe('a level of the journey', () => {
   it('plays set by set', () => {
     const session = deepFreeze(start());
 
-    expect(session).toMatchObject({ mode: 'campaign', schemaVersion: 4, challenge: null, game: null });
+    expect(session).toMatchObject({ mode: 'campaign', schemaVersion: 5, challenge: null, game: null });
 
     const done = completeSet(completeSet(completeSet(session)));
 

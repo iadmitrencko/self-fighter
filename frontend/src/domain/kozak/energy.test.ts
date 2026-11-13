@@ -1,6 +1,21 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { ENERGY, energyAt, laterFullAt, spendEnergy, type EnergyPool } from './energy';
+
+// §24.4: the server checks every battle by backend/schema/energy.json, and PHPUnit checks the same
+// examples. Vitest runs in frontend/, and Docker Compose mounts the file next to it.
+const SERVER = JSON.parse(readFileSync(resolve('../backend/schema/energy.json'), 'utf8')) as {
+  readonly pools: Readonly<Record<EnergyPool, { readonly max: number; readonly periodMinutes: number }>>;
+  readonly examples: readonly {
+    readonly pool: EnergyPool;
+    readonly fullAt: string | null;
+    readonly at: string;
+    readonly allows: boolean;
+    readonly spent: string;
+  }[];
+};
 
 const HOUR = 3_600_000;
 const NOW = new Date('2026-11-10T12:00:00.000Z');
@@ -19,6 +34,20 @@ describe('energy', () => {
       fight: { max: 10, periodMs: 2 * HOUR },
       campaign: { max: 6, periodMs: 2 * HOUR },
     });
+  });
+
+  // The browser only repeats the rule of the server to answer at once and to play without the network.
+  it('counts with the numbers of the server', () => {
+    const pools = Object.fromEntries(
+      Object.entries(ENERGY).map(([pool, { max, periodMs }]) => [pool, { max, periodMinutes: periodMs / 60_000 }]),
+    );
+
+    expect(pools).toEqual(SERVER.pools);
+  });
+
+  it.each(SERVER.examples)('answers as the server for the $pool at $at', ({ pool, fullAt, at: time, allows, spent }) => {
+    expect(energyAt(pool, fullAt, new Date(time)).value >= 1).toBe(allows);
+    expect(spendEnergy(pool, fullAt, new Date(time))).toBe(allows ? spent : null);
   });
 
   it('is full before the first battle', () => {

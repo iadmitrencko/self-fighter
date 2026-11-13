@@ -31,7 +31,7 @@ test('a guest finds the history in the same browser only', async ({ page, browse
 
   const again = await page.context().newPage();
   await again.goto('/game/history');
-  await expect(again.getByRole('link', { name: /^Віджимання, Присідання/ })).toBeVisible();
+  await expect(again.getByRole('link', { name: /^Відтискання, Присідання/ })).toBeVisible();
 
   const otherBrowser = await browser.newContext();
   const stranger = await otherBrowser.newPage();
