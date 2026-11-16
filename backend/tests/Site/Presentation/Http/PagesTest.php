@@ -127,31 +127,34 @@ final class PagesTest extends WebTestCase
         self::assertStringContainsString('ідентифікатором твого користувача, гостя чи облікового запису', $crawler->filter('#consent')->text());
     }
 
-    // A fight of the game opens inside the same header and footer as every page of the site.
-    public function testGameLivesInTheFrameOfTheSite(): void
+    // §24.1: the pages about the game lead into it, and inside the game the header is the status of the
+    // cossack instead: its logo leads to him and React fills in the rest. The footer is that of every page.
+    public function testGameHasAHeaderOfItsOwnInTheFrameOfTheSite(): void
     {
         $client = self::createClient();
         $site = $client->request('GET', '/');
-        $header = $site->filter('header')->html();
+        $links = static fn (Crawler $page): array => $page->filter('header a')->each(static fn (Crawler $link): string => (string) $link->attr('href'));
+
+        self::assertSame(['/', '/game', '/game/fight'], $links($site));
+        self::assertSelectorTextSame('header .site-nav__cta', 'Почати тренування');
         $footer = $site->filter('footer')->html();
         $game = $client->request('GET', '/game/fight');
 
-        self::assertSame($header, $game->filter('header')->html());
         self::assertSame($footer, $game->filter('footer')->html());
         self::assertSelectorExists('main #root');
-        self::assertSame(
-            // §24.1: everything is made for the game, so the header leads into it and to a fight in it.
-            ['/game', '/game/fight'],
-            $game->filter('header nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
-        );
+        self::assertSame(['/game'], $links($game));
+        self::assertSelectorExists('header.game-header #game-status');
+        // The sections of the game are its own navigation, and its screens lead to battles themselves.
+        self::assertCount(0, $game->filter('header nav'));
+        self::assertStringNotContainsString('тренування', $game->filter('header')->text());
+        self::assertSame('game-page', $game->filter('body')->attr('class'));
     }
 
-    // §24: the cossack game has the frame of the site.
+    // §24: the cossack game has the frame of the site, and every screen of it the same header.
     public function testCossackGameLivesInTheFrameOfTheSite(): void
     {
         $client = self::createClient();
-        $site = $client->request('GET', '/');
-        $header = $site->filter('header')->html();
+        $header = $client->request('GET', '/game/history')->filter('header')->html();
         $game = $client->request('GET', '/game');
 
         self::assertResponseIsSuccessful();

@@ -5,11 +5,27 @@
 
 {% block title %}{{ 'kozak.title'|trans }} — {{ 'site.name'|trans }}{% endblock %}
 
+{#- On a phone the sections of the game stand in a bar at the bottom of the screen (kozak.css). #}
+{% block body_attributes %} class="game-page"{% endblock %}
+
 {% block assets %}
     {#- The names of the screens are the largest text, so their font comes first. #}
     <link rel="preload" href="{{ asset('node_modules/@fontsource/cormorant/files/cormorant-cyrillic-700-normal.woff2', 'vite') }}" as="font" type="font/woff2" crossorigin>
     {{ vite_entry_link_tags('kozak') }}
     {{ vite_entry_script_tags('kozak', { dependency: 'react' }) }}
+{% endblock %}
+
+{#- §24.1: inside the game the header is the status of the cossack, not a second menu of its sections:
+    the logo leads to the cossack, and React fills in his rank, his energy and the menu of the player
+    (GameHeader.tsx). There is no button to start a workout: every screen of the game leads to its
+    battles by itself. #}
+{% block header %}
+    <header class="game-header">
+        <div class="container game-header__inner">
+            {{ include('site/_logo.html.twig', {href: path('kozak')}) }}
+            <div class="game-header__status" id="game-status"></div>
+        </div>
+    </header>
 {% endblock %}
 
 {% block main %}

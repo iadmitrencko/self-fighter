@@ -218,18 +218,12 @@ describe('the cossack', () => {
 });
 
 describe('the sections of the game', () => {
-  it('lead to the cossack, the fights, the journey, the ranks, the history and the settings', async () => {
+  // The settings belong to the player, so the menu of the player leads there instead (GameHeader.test.tsx).
+  it('lead to the cossack, the fights, the journey, the ranks and the history', async () => {
     const { user } = renderKozak('/');
     const sections = within(screen.getByRole('navigation', { name: 'Розділи гри' }));
 
-    expect(sections.getAllByRole('link').map(({ textContent }) => textContent)).toEqual([
-      'Козак',
-      'Бій',
-      'Похід',
-      'Звання',
-      'Історія',
-      'Налаштування',
-    ]);
+    expect(sections.getAllByRole('link').map(({ textContent }) => textContent)).toEqual(['Козак', 'Бій', 'Похід', 'Звання', 'Історія']);
     expect(sections.getByRole('link', { name: 'Козак' }).getAttribute('aria-current')).toBe('page');
 
     await user.click(sections.getByRole('link', { name: 'Похід' }));
@@ -246,10 +240,6 @@ describe('the sections of the game', () => {
     await user.click(sections.getByRole('link', { name: 'Історія' }));
     expect(await screen.findByRole('heading', { level: 1, name: 'Історія' })).toBeTruthy();
     expect(sections.getByRole('link', { name: 'Історія' }).getAttribute('aria-current')).toBe('page');
-
-    await user.click(sections.getByRole('link', { name: 'Налаштування' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Налаштування' })).toBeTruthy();
-    expect(sections.getByRole('link', { name: 'Налаштування' }).getAttribute('aria-current')).toBe('page');
   });
 
   it('say so for an address the game does not know', async () => {

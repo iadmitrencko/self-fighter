@@ -1,10 +1,366 @@
 /*
- * §24: the screens of the cossack game, from kozak_design/screens. Mobile first; the sections of
- * the game stand on the left of a wide screen and as tabs above the screen of a phone. The screens
- * and dialogs the game shares (app.css) take its colors as well.
+ * §24: the screens of the cossack game, from kozak_design/screens. Mobile first: the header tells
+ * the state of the cossack, and the sections of the game stand in a bar at the bottom of a phone and
+ * on the left of a wide screen. The screens and dialogs the game shares (app.css) take its colors as
+ * well.
  */
 @import '../app.css';
 @import '../../styles/kozak.css';
+
+/* What the header and the bar of the sections take from the window. `--k-bottom` adds the question of
+   consent (§22) under the bar, so the sticky parts of the screens and the end of the page keep clear. */
+:root {
+  --k-header: 3.75rem;
+  --k-tabbar: 4rem;
+  --k-bottom: calc(var(--consent-space, 0px) + var(--k-tabbar) + env(safe-area-inset-bottom, 0px));
+
+  scroll-padding-block: var(--k-header) var(--k-bottom);
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --k-bottom: var(--consent-space, 0px);
+  }
+}
+
+.game-page {
+  padding-bottom: var(--k-bottom);
+}
+
+/* The header: the state of the cossack. It stays at the top of the window over the whole width while
+   the page scrolls under it; its content keeps to the column of the page. */
+
+.game-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  border-bottom: 1px solid var(--k-line);
+  background: color-mix(in srgb, var(--k-bg) 85%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.game-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  height: var(--k-header);
+}
+
+/* A narrow phone keeps the mark of the logo beside the energy; the name comes back where it fits. */
+.game-header .logo__name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.game-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+
+/* §24.2: the rank over a thin bar of the glory towards the next one, from a tablet up. */
+.game-rank {
+  position: relative;
+  display: none;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: var(--tap-target);
+  padding: 0 0.875rem;
+  border: 1px solid var(--k-line);
+  border-radius: 999px;
+  color: var(--k-parchment);
+  font-size: var(--text-s);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.game-rank__icon {
+  width: 0.9375rem;
+  height: 0.9375rem;
+  flex: none;
+  color: var(--k-gold);
+}
+
+.game-rank__name {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-rank__glory {
+  color: var(--k-ash);
+  font-variant-numeric: tabular-nums;
+}
+
+.game-rank__bar {
+  position: absolute;
+  right: 0.875rem;
+  bottom: 0.4375rem;
+  left: 0.875rem;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(to right, var(--k-gold) var(--share), var(--k-line) var(--share));
+}
+
+/* §24.4: the energy of fights and of the journey; each pill leads to its battles. */
+.game-energy {
+  position: relative;
+}
+
+.game-energy__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: var(--tap-target);
+  padding: 0 0.625rem;
+  border: 1px solid var(--k-line);
+  border-radius: 999px;
+  color: var(--k-parchment);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.game-rank:hover,
+.game-energy__link:hover {
+  border-color: var(--k-line-strong);
+}
+
+.game-energy__icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+  color: var(--k-gold);
+}
+
+.game-energy__value {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-energy--empty .game-energy__icon,
+.game-energy--empty .game-energy__value {
+  color: var(--k-ember-soft);
+}
+
+/* When the next unit comes back: under the pill, for a pointer or the keyboard. */
+.game-energy__tip {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 1;
+  display: none;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--k-line);
+  border-radius: 8px;
+  background: var(--k-surface-raised);
+  box-shadow: var(--k-shadow-card);
+  color: var(--k-parchment-dim);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.game-energy:hover .game-energy__tip,
+.game-energy__link:focus-visible + .game-energy__tip {
+  display: block;
+}
+
+@media (min-width: 30rem) {
+  .game-header .logo__name {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+
+  .game-status {
+    gap: var(--space-xs);
+  }
+
+  .game-energy__link {
+    gap: 0.375rem;
+    padding: 0 0.875rem;
+    font-size: var(--text-s);
+  }
+}
+
+@media (min-width: 48rem) {
+  .game-rank {
+    display: inline-flex;
+  }
+}
+
+/* The menu of the player: «Ще» in the bar of a phone, the avatar in the header of a wide screen. */
+
+.player-menu {
+  position: relative;
+}
+
+.player-menu--header {
+  display: none;
+}
+
+.player-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  min-height: var(--tap-target);
+  margin-left: var(--space-2xs);
+  padding: 0 0.375rem 0 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--k-parchment-dim);
+  cursor: pointer;
+}
+
+.player-menu__trigger:hover,
+.player-menu__trigger[aria-expanded='true'] {
+  border-color: var(--k-line);
+  color: var(--k-parchment);
+}
+
+.player-menu__avatar {
+  display: grid;
+  place-items: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  border: 1px solid var(--k-gold-dim);
+  border-radius: 50%;
+  background: var(--k-surface-raised);
+  color: var(--k-gold-light);
+  font-family: var(--k-font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.player-menu__face {
+  width: 1.125rem;
+  height: 1.125rem;
+  stroke-width: 2;
+}
+
+.player-menu__chevron {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.15s;
+}
+
+.player-menu__trigger[aria-expanded='true'] .player-menu__chevron {
+  transform: rotate(180deg);
+}
+
+.player-menu__panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 2;
+  width: max-content;
+  min-width: 15rem;
+  max-width: calc(100vw - 2 * var(--page-gutter));
+  padding: var(--space-2xs);
+  border: 1px solid var(--k-line);
+  border-radius: 14px;
+  background: var(--k-surface-raised);
+  box-shadow: var(--k-shadow-card);
+}
+
+/* In the bar at the bottom it opens upwards, over the screen. */
+.player-menu--tabs .player-menu__panel {
+  top: auto;
+  right: var(--space-2xs);
+  bottom: calc(100% + 0.5rem);
+}
+
+.player-menu__who {
+  display: grid;
+  gap: 0.125rem;
+  margin-bottom: var(--space-2xs);
+  padding: var(--space-xs) var(--space-s) var(--space-s);
+  border-bottom: 1px solid var(--k-line);
+}
+
+.player-menu__name {
+  color: var(--k-parchment);
+  font-weight: 700;
+}
+
+.player-menu__email {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.player-menu__failure {
+  padding: var(--space-xs) var(--space-s);
+  color: var(--k-ember-soft);
+  font-size: var(--text-s);
+}
+
+.player-menu__list {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player-menu__end {
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--k-line);
+}
+
+.player-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  width: 100%;
+  min-height: var(--tap-target);
+  padding: 0 var(--space-s);
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--k-parchment-dim);
+  font: inherit;
+  font-size: var(--text-s);
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.player-menu__item:hover {
+  background: var(--k-line-soft);
+  color: var(--k-parchment);
+}
+
+.player-menu__item[aria-current='page'] {
+  color: var(--k-gold-light);
+}
+
+.player-menu__icon,
+.player-menu__item .google-button__logo {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+}
+
+.player-menu__icon {
+  stroke-width: 2;
+}
 
 /* Layout: the sections of the game and the screen */
 
@@ -15,72 +371,73 @@
   width: 100%;
   max-width: calc(var(--page-width) + 2 * var(--page-gutter));
   margin-inline: auto;
-  padding: 0 var(--page-gutter) var(--space-3xl);
+  padding: var(--space-l) var(--page-gutter) var(--space-3xl);
 }
 
+/* A phone: a bar at the bottom of the window, in reach of the thumb, over the question of consent.
+   The four main sections and «Ще» share it; the history and the settings wait behind «Ще». */
 .kozak__aside {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  right: 0;
+  bottom: var(--consent-space, 0px);
+  left: 0;
   z-index: 3;
-  margin-inline: calc(-1 * var(--page-gutter));
-  padding-block: var(--space-xs);
-  border-bottom: 1px solid var(--k-line);
-  background: var(--k-bg);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  border-top: 1px solid var(--k-line);
+  background: color-mix(in srgb, var(--k-bg) 90%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
-/* Six tabs do not fit a phone: each keeps its width and the strip scrolls sideways from edge to
-   edge of the screen. Where they fit, they share the row. The icon stands above its name. */
 .kozak-nav {
-  display: flex;
-  gap: var(--space-2xs);
-  padding-inline: var(--page-gutter);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-padding-inline: var(--page-gutter);
-  scrollbar-width: none;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-width: 36rem;
+  height: var(--k-tabbar);
+  margin-inline: auto;
+  padding-inline: var(--space-2xs);
 }
 
 .kozak-nav__link {
   display: flex;
-  flex: 1 0 auto;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.125rem;
-  min-height: var(--k-hit);
-  padding: 0.375rem 0.625rem;
+  gap: 0.1875rem;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 0.25rem;
+  border: 0;
   border-radius: 10px;
+  background: none;
   color: var(--k-ash);
+  font: inherit;
   font-size: var(--text-xs);
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .kozak-nav__link:hover {
-  background: var(--k-line-soft);
   color: var(--k-parchment);
 }
 
-.kozak-nav__link[aria-current='page'] {
-  background: var(--k-badge-open-bg);
+.kozak-nav__link[aria-current='page'],
+.kozak-nav__link--inside {
   color: var(--k-gold-light);
 }
 
-.kozak-nav__icon {
-  width: 1.125rem;
-  height: 1.125rem;
-  flex: none;
-  stroke-width: 2;
+.kozak-nav__link--more {
+  display: none;
 }
 
-/* From the width where the six names fit beside their icons. */
-@media (min-width: 40rem) {
-  .kozak-nav__link {
-    flex-direction: row;
-    gap: var(--space-xs);
-    font-size: var(--text-s);
-  }
+.kozak-nav__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  stroke-width: 2;
 }
 
 .kozak__main {
@@ -93,41 +450,75 @@
   padding: 0;
 }
 
-/* resesign: a narrow column of the sections beside the screen. */
+/* resesign: a narrow column of the sections beside the screen; the menu of the player moves into
+   the header. */
 @media (min-width: 64rem) {
+  .player-menu--header {
+    display: block;
+  }
+
+  .player-menu--tabs {
+    display: none;
+  }
+
   .kozak {
     display: grid;
     grid-template-columns: 12.5rem minmax(0, 1fr);
     align-items: start;
     gap: var(--space-xl);
-    padding-top: var(--space-l);
   }
 
   .kozak__aside {
-    top: var(--space-l);
-    margin: 0;
+    position: sticky;
+    top: calc(var(--k-header) + var(--space-l));
+    right: auto;
+    bottom: auto;
+    left: auto;
+    z-index: auto;
     padding: 0;
     border: 0;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   .kozak-nav {
+    display: flex;
     flex-direction: column;
-    padding-inline: 0;
-    overflow: visible;
+    gap: var(--space-2xs);
+    max-width: none;
+    height: auto;
+    margin: 0;
+    padding: 0;
   }
 
   .kozak-nav__link {
-    flex: none;
     flex-direction: row;
     justify-content: flex-start;
     gap: var(--space-s);
+    height: auto;
+    min-height: var(--k-hit);
     padding: var(--space-s) 0.875rem;
     font-size: var(--text-s);
     font-weight: 500;
   }
 
+  .kozak-nav__link:hover {
+    background: var(--k-line-soft);
+  }
+
   .kozak-nav__link[aria-current='page'] {
+    background: var(--k-badge-open-bg);
     font-weight: 600;
+  }
+
+  .kozak-nav__link--more {
+    display: flex;
+  }
+
+  .kozak-nav__icon {
+    width: 1.125rem;
+    height: 1.125rem;
   }
 }
 
@@ -2858,7 +3249,7 @@ button.k-marker::before {
 
 .k-nextbar {
   position: sticky;
-  bottom: 0;
+  bottom: var(--k-bottom);
   z-index: 2;
   display: flex;
   align-items: center;
@@ -3033,7 +3424,7 @@ button.k-marker::before {
 
   .k-stage__map {
     position: sticky;
-    top: var(--space-l);
+    top: calc(var(--k-header) + var(--space-l));
   }
 
   .k-stage__map .k-map {
@@ -3226,7 +3617,7 @@ button.k-marker::before {
 
 .k-prep__action {
   position: sticky;
-  bottom: 0;
+  bottom: var(--k-bottom);
   z-index: 2;
   margin-inline: calc(-1 * var(--page-gutter));
   padding: var(--space-m) var(--page-gutter) var(--space-l);

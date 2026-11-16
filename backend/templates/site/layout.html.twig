@@ -13,11 +13,13 @@
     <a class="skip-link button button--primary" href="#main">{{ 'site.skip_to_content'|trans }}</a>
     {#- Right after the skip link, so a screen reader meets the question before the page. #}
     {{ include('site/_consent.html.twig') }}
+    {#- The pages about the game lead into it; the game has a header of its own (kozak/shell.html.twig). #}
+    {% block header %}
     <header class="site-header">
         <div class="container site-header__inner">
             {{ include('site/_logo.html.twig') }}
             <nav class="site-nav" aria-label="{{ 'site.nav.label'|trans }}">
-                {#- §24: the game is a link of its own on every screen, a phone included. The history and
+                {#- §24: the game is a link of its own on every page, a phone included. The history and
                     the settings are its sections (§24.1), so the header leads to them through the game.
                     Everything is made for the game, so a workout starts with a fight in it. #}
                 <a class="site-nav__link site-nav__link--game" href="{{ path('kozak') }}">
@@ -28,6 +30,7 @@
             </nav>
         </div>
     </header>
+    {% endblock %}
     <main id="main">
         {% block main %}{% endblock %}
     </main>

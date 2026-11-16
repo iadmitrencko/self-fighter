@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectAccessible, finishSets } from './helpers';
+import { expectAccessible, finishSets, openSection } from './helpers';
 
 interface GameRecord {
   fights: { wins: number; draws: number; losses: number };
@@ -55,20 +55,20 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
     await battle.getByRole('button', { name: 'Підхід виконано' }).click();
   }
   await expect(battle.getByText('Усі підходи виконано')).toBeVisible();
-  await battle.getByRole('button', { name: 'Завершити тренування' }).click();
+  await battle.getByRole('button', { name: 'Завершити бій' }).click();
 
   await expect(page.getByRole('heading', { level: 1, name: 'Розбійника схоплено' })).toBeVisible();
   await expectAccessible(page);
   await expect.poll(async () => (await gameRecord(page))?.passed).toEqual(['forest-ravens/1/1']);
 
   // §24.1: the history is a section of the game and names the level.
-  await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Історія' }).click();
+  await openSection(page, 'Історія');
   await expect(page.getByRole('heading', { level: 1, name: 'Історія' })).toBeVisible();
   await expect(page.getByRole('link', { name: /^Перше випробування Перемога Похід/ })).toBeVisible();
   await expectAccessible(page);
 
-  // §24.1: the data of the player is the last section of the game.
-  await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Налаштування' }).click();
+  // §24.1: the data of the player waits in the menu of the player.
+  await openSection(page, 'Налаштування');
   await expect(page.getByRole('heading', { level: 1, name: 'Налаштування' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Видалити всі дані' })).toBeVisible();
   await expectAccessible(page);

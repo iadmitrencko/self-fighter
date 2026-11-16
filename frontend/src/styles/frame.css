@@ -15,7 +15,8 @@
   position: absolute;
   top: var(--space-s);
   left: var(--space-s);
-  z-index: 2;
+  /* Over the header of the game, which stays on top of the page. */
+  z-index: 4;
   transform: translateY(-200%);
 }
 

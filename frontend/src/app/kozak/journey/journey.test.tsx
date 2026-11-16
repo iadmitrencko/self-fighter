@@ -201,7 +201,7 @@ describe('the battle of a level', () => {
 
     expect(await battle.findByText('Усі підходи виконано')).toBeTruthy();
     expect(battle.getByText('3 з 3 повторень')).toBeTruthy();
-    await user.click(battle.getByRole('button', { name: 'Завершити тренування' }));
+    await user.click(battle.getByRole('button', { name: 'Завершити бій' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Розбійника схоплено' })).toBeTruthy();
     expect(screen.getByText('Рівень 1 · Перше випробування — пройдено')).toBeTruthy();
@@ -339,7 +339,7 @@ describe('the victories over a boss', () => {
     for (let set = 0; set < 10; set += 1) {
       await user.click(battle.getByRole('button', { name: 'Підхід виконано' }));
     }
-    await user.click(await battle.findByRole('button', { name: 'Завершити тренування' }));
+    await user.click(await battle.findByRole('button', { name: 'Завершити бій' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Ватажка розвідників переможено' })).toBeTruthy();
     expect(screen.getByText('Бос переможений')).toBeTruthy();
@@ -359,7 +359,7 @@ describe('the victories over a boss', () => {
     for (let set = 0; set < 19; set += 1) {
       await user.click(await screen.findByRole('button', { name: 'Підхід виконано' }));
     }
-    await user.click(await screen.findByRole('button', { name: 'Завершити тренування' }));
+    await user.click(await screen.findByRole('button', { name: 'Завершити бій' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Чорного Крука переможено' })).toBeTruthy();
     expect(screen.getByText('+15')).toBeTruthy();
@@ -379,7 +379,7 @@ describe('the victories over a boss', () => {
     for (let set = 0; set < 7; set += 1) {
       await user.click(await screen.findByRole('button', { name: 'Підхід виконано' }));
     }
-    await user.click(await screen.findByRole('button', { name: 'Завершити тренування' }));
+    await user.click(await screen.findByRole('button', { name: 'Завершити бій' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Сірого Вовка переможено' })).toBeTruthy();
     expect(screen.getByText('+10 слави за кампанію')).toBeTruthy();
@@ -459,7 +459,7 @@ describe('the duel with the King', () => {
     await user.click(await screen.findByRole('button', { name: 'Продовжити двобій · 1 підхід' }));
     const battle = within(await screen.findByRole('dialog', { name: 'Раунд 1 · Перша сутичка' }));
     await user.click(battle.getByRole('button', { name: 'Підхід виконано' }));
-    await user.click(await battle.findByRole('button', { name: 'Завершити тренування' }));
+    await user.click(await battle.findByRole('button', { name: 'Завершити бій' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Король утратив 9 здоров’я' })).toBeTruthy();
     // 80 health: the King still stands unbroken.
@@ -483,7 +483,7 @@ describe('the duel with the King', () => {
     await user.click(screen.getByRole('button', { name: 'Продовжити двобій · 1 підхід' }));
     const battle = within(await screen.findByRole('dialog', { name: 'Раунд 5 · Смертельний поєдинок' }));
     await user.click(battle.getByRole('button', { name: 'Підхід виконано' }));
-    await user.click(await battle.findByRole('button', { name: 'Завершити тренування' }));
+    await user.click(await battle.findByRole('button', { name: 'Завершити бій' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Короля розбійників переможено' })).toBeTruthy();
     expect(screen.getByText('+35')).toBeTruthy();

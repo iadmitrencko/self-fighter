@@ -61,7 +61,7 @@ describe('a fight', () => {
     expect(await view.dialog.findByText('Усі підходи виконано')).toBeTruthy();
     expect(view.dialog.getByText('57 з 57 повторень')).toBeTruthy();
 
-    await user.click(view.dialog.getByRole('button', { name: 'Завершити тренування' }));
+    await user.click(view.dialog.getByRole('button', { name: 'Завершити бій' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Бій виграно' })).toBeTruthy();
     expect(storage.gameSessions.fight.load()).toBeNull();

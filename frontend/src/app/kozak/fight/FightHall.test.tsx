@@ -44,7 +44,8 @@ describe('the hall of fights', () => {
     expect(summary.getAllByRole('listitem').map((item) => item.textContent)).toEqual(['2 вправи', '3 раунди', '60 повторів']);
     expect(summary.getByText('Виконано всі 6 клітинок.')).toBeTruthy();
     expect(summary.getByText('+1 слава козаку')).toBeTruthy();
-    expect(screen.getAllByText('10 з 10').length).toBeGreaterThan(0);
+    // §24.1: the energy of fights stands in the header of the game, over every screen.
+    expect(screen.getByRole('link', { name: 'Енергія боїв: 10 з 10' }).getAttribute('href')).toBe('/fight');
   });
 
   // §6: the rounds and the repetitions change freely, within the limits.

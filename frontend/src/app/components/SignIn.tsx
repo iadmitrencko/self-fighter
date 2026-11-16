@@ -181,7 +181,7 @@ const OUTCOME_NOTICES: Record<Outcome, { tone: 'done' | 'warning' | 'error'; tex
 };
 
 // The standard logo of Google: its colors belong to the mark, not to the palette of the site.
-function GoogleLogo() {
+export function GoogleLogo() {
   return (
     <svg className="google-button__logo" viewBox="0 0 48 48" aria-hidden="true">
       <path

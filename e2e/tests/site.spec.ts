@@ -28,23 +28,34 @@ test('an address the game does not have is a real 404', async ({ page }) => {
   await expectAccessible(page);
 });
 
-// Every page has the same header and footer, and every screen of the game leads back by itself.
-test('the header and the footer are the same everywhere and screens lead back', async ({ page }) => {
+// The pages about the game share their header and lead into it; the game has a header of its own
+// (§24.1). Every page has the same footer, and every screen of the game leads back by itself.
+test('the game has a header of its own, the footer is everywhere and screens lead back', async ({ page }) => {
   await page.goto('/');
-  const header = await page.locator('header.site-header').innerHTML();
   const footer = await page.locator('footer.site-footer').innerHTML();
+  await expect(page.getByRole('banner').getByRole('link', { name: 'Гра' })).toHaveAttribute('href', '/game');
+  // A phone hides the button to a fight in the header; the landing and the footer keep it.
+  await expect(page.locator('header.site-header .site-nav__cta')).toHaveAttribute('href', '/game/fight');
 
   // §24.1: the history and the settings are sections of the game, so the footer leads there directly.
   await page.getByRole('contentinfo').getByRole('link', { name: 'Налаштування' }).click();
 
   await expect(page).toHaveURL('/game/settings');
   await expect(page.getByRole('heading', { level: 1, name: 'Налаштування' })).toBeVisible();
-  expect(await page.locator('header.site-header').innerHTML()).toBe(header);
   expect(await page.locator('footer.site-footer').innerHTML()).toBe(footer);
+  // Inside the game the header tells the energy of the cossack and repeats none of its sections.
+  const banner = page.getByRole('banner');
+  await expect(banner.getByRole('link', { name: 'Енергія боїв: 10 з 10' })).toBeVisible();
+  await expect(banner.getByRole('link', { name: 'Енергія походу: 6 з 6' })).toBeVisible();
+  await expect(banner.getByRole('link', { name: 'Почати тренування' })).toHaveCount(0);
   await expectAccessible(page);
 
+  await banner.getByRole('link', { name: 'Енергія боїв: 10 з 10' }).click();
+  await expect(page).toHaveURL('/game/fight');
+  await banner.getByRole('link', { name: 'Self-Fighter' }).click();
+  await expect(page).toHaveURL('/game');
+
   await page.goto('/game/fight');
-  expect(await page.locator('header.site-header').innerHTML()).toBe(header);
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Козак' }).click();
   await expect(page).toHaveURL('/game');
 });

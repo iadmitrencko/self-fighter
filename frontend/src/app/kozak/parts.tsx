@@ -25,11 +25,16 @@ const ICONS = {
   close: 'M6 6l12 12M18 6 6 18',
   // A dumbbell: the repetitions of the exercises (§24.10).
   strength: 'M6 5v14M18 5v14M2.5 9v6M21.5 9v6M6 12h12',
+  // The menu of the player: the sections that do not fit the bar of a phone, the site, signing out.
+  more: 'M6.5 12a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0ZM13.75 12a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0ZM21 12a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0Z',
+  chevron: 'M6 9l6 6 6-6',
+  home: 'M3 11l9-8 9 8M5 9.5V21h14V9.5',
+  leave: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
 } as const;
 
 export type KozakIconName = keyof typeof ICONS;
 
-const FILLED: ReadonlySet<KozakIconName> = new Set(['pause', 'play', 'bolt', 'glory']);
+const FILLED: ReadonlySet<KozakIconName> = new Set(['pause', 'play', 'bolt', 'glory', 'more']);
 
 export function KozakIcon({ name, className = 'kozak-icon' }: { name: KozakIconName; className?: string }) {
   const filled = FILLED.has(name);

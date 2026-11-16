@@ -1,5 +1,5 @@
-import { lazy, Suspense, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { NavLink, Outlet, Route, Routes, useLocation } from 'react-router';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { NavLink, Outlet, Route, Routes } from 'react-router';
 import { kozakTexts } from '../../i18n/kozak';
 import { ScrollToTop, SiteLinks } from '../components/routing';
 import { SignInOutcome, SignInPromptProvider } from '../components/SignIn';
@@ -10,6 +10,7 @@ import { FightArena } from './fight/FightArena';
 import { FightBattle } from './fight/FightBattle';
 import { FightHall } from './fight/FightHall';
 import { FightResult } from './fight/FightResult';
+import { GameStatus, PlayerMenu } from './GameHeader';
 import { HistoryScreen } from './HistoryScreen';
 import { KozakNotFound } from './journey/common';
 import { KOZAK_BASE, kozakPaths } from './paths';
@@ -43,6 +44,7 @@ export function KozakApp({ game }: { game: Game }) {
           {/* §23.2: Google brings the browser back to the screen the sign-in started from. */}
           <SignInOutcome />
           <CossackProvider>
+            <GameStatus />
             <KozakRoutes />
           </CossackProvider>
         </SignInPromptProvider>
@@ -86,35 +88,30 @@ function KozakRoutes() {
   );
 }
 
-const SECTIONS: readonly { to: string; icon: KozakIconName; label: string; end: boolean }[] = [
-  { to: kozakPaths.cossack, icon: 'cossack', label: kozakTexts.nav.cossack, end: true },
-  { to: kozakPaths.fight, icon: 'fight', label: kozakTexts.nav.fight, end: false },
-  { to: kozakPaths.journey, icon: 'journey', label: kozakTexts.nav.journey, end: false },
-  { to: kozakPaths.ranks, icon: 'ranks', label: kozakTexts.nav.ranks, end: false },
-  { to: kozakPaths.history, icon: 'history', label: kozakTexts.nav.history, end: false },
-  { to: kozakPaths.settings, icon: 'settings', label: kozakTexts.nav.settings, end: false },
+// The history is `more`: a phone finds it behind «Ще» beside the menu of the player. The settings
+// belong to the player rather than to the game, so only that menu leads there (GameHeader.tsx).
+const SECTIONS: readonly { to: string; icon: KozakIconName; label: string; end: boolean; more: boolean }[] = [
+  { to: kozakPaths.cossack, icon: 'cossack', label: kozakTexts.nav.cossack, end: true, more: false },
+  { to: kozakPaths.fight, icon: 'fight', label: kozakTexts.nav.fight, end: false, more: false },
+  { to: kozakPaths.journey, icon: 'journey', label: kozakTexts.nav.journey, end: false, more: false },
+  { to: kozakPaths.ranks, icon: 'ranks', label: kozakTexts.nav.ranks, end: false, more: false },
+  { to: kozakPaths.history, icon: 'history', label: kozakTexts.nav.history, end: false, more: true },
 ];
 
-// The sections of the game on the left, as tabs above the screen on a phone.
+// The sections of the game on the left of a wide screen; on a phone a bar at the bottom of the
+// screen, in reach of the thumb, with the four main sections and «Ще».
 function KozakLayout() {
-  const nav = useRef<HTMLElement>(null);
-  const { pathname } = useLocation();
-
-  // Six tabs do not fit a phone, so they scroll sideways: the open one comes into view.
-  useLayoutEffect(() => {
-    nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [pathname]);
-
   return (
     <div className="kozak">
       <div className="kozak__aside">
-        <nav ref={nav} className="kozak-nav" aria-label={kozakTexts.section}>
-          {SECTIONS.map(({ to, icon, label, end }) => (
-            <NavLink key={to} to={to} end={end} className="kozak-nav__link">
+        <nav className="kozak-nav" aria-label={kozakTexts.section}>
+          {SECTIONS.map(({ to, icon, label, end, more }) => (
+            <NavLink key={to} to={to} end={end} className={more ? 'kozak-nav__link kozak-nav__link--more' : 'kozak-nav__link'}>
               <KozakIcon name={icon} className="kozak-nav__icon" />
               <span>{label}</span>
             </NavLink>
           ))}
+          <PlayerMenu place="tabs" />
         </nav>
       </div>
       <div className="kozak__main">

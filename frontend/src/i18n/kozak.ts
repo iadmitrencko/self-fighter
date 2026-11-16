@@ -58,7 +58,7 @@ export const lookTexts: Record<Look, { group: string; figure: string }> = {
 
 export const kozakTexts = {
   section: 'Розділи гри',
-  nav: { cossack: 'Козак', fight: 'Бій', journey: 'Похід', ranks: 'Звання', history: 'Історія', settings: 'Налаштування' },
+  nav: { cossack: 'Козак', fight: 'Бій', journey: 'Похід', ranks: 'Звання', history: 'Історія', settings: 'Налаштування', more: 'Ще' },
   loading: 'Збираємо літопис козака…',
   notFound: 'Тут нічого немає',
   notFoundText: 'Можливо, в адресі помилка. Повернись до козака або в похід.',
@@ -133,6 +133,17 @@ export const ranksTexts = {
   top: 'Найвище звання здобуто.',
   toCossack: 'До козака',
   howTitle: 'Як здобути славу',
+};
+
+// §24.1: the header of the game tells the state of the cossack instead of repeating its sections.
+export const statusTexts = {
+  label: 'Стан козака',
+  // The badge reads «Джура · 6/10»; a screen reader hears the words instead.
+  rank: (rank: string, glory: number, target: number | null) =>
+    target === null ? `Звання «${rank}», ${gloryAmount(glory)}` : `Звання «${rank}», ${glory} з ${target} ${gloryWord(target)}`,
+  // The menu of the player: the account, the rest of the sections, the way out of the game.
+  menu: 'Меню гравця',
+  home: 'На головну сайту',
 };
 
 // §14, §24.1: the one history of every attempt, a section of the game.
@@ -435,7 +446,7 @@ export const battleTexts = {
   setDone: 'Підхід виконано',
   allDone: 'Усі підходи виконано',
   allDoneReps: (total: number) => `${total} з ${total} повторень`,
-  finish: 'Завершити тренування',
+  finish: 'Завершити бій',
   retreatTitle: 'Відступити з бою?',
   retreatText: 'Рівень не буде пройдено, а витрачена енергія не повернеться. У рахунку козака це поразка.',
   retreatConfirm: 'Відступити',

@@ -19,7 +19,7 @@ export async function finishSets(page: Page): Promise<void> {
     await battle.getByRole('button', { name: 'Підхід виконано' }).click();
   }
   await expect(battle.getByText('Усі підходи виконано')).toBeVisible();
-  await battle.getByRole('button', { name: 'Завершити тренування' }).click();
+  await battle.getByRole('button', { name: 'Завершити бій' }).click();
 }
 
 // §6: the fight the hall offers, every set done, or left at once, which loses it (§24.6).
@@ -42,4 +42,24 @@ export async function savedAttempts(page: Page): Promise<number> {
   const response = await page.request.get('/api/v1/attempts');
 
   return response.ok() ? ((await response.json()) as { items: unknown[] }).items.length : 0;
+}
+
+// §24.1: opens a screen of the game the way a player finds it. A wide screen keeps the sections in a
+// column and the settings in the menu of the player in the header; on a phone the history and that
+// menu wait behind «Ще» in the bar of the sections.
+export async function openSection(page: Page, name: string): Promise<void> {
+  const sections = page.getByRole('navigation', { name: 'Розділи гри' });
+  const more = sections.getByRole('button', { name: 'Ще' });
+
+  if (await sections.getByRole('link', { name }).isVisible()) {
+    await sections.getByRole('link', { name }).click();
+  } else if (await more.isVisible()) {
+    await more.click();
+    await sections.getByRole('link', { name }).click();
+  } else {
+    const header = page.getByRole('banner');
+
+    await header.getByRole('button', { name: 'Меню гравця' }).click();
+    await header.getByRole('link', { name }).click();
+  }
 }

@@ -20,7 +20,7 @@ import { Loading, MemoryWarning } from '../../components/notices';
 import { useGame } from '../../game';
 import { useLoad } from '../../useLoad';
 import { kozakPaths } from '../paths';
-import { EnergyMeter, KozakIcon, KozakScreen, WithCossack } from '../parts';
+import { KozakIcon, KozakScreen, WithCossack } from '../parts';
 import { useNow, type Cossack } from '../record';
 import { AddExerciseDialog } from './AddExerciseDialog';
 import { useFightStart, type FightRefusal } from './FightArena';
@@ -157,7 +157,8 @@ function Resume({ session }: { session: FightSession }) {
   );
 }
 
-// The energy of fights, what the fight holds, how it is won and the way into it.
+// What the fight holds, how it is won and the way into it. The energy of fights is in the header of
+// the game (GameHeader.tsx); here it only closes the way while the pool is empty.
 function Summary({
   grid,
   cossack,
@@ -181,63 +182,60 @@ function Summary({
   ] as const;
 
   return (
-    <>
-      <EnergyMeter pool="fight" energy={energy} now={now} />
-      <section className="k-card k-summary" aria-labelledby={titleId}>
-        <h2 id={titleId} className="k-summary__title">
-          {fightHallTexts.summary}
-        </h2>
-        <ul className="k-summary__stats" role="list">
-          {stats.map(([value, label], index) => (
-            <li key={label} className={index === 2 ? 'k-summary__stat k-summary__stat--gold' : 'k-summary__stat'}>
-              <b>{value}</b> <span>{label}</span>
-            </li>
-          ))}
-        </ul>
-        <dl className="k-summary__rules">
-          <div className="k-summary__rule k-summary__rule--win">
-            <dt>{fightHallTexts.win}</dt>
-            <dd>{fightHallTexts.winRule(totals.sets)}</dd>
-          </div>
-          <div className="k-summary__rule k-summary__rule--loss">
-            <dt>{fightHallTexts.loss}</dt>
-            <dd>{fightHallTexts.lossRule}</dd>
-          </div>
-          <div className="k-summary__rule">
-            <dt>{fightHallTexts.reward}</dt>
-            <dd>{fightHallTexts.rewardRule}</dd>
-          </div>
-        </dl>
-        {energy.value === 0 ? (
-          <div className="k-refusal">
-            <button type="button" className="k-button k-button--locked k-button--large" disabled>
-              <KozakIcon name="lock" className="k-button__icon" />
-              {fightHallTexts.noEnergy}
-            </button>
-            <p className="k-refusal__text">
-              {energyStatus.empty(formatWait(Date.parse(energy.nextAt ?? now.toISOString()) - now.getTime()))}
+    <section className="k-card k-summary" aria-labelledby={titleId}>
+      <h2 id={titleId} className="k-summary__title">
+        {fightHallTexts.summary}
+      </h2>
+      <ul className="k-summary__stats" role="list">
+        {stats.map(([value, label], index) => (
+          <li key={label} className={index === 2 ? 'k-summary__stat k-summary__stat--gold' : 'k-summary__stat'}>
+            <b>{value}</b> <span>{label}</span>
+          </li>
+        ))}
+      </ul>
+      <dl className="k-summary__rules">
+        <div className="k-summary__rule k-summary__rule--win">
+          <dt>{fightHallTexts.win}</dt>
+          <dd>{fightHallTexts.winRule(totals.sets)}</dd>
+        </div>
+        <div className="k-summary__rule k-summary__rule--loss">
+          <dt>{fightHallTexts.loss}</dt>
+          <dd>{fightHallTexts.lossRule}</dd>
+        </div>
+        <div className="k-summary__rule">
+          <dt>{fightHallTexts.reward}</dt>
+          <dd>{fightHallTexts.rewardRule}</dd>
+        </div>
+      </dl>
+      {energy.value === 0 ? (
+        <div className="k-refusal">
+          <button type="button" className="k-button k-button--locked k-button--large" disabled>
+            <KozakIcon name="lock" className="k-button__icon" />
+            {fightHallTexts.noEnergy}
+          </button>
+          <p className="k-refusal__text">
+            {energyStatus.empty(formatWait(Date.parse(energy.nextAt ?? now.toISOString()) - now.getTime()))}
+          </p>
+        </div>
+      ) : (
+        <>
+          {config === null && <p className="k-summary__empty">{fightHallTexts.empty}</p>}
+          {refusal !== null && (
+            <p className="notice notice--warning" role="alert">
+              {refusal === 'busy' ? fightHallTexts.busy : fightHallTexts.refusal}
             </p>
-          </div>
-        ) : (
-          <>
-            {config === null && <p className="k-summary__empty">{fightHallTexts.empty}</p>}
-            {refusal !== null && (
-              <p className="notice notice--warning" role="alert">
-                {refusal === 'busy' ? fightHallTexts.busy : fightHallTexts.refusal}
-              </p>
-            )}
-            <button
-              type="button"
-              className="k-button k-button--primary k-button--large k-summary__start"
-              disabled={config === null}
-              onClick={() => config !== null && onStart(config)}
-            >
-              {fightHallTexts.start}
-              <span className="k-summary__cost">{fightHallTexts.cost}</span>
-            </button>
-          </>
-        )}
-      </section>
-    </>
+          )}
+          <button
+            type="button"
+            className="k-button k-button--primary k-button--large k-summary__start"
+            disabled={config === null}
+            onClick={() => config !== null && onStart(config)}
+          >
+            {fightHallTexts.start}
+            <span className="k-summary__cost">{fightHallTexts.cost}</span>
+          </button>
+        </>
+      )}
+    </section>
   );
 }

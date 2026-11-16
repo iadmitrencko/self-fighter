@@ -180,10 +180,8 @@ describe('the offer to sign in in the history', () => {
     expect(within(offer).getByRole('link', { name: 'Увійти через Google' }).getAttribute('href')).toBe(
       '/connect/google?to=%2Fgame%2Fhistory',
     );
-    // The data of the player is a section of the game as well.
-    const sections = screen.getByRole('navigation', { name: 'Розділи гри' });
-    const toSettings = screen.getAllByRole('link', { name: 'Налаштування' }).filter((link) => !sections.contains(link));
-    expect(toSettings.map((link) => link.getAttribute('href'))).toEqual(['/settings']);
+    // The data of the player waits in the settings of the game; the sections do not list them.
+    expect(screen.getAllByRole('link', { name: 'Налаштування' }).map((link) => link.getAttribute('href'))).toEqual(['/settings']);
 
     await user.click(within(offer).getByRole('button', { name: 'Закрити пропозицію увійти' }));
 
