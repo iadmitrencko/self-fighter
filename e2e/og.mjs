@@ -1,7 +1,7 @@
 // Draws the icons of the site and its image for social networks in the colors of the game:
 // `make og` (section 6.3 of the plan). The mark comes from the logo of the header, the colors from
-// the palette of the game and the hetman from the copy of his picture on the landing, so whenever
-// one of them changes, `make og` draws the images anew. It is no test: it lives next to the
+// the palette of the game and the hetman from his portrait in the game (`make portraits`), so
+// whenever one of them changes, `make og` draws the images anew. It is no test: it lives next to the
 // end-to-end tests for the browser of Playwright.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from '@playwright/test';
@@ -30,8 +30,8 @@ const you = pick(logo, /class="logo__you" d="([^"]+)"/, 'The triangle of the pla
 const rival = pick(logo, /class="logo__rival" d="([^"]+)"/, 'The triangle of the enemy in _logo.html.twig');
 const mark = `<path fill="${color('k-gold')}" d="${you}"/><path fill="${color('k-ember')}" d="${rival}"/>`;
 
-// The hetman as the landing shows him: Vitest copies him from the game (src/app/kozak/art).
-const hetman = read('backend/templates/home/art/hero.svg.twig');
+// The hetman on the maidan of the Sich, as the game and the landing show him.
+const hetman = read('frontend/src/app/kozak/art/cossack/hetman-720.webp', 'base64');
 
 // The fonts of the game as the site serves them: frontend/node_modules after `make up`.
 const SUBSETS = {
@@ -146,10 +146,11 @@ h1 {
   border-radius: var(--k-r-card);
   box-shadow: var(--k-glow-card);
 }
-.figure svg {
+.figure img {
   display: block;
   width: 100%;
   height: 100%;
+  object-fit: cover;
 }
 </style>
 </head>
@@ -161,7 +162,7 @@ h1 {
     <h1>${TITLE}</h1>
     <p class="lines">${LINES.join('<br>')}</p>
   </div>
-  <div class="figure">${hetman}</div>
+  <div class="figure"><img src="data:image/webp;base64,${hetman}" alt=""></div>
 </div>
 </body>
 </html>`;

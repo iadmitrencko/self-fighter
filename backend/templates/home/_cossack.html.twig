@@ -1,0 +1,6 @@
+{#- The cossack of a look (§24.2) on the maidan of the Sich: the portrait of the game
+    (frontend/src/app/kozak/art/cossack), which Vite serves. The text beside it names the look, so the
+    picture is decoration here. Expects look and sizes; eager loads it at once, at the top of the page. #}
+{%- set portrait = 'src/app/kozak/art/cossack/' ~ look %}
+<img class="k-figure" src="{{ asset(portrait ~ '-720.webp', 'vite') }}" srcset="{{ asset(portrait ~ '-360.webp', 'vite') }} 360w, {{ asset(portrait ~ '-720.webp', 'vite') }} 720w" sizes="{{ sizes }}" width="720" height="960" alt="" decoding="async"
+    {%- if eager|default(false) %} fetchpriority="high"{% else %} loading="lazy"{% endif %}>

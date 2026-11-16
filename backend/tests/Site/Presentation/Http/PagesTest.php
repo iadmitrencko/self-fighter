@@ -28,8 +28,14 @@ final class PagesTest extends WebTestCase
         // §24.2: a look of the cossack for every group of ranks.
         self::assertSame(['Джура', 'Козак', 'Сотник', 'Генерал-осавул', 'Гетьман'], $texts('.landing-rank__name'));
         self::assertSame(['від 0 слави', 'від 45 слави', 'від 330 слави', 'від 1 150 слави', 'від 3 500 слави'], $texts('.landing-rank__glory'));
-        self::assertCount(10, $crawler->filter('main svg[role="img"]'));
-        // The pictures define gradients of their own, so no id repeats.
+        self::assertCount(4, $crawler->filter('main svg[role="img"]'));
+        // The hetman at the top and the cossack of every look: the portraits of the game in two widths.
+        $portraits = $crawler->filter('main img.k-figure')->each(static fn (Crawler $node): string => (string) $node->attr('srcset'));
+        self::assertCount(6, $portraits);
+        foreach (['hetman', 'recruit', 'cossack', 'officer', 'general', 'hetman'] as $index => $look) {
+            self::assertMatchesRegularExpression("~^\\S+/{$look}-360\\S*\\.webp 360w, \\S+/{$look}-720\\S*\\.webp 720w$~", $portraits[$index]);
+        }
+        // The scenes define gradients of their own, so no id repeats.
         $ids = $crawler->filter('[id]')->each(static fn (Crawler $node): string => (string) $node->attr('id'));
         self::assertSame(array_unique($ids), $ids);
         self::assertCount(3, $crawler->filter('.landing-step'));

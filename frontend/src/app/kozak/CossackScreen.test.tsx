@@ -14,12 +14,12 @@ function facts(region: HTMLElement): string[][] {
 }
 
 describe('the cossack', () => {
-  // §24.2: a new player is a dzhura in a plain shirt, with no glory and full energy.
+  // §24.2: a new player is a dzhura in an embroidered shirt, with no glory and full energy.
   it('starts as a dzhura', async () => {
     renderKozak('/');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeTruthy();
-    expect(screen.getByRole('img', { name: /у простій сорочці/ })).toBeTruthy();
+    expect(screen.getByRole('img', { name: /Джура у вишиванці/ })).toBeTruthy();
     // «★ 0 / 10 слави», «наступне: Заставний» and the bar of the way there.
     expect(screen.getByText('0 з 10 слави')).toBeTruthy();
     expect(screen.getByText('Заставний').closest('p')?.textContent).toBe('наступне: Заставний');
@@ -211,7 +211,7 @@ describe('the cossack', () => {
     renderKozak('/', { storage });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Звання: Козак' })).toBeTruthy();
-    expect(screen.getByRole('img', { name: /у жупані з червоним поясом/ })).toBeTruthy();
+    expect(screen.getByRole('img', { name: /Козак у шкіряній безрукавці/ })).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Бойовий рахунок' }).textContent).toContain('45 перемог');
     expect(facts(screen.getByRole('region', { name: 'Бій' }))).toContainEqual(['Серія перемог', '45']);
   });

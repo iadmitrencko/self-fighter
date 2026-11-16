@@ -12,13 +12,18 @@
 @import '../styles/frame.css';
 @import './content.css';
 
-/* The pictures of the game that the landing copies (templates/home/art) */
+/* The pictures of the game: the scenes the landing copies (templates/home/art) and the portraits of
+   the cossack it shares with the game (src/app/kozak/art/cossack) */
 
 .k-art,
 .k-figure {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.k-figure {
+  object-fit: cover;
 }
 
 /* Hero: the cossack and what the game is */

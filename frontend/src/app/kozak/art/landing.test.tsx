@@ -2,26 +2,21 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { CampaignId } from '../../../domain/kozak/journey';
-import type { Look } from '../../../domain/kozak/ranks';
-import { campaignTexts, lookTexts } from '../../../i18n/kozak';
-import { CossackFigure } from './Cossack';
+import { campaignTexts } from '../../../i18n/kozak';
 import { CampaignArt } from './Scenes';
 
 /*
- * The landing (backend/templates/home) shows the pictures of the game, but Twig renders no React:
- * it keeps copies of them, and this test keeps the copies the same as the game. When a picture
- * changes, `npx vitest run -u` writes its copy anew.
+ * The landing (backend/templates/home) shows the scenes of the game, but Twig renders no React: it
+ * keeps copies of them, and this test keeps the copies the same as the game. When a scene changes,
+ * `npx vitest run -u` writes its copy anew. The portraits of the cossack need no copies: the landing
+ * shows the files of the game (cossack/*.webp).
  */
 const LANDING = '../../../../../backend/templates/home/art';
 const CAMPAIGNS: readonly CampaignId[] = ['black-flag', 'steppe-wolves', 'forest-ravens', 'final-battle'];
-const LOOKS: readonly Look[] = ['recruit', 'cossack', 'officer', 'general', 'hetman'];
 
-const pictures: readonly (readonly [string, ReactElement])[] = [
-  ...CAMPAIGNS.map((campaign) => [`campaign-${campaign}`, <CampaignArt campaign={campaign} label={campaignTexts[campaign].lead} />] as const),
-  ...LOOKS.map((look) => [`cossack-${look}`, <CossackFigure look={look} label={lookTexts[look].figure} />] as const),
-  // The hetman greets the visitor at the top as well, so he needs gradients of his own there.
-  ['hero', <CossackFigure look="hetman" label={lookTexts.hetman.figure} />],
-];
+const pictures: readonly (readonly [string, ReactElement])[] = CAMPAIGNS.map(
+  (campaign) => [`campaign-${campaign}`, <CampaignArt campaign={campaign} label={campaignTexts[campaign].lead} />] as const,
+);
 
 describe('the pictures of the landing', () => {
   it.each(pictures)('copies %s from the game', async (name, picture) => {

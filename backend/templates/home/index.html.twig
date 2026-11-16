@@ -1,7 +1,8 @@
 {% extends 'site/layout.html.twig' %}
 
 {# The landing (§3.1 of the specification): what the cossack game is and how to play it, drawn as the
-   game draws its screens. The pictures are copies of those of the game (home/art). #}
+   game draws its screens. The scenes are copies of those of the game (home/art), and the cossack is
+   the portrait of the game itself (_cossack.html.twig). #}
 
 {% set title = 'home.title'|trans %}
 {% set description = 'home.description'|trans %}
@@ -56,7 +57,7 @@
                     {{- 'home.no_signup'|trans -}}
                 </p>
             </div>
-            <div class="landing-hero__figure" aria-hidden="true">{{ include('home/art/hero.svg.twig') }}</div>
+            <div class="landing-hero__figure" aria-hidden="true">{{ include('home/_cossack.html.twig', {look: 'hetman', sizes: '(min-width: 64rem) 23rem, 17rem', eager: true}) }}</div>
         </div>
     </section>
 
@@ -150,7 +151,7 @@
         <ol class="landing-ranks" role="list">
             {%- for item in looks %}
             <li class="landing-rank{{ loop.last ? ' landing-rank--top' }}">
-                <div class="landing-rank__figure" aria-hidden="true">{{ include('home/art/cossack-' ~ item.look ~ '.svg.twig') }}</div>
+                <div class="landing-rank__figure" aria-hidden="true">{{ include('home/_cossack.html.twig', {look: item.look, sizes: '(min-width: 64rem) 14rem, (min-width: 40rem) 30vw, 50vw'}) }}</div>
                 <div class="landing-rank__text">
                     <p class="landing-rank__name">{{ ('home.ranks.looks.' ~ item.look)|trans }}</p>
                     <p class="landing-rank__glory">{{ 'home.ranks.from'|trans({'%glory%': item.glory|number_format(0, ',', ' ')}) }}</p>

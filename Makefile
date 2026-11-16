@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down kill logs ps sh test test-backend test-frontend lint lint-backend lint-frontend lint-infra audit audit-backend audit-frontend bundle e2e og fix migrate content metrics
+.PHONY: help up down kill logs ps sh test test-backend test-frontend lint lint-backend lint-frontend lint-infra audit audit-backend audit-frontend bundle e2e og portraits fix migrate content metrics
 
 COMPOSE := docker compose
 APP := $(COMPOSE) exec -T app
@@ -90,6 +90,11 @@ e2e: ## Запустити E2E-тести на prod-образі в Playwright
 og: ## Перемалювати favicon, іконку iOS і og.png у кольорах гри
 	docker run --rm -v "$(CURDIR):/repo" -w /repo/e2e $(PLAYWRIGHT_IMAGE) \
 		sh -c 'npm ci --no-audit --no-fund && node og.mjs'
+
+# The browser of Playwright draws the Sich and stands the cossack of every look on it.
+portraits: ## Перемалювати портрети козака на тлі Січі
+	docker run --rm -v "$(CURDIR):/repo" -w /repo/e2e $(PLAYWRIGHT_IMAGE) \
+		sh -c 'npm ci --no-audit --no-fund && node portraits.mjs'
 
 fix: ## Виправити стиль коду
 	$(APP) vendor/bin/php-cs-fixer fix
