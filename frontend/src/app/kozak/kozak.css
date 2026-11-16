@@ -539,10 +539,12 @@
   background: var(--k-surface);
 }
 
-/* A phone shows the cossack whole across the card, above the rank. */
+/* A phone shows the cossack whole across the card, above the rank. The box keeps the width of the
+   card even when its height stops growing; the wide picture of the cossack covers it (Cossack.tsx). */
 .k-hero__portrait {
   position: relative;
   overflow: hidden;
+  width: 100%;
   aspect-ratio: 4 / 5;
   max-height: 26.25rem;
   border-radius: calc(var(--k-r-card) - 1px) calc(var(--k-r-card) - 1px) 0 0;

@@ -14,12 +14,17 @@ const root = new URL('../', import.meta.url);
 const LOOKS = ['recruit', 'cossack', 'officer', 'general', 'hetman'];
 const OUT = 'frontend/src/app/kozak/art/cossack';
 
-// The frame of sich.mjs and the place of the cossack in it: in the middle, the soles at FEET.
-const FRAME = { width: 720, height: 960, feet: 898, scale: 0.96 };
+// The frames of a portrait and the place of the cossack in them: in the middle, the soles at y = 898.
+// The tall frame of 3 : 4 fills a column and the cards of the landing; the wide one of 4 : 3 fills a
+// card wider than it is tall without cutting off his head or his boots, and shows more of the Sich.
+const FRAMES = [
+  { name: '', width: 720, height: 960, feet: 898, scale: 0.96 },
+  { name: '-wide', width: 1280, height: 960, feet: 898, scale: 0.96 },
+];
 
 // Runs in the browser: everything it needs comes in its argument.
 async function compose({ backdrop, figures, frame }) {
-  const { width: W, height: H, feet: FEET, scale: SCALE } = frame;
+  const { name, width: W, height: H, feet: FEET, scale: SCALE } = frame;
   const load = (src) =>
     new Promise((resolve, reject) => {
       const image = new Image();
@@ -147,10 +152,10 @@ async function compose({ backdrop, figures, frame }) {
       }
     }
     out.putImageData(picture, 0, 0);
-    pictures[`${look}-720`] = result.toDataURL('image/webp', 0.84);
+    pictures[`${look}${name}-${W}`] = result.toDataURL('image/webp', 0.84);
     const [half, small] = canvas(W / 2, H / 2);
     small.drawImage(result, 0, 0, W / 2, H / 2);
-    pictures[`${look}-360`] = half.toDataURL('image/webp', 0.82);
+    pictures[`${look}${name}-${W / 2}`] = half.toDataURL('image/webp', 0.82);
   }
 
   return pictures;
@@ -159,22 +164,27 @@ async function compose({ backdrop, figures, frame }) {
 const browser = await chromium.launch();
 
 try {
-  const page = await browser.newPage({ viewport: { width: FRAME.width, height: FRAME.height }, deviceScaleFactor: 2 });
-  await page.setContent(`<!doctype html><body style="margin:0">${sich}</body>`, { waitUntil: 'load' });
-  const backdrop = (await page.screenshot()).toString('base64');
+  const page = await browser.newPage({ deviceScaleFactor: 2 });
   const figures = Object.fromEntries(LOOKS.map((look) => [look, readFileSync(new URL(`cossacks/${look}.png`, import.meta.url), 'base64')]));
-  const pictures = await page.evaluate(compose, { backdrop, figures, frame: FRAME });
 
-  for (const [name, url] of Object.entries(pictures)) {
-    const [type, data] = url.split(',');
+  for (const frame of FRAMES) {
+    // The Sich is drawn at twice the size of the frame.
+    await page.setViewportSize({ width: frame.width, height: frame.height });
+    await page.setContent(`<!doctype html><body style="margin:0">${sich(frame.width)}</body>`, { waitUntil: 'load' });
+    const backdrop = (await page.screenshot()).toString('base64');
+    const pictures = await page.evaluate(compose, { backdrop, figures, frame });
 
-    if (type !== 'data:image/webp;base64') {
-      throw new Error(`The browser did not encode ${name} as WebP.`);
+    for (const [name, url] of Object.entries(pictures)) {
+      const [type, data] = url.split(',');
+
+      if (type !== 'data:image/webp;base64') {
+        throw new Error(`The browser did not encode ${name} as WebP.`);
+      }
+      writeFileSync(new URL(`${OUT}/${name}.webp`, root), Buffer.from(data, 'base64'));
     }
-    writeFileSync(new URL(`${OUT}/${name}.webp`, root), Buffer.from(data, 'base64'));
   }
 } finally {
   await browser.close();
 }
 
-console.log(`Drawn: ${OUT}/{${LOOKS.join(',')}}-{360,720}.webp`);
+console.log(`Drawn: ${OUT}/{${LOOKS.join(',')}}-{360,720}.webp and {${LOOKS.join(',')}}-wide-{640,1280}.webp`);

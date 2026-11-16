@@ -1,42 +1,60 @@
 import type { Look } from '../../../domain/kozak/ranks';
-import cossackSmall from './cossack/cossack-360.webp';
-import cossackLarge from './cossack/cossack-720.webp';
-import generalSmall from './cossack/general-360.webp';
-import generalLarge from './cossack/general-720.webp';
-import hetmanSmall from './cossack/hetman-360.webp';
-import hetmanLarge from './cossack/hetman-720.webp';
-import officerSmall from './cossack/officer-360.webp';
-import officerLarge from './cossack/officer-720.webp';
-import recruitSmall from './cossack/recruit-360.webp';
-import recruitLarge from './cossack/recruit-720.webp';
 
-// The portraits, 720 px wide and half of that. `make portraits` draws them (e2e/portraits.mjs) and the
-// landing shows the same files.
-const PORTRAITS: Readonly<Record<Look, readonly [small: string, large: string]>> = {
-  recruit: [recruitSmall, recruitLarge],
-  cossack: [cossackSmall, cossackLarge],
-  officer: [officerSmall, officerLarge],
-  general: [generalSmall, generalLarge],
-  hetman: [hetmanSmall, hetmanLarge],
+// The portraits by the names `make portraits` gives them (e2e/portraits.mjs); the landing shows the
+// same files.
+const FILES = import.meta.glob<string>('./cossack/*.webp', { eager: true, import: 'default' });
+
+function file(name: string): string {
+  const url = FILES[`./cossack/${name}.webp`];
+
+  if (url === undefined) {
+    throw new Error(`cossack/${name}.webp is missing: make portraits draws it.`);
+  }
+
+  return url;
+}
+
+interface Portrait {
+  // 3 : 4, 360 and 720 px wide.
+  readonly tall: string;
+  // 4 : 3, 640 and 1280 px wide: the same cossack with more of the Sich on both sides.
+  readonly wide: string;
+  readonly src: string;
+}
+
+function portrait(look: Look): Portrait {
+  return {
+    tall: `${file(`${look}-360`)} 360w, ${file(`${look}-720`)} 720w`,
+    wide: `${file(`${look}-wide-640`)} 640w, ${file(`${look}-wide-1280`)} 1280w`,
+    src: file(`${look}-wide-1280`),
+  };
+}
+
+const PORTRAITS: Readonly<Record<Look, Portrait>> = {
+  recruit: portrait('recruit'),
+  cossack: portrait('cossack'),
+  officer: portrait('officer'),
+  general: portrait('general'),
+  hetman: portrait('hetman'),
 };
 
 /**
- * §24.2: the cossack as his rank dresses him, at full height on the maidan of the Sich. A box of
- * another shape crops the picture around the figure (object-fit in kozak.css). A phone shows him
- * across the screen, a wider screen beside his rank in a column of 18rem at most.
+ * §24.2: the cossack as his rank dresses him, at full height on the maidan of the Sich. Above the
+ * rank the picture takes the width of the card and 26.25rem of height at most (kozak.css): the wide
+ * portrait covers such a box however wide the card is, cut at its sides only. Beside the rank, in a
+ * column of 18rem at most, the tall one fills the column. Either way the box crops the picture around
+ * the figure.
  */
 export function CossackFigure({ look, label }: { look: Look; label: string }) {
-  const [small, large] = PORTRAITS[look];
+  const { tall, wide, src } = PORTRAITS[look];
 
   return (
-    <img
-      className="k-figure"
-      src={large}
-      srcSet={`${small} 360w, ${large} 720w`}
-      sizes="(min-width: 40rem) 18rem, 100vw"
-      width="720"
-      height="960"
-      alt={label}
-    />
+    <picture>
+      {/* The column beside the rank opens at 36rem of the screen of the cossack, which 40rem of a
+          window always give. */}
+      <source media="(min-width: 40rem)" srcSet={tall} sizes="18rem" />
+      {/* Covering a box 26.25rem high, the wide picture is 35rem wide. */}
+      <img className="k-figure" src={src} srcSet={wide} sizes="35rem" width="1280" height="960" alt={label} />
+    </picture>
   );
 }
