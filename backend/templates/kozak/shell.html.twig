@@ -16,13 +16,13 @@
 {% endblock %}
 
 {#- §24.1: inside the game the header is the status of the cossack, not a second menu of its sections:
-    the logo leads to the cossack, and React fills in his rank, his energy and the menu of the player
-    (GameHeader.tsx). There is no button to start a workout: every screen of the game leads to its
-    battles by itself. #}
+    the logo leads home as on every page, and React fills in his rank, his energy and the menu of the
+    player (GameHeader.tsx). There is no button to start a workout: every screen of the game leads to
+    its battles by itself. #}
 {% block header %}
-    <header class="game-header">
-        <div class="container game-header__inner">
-            {{ include('site/_logo.html.twig', {href: path('kozak')}) }}
+    <header class="site-header game-header">
+        <div class="container site-header__inner game-header__inner">
+            {{ include('site/_logo.html.twig') }}
             <div class="game-header__status" id="game-status"></div>
         </div>
     </header>

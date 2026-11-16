@@ -1,5 +1,5 @@
-{#- The mark and the name of the site. It leads home, or where `href` says: inside the game, to the cossack. #}
-<a class="logo" href="{{ href|default(path('home')) }}">
+{#- The mark and the name of the site. On every page, the game too, it leads home. #}
+<a class="logo" href="{{ path('home') }}">
     <svg class="logo__mark" viewBox="0 0 36 36" aria-hidden="true"><path class="logo__you" d="M3 6 16 18 3 30Z"/><path class="logo__rival" d="M33 6 20 18 33 30Z"/></svg>
     <span class="logo__name">{{ 'site.name'|trans }}</span>
 </a>

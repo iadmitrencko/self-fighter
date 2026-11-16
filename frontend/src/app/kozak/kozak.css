@@ -10,11 +10,10 @@
 /* What the header and the bar of the sections take from the window. `--k-bottom` adds the question of
    consent (§22) under the bar, so the sticky parts of the screens and the end of the page keep clear. */
 :root {
-  --k-header: 3.75rem;
   --k-tabbar: 4rem;
   --k-bottom: calc(var(--consent-space, 0px) + var(--k-tabbar) + env(safe-area-inset-bottom, 0px));
 
-  scroll-padding-block: var(--k-header) var(--k-bottom);
+  scroll-padding-block: var(--header-height) var(--k-bottom);
 }
 
 @media (min-width: 64rem) {
@@ -27,25 +26,21 @@
   padding-bottom: var(--k-bottom);
 }
 
-/* The header: the state of the cossack. It stays at the top of the window over the whole width while
-   the page scrolls under it; its content keeps to the column of the page. */
+/* The header: the band of the site (frame.css), its height, divider and logo, with the state of the
+   cossack in it. It stays at the top of the window over the whole width while the page scrolls under
+   it; its content keeps to the column of the page. */
 
 .game-header {
   position: sticky;
   top: 0;
   z-index: 3;
-  border-bottom: 1px solid var(--k-line);
   background: color-mix(in srgb, var(--k-bg) 85%, transparent);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
 
 .game-header__inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: var(--space-s);
-  height: var(--k-header);
 }
 
 /* A narrow phone keeps the mark of the logo beside the energy; the name comes back where it fits. */
@@ -470,7 +465,7 @@
 
   .kozak__aside {
     position: sticky;
-    top: calc(var(--k-header) + var(--space-l));
+    top: calc(var(--header-height) + var(--space-l));
     right: auto;
     bottom: auto;
     left: auto;
@@ -3424,7 +3419,7 @@ button.k-marker::before {
 
   .k-stage__map {
     position: sticky;
-    top: calc(var(--k-header) + var(--space-l));
+    top: calc(var(--header-height) + var(--space-l));
   }
 
   .k-stage__map .k-map {

@@ -128,7 +128,8 @@ final class PagesTest extends WebTestCase
     }
 
     // §24.1: the pages about the game lead into it, and inside the game the header is the status of the
-    // cossack instead: its logo leads to him and React fills in the rest. The footer is that of every page.
+    // cossack instead: its logo leads home as on every page and React fills in the rest. The footer is
+    // that of every page.
     public function testGameHasAHeaderOfItsOwnInTheFrameOfTheSite(): void
     {
         $client = self::createClient();
@@ -142,7 +143,7 @@ final class PagesTest extends WebTestCase
 
         self::assertSame($footer, $game->filter('footer')->html());
         self::assertSelectorExists('main #root');
-        self::assertSame(['/game'], $links($game));
+        self::assertSame(['/'], $links($game));
         self::assertSelectorExists('header.game-header #game-status');
         // The sections of the game are its own navigation, and its screens lead to battles themselves.
         self::assertCount(0, $game->filter('header nav'));

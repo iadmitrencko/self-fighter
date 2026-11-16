@@ -141,9 +141,8 @@ export const statusTexts = {
   // The badge reads «Джура · 6/10»; a screen reader hears the words instead.
   rank: (rank: string, glory: number, target: number | null) =>
     target === null ? `Звання «${rank}», ${gloryAmount(glory)}` : `Звання «${rank}», ${glory} з ${target} ${gloryWord(target)}`,
-  // The menu of the player: the account, the rest of the sections, the way out of the game.
+  // The menu of the player: the account and its settings.
   menu: 'Меню гравця',
-  home: 'На головну сайту',
 };
 
 // §14, §24.1: the one history of every attempt, a section of the game.

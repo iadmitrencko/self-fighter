@@ -45,7 +45,7 @@ describe('the header of the game', () => {
   });
 
   // The history stands among the sections of the game, so the menu of the header does not repeat it.
-  it('opens the menu of the player with the settings and the site', async () => {
+  it('opens the menu of the player with the settings and the sign-in', async () => {
     const { user } = renderKozak('/');
     const menu = status().getByRole('button', { name: 'Меню гравця' });
 
@@ -54,7 +54,6 @@ describe('the header of the game', () => {
     expect(menu.getAttribute('aria-expanded')).toBe('true');
     expect(panelOf(menu).getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
       ['Налаштування', '/settings'],
-      ['На головну сайту', '/'],
       ['Увійти через Google', '/connect/google?to=%2Fgame'],
     ]);
 
@@ -89,12 +88,7 @@ describe('the header of the game', () => {
     const more = within(screen.getByRole('navigation', { name: 'Розділи гри' })).getByRole('button', { name: 'Ще' });
 
     await user.click(more);
-    expect(panelOf(more).getAllByRole('link').map(({ textContent }) => textContent)).toEqual([
-      'Історія',
-      'Налаштування',
-      'На головну сайту',
-      'Увійти через Google',
-    ]);
+    expect(panelOf(more).getAllByRole('link').map(({ textContent }) => textContent)).toEqual(['Історія', 'Налаштування', 'Увійти через Google']);
     expect(panelOf(more).getByRole('link', { name: 'Налаштування' }).getAttribute('aria-current')).toBe('page');
     await user.click(panelOf(more).getByRole('link', { name: 'Історія' }));
 

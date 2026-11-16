@@ -26,6 +26,12 @@
 
 /* Header */
 
+/* One height of the header on every page, the game too (kozak.css), so its divider stays in place
+   from page to page: a tap target between the paddings of the band. */
+:root {
+  --header-height: calc(var(--tap-target) + 2 * var(--space-s));
+}
+
 .site-header {
   border-bottom: 1px solid var(--k-line);
 }
@@ -35,7 +41,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-m);
-  padding-block: var(--space-s);
+  min-height: var(--header-height);
 }
 
 .site-nav {
@@ -84,8 +90,8 @@
 }
 
 @media (min-width: 48rem) {
-  .site-header__inner {
-    padding-block: var(--space-m);
+  :root {
+    --header-height: calc(var(--tap-target) + 2 * var(--space-m));
   }
 
   .site-header .logo {

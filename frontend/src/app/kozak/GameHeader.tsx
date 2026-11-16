@@ -97,9 +97,9 @@ function EnergyPill({ pool, cossack, now }: { pool: EnergyPool; cossack: Cossack
 }
 
 /**
- * The menu of the player: whose account is open, the history and the settings, the way back to the
- * site, signing in or out. A wide screen shows it in the header beside the energy; on a phone it is
- * «Ще» in the bar of the sections, which has no room for the history and the settings.
+ * The menu of the player: whose account is open, the settings, signing in or out. A wide screen shows
+ * it in the header beside the energy; on a phone it is «Ще» in the bar of the sections, which keeps
+ * the history there as well. The site is a tap on the logo away, as from every page.
  */
 export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
   const { storage } = useGame();
@@ -210,13 +210,6 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
                   <KozakIcon name="settings" className="player-menu__icon" />
                   {kozakTexts.nav.settings}
                 </Link>
-              </li>
-              <li>
-                {/* The site lies outside the game, so this link loads its page. */}
-                <a className="player-menu__item" href="/">
-                  <KozakIcon name="home" className="player-menu__icon" />
-                  {statusTexts.home}
-                </a>
               </li>
               {account !== null ? (
                 <li className="player-menu__end">
