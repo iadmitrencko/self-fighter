@@ -2,8 +2,8 @@ import type { ExerciseRef } from '../catalog/exercise';
 import type { FightConfig } from '../config/types';
 import type { DuelStage, FightStage, SetStage } from '../engine/session';
 
-// A battle is won or lost. The attempts of the old modes of the site could also end in a draw,
-// and the history still counts them (§14.2).
+// A battle of the game is won or lost so far. The history and the record of the cossack count
+// draws as well, for the battles to come (§14.2).
 export type Outcome = 'win' | 'draw' | 'loss';
 export type BattleOutcome = Exclude<Outcome, 'draw'>;
 

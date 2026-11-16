@@ -54,7 +54,7 @@ final class SettingsControllerTest extends ApiTestCase
     {
         $this->signUp();
 
-        $this->send('PUT', '/api/v1/settings/fight', Documents::targetConfig());
+        $this->send('PUT', '/api/v1/settings/fight', ['mode' => 'ladder', 'rule' => 'over', 'exercise' => ['id' => 'pull-ups', 'name' => 'Підтягування'], 'max' => 2, 'returnDown' => false]);
 
         $this->assertError(422, 'invalid-settings');
     }
@@ -86,13 +86,13 @@ final class SettingsControllerTest extends ApiTestCase
         self::assertSame(0, $this->rowCount('workout_settings'));
     }
 
-    // §24.6: the old modes of the site start no more, so they keep no settings either.
-    public function testOldModesHaveNoSettings(): void
+    // The modes of the site before a fight was put together freely (§6) are gone, settings and all.
+    public function testUnknownModesHaveNoSettings(): void
     {
         $this->signUp();
 
-        foreach (['target' => Documents::targetConfig(), 'ladder' => Documents::ladderConfig(), 'boxing' => Documents::fightConfig()] as $mode => $configuration) {
-            $this->send('PUT', '/api/v1/settings/'.$mode, $configuration);
+        foreach (['ladder', 'target', 'boxing'] as $mode) {
+            $this->send('PUT', '/api/v1/settings/'.$mode, Documents::fightConfig());
 
             $this->assertError(404, 'not-found');
         }

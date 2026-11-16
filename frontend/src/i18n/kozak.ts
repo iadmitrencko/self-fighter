@@ -66,6 +66,8 @@ export const kozakTexts = {
 };
 
 const gloryAmount = (glory: number) => plural(glory, { one: '{n} слава', few: '{n} слави', many: '{n} слави' });
+// The word after a number of glory: «2 слави».
+const gloryWord = (glory: number) => plural(glory, { one: 'слава', few: 'слави', many: 'слави' });
 
 // §24.3: what brings glory, on the screen of the cossack and of the ranks.
 export const gloryRewards = [
@@ -79,29 +81,41 @@ export const gloryRewards = [
 export const cossackTexts = {
   title: 'Козак',
   rank: 'Звання:',
-  // The word after the number of glory: «2 слави».
-  gloryWord: (glory: number) => plural(glory, { one: 'слава', few: 'слави', many: 'слави' }),
-  // «Ще 8 слави до звання «Заставний»», with the amount in bold.
-  toNextBefore: 'Ще',
-  toNextAmount: gloryAmount,
-  toNextAfter: (rank: string) => `до звання «${rank}»`,
+  gloryWord,
+  // «★ 3 / 10 слави» shows the glory out of what the next rank needs; a screen reader hears this instead.
+  gloryOf: (glory: number, target: number) => `${glory} з ${target} ${gloryWord(target)}`,
+  // Beside the glory: «наступне: Заставний».
+  next: 'наступне:',
   toNext: (left: number, rank: string) => `Ще ${gloryAmount(left)} до звання «${rank}»`,
-  top: 'Найвище звання здобуто.',
+  top: 'Найвище звання здобуто',
   help: 'Як здобути славу',
-  fight: 'До бою',
-  fightCost: '−1 енергії боїв',
-  journey: 'У похід',
-  journeyCost: '−1 енергії походу',
+  // §24.7: every battle of the game, a large number over its word: «24 перемоги».
   record: 'Бойовий рахунок',
   wins: (count: number) => plural(count, { one: 'перемога', few: 'перемоги', many: 'перемог' }),
   draws: (count: number) => plural(count, { one: 'нічия', few: 'нічиї', many: 'нічиїх' }),
   losses: (count: number) => plural(count, { one: 'поразка', few: 'поразки', many: 'поразок' }),
-  history: 'Історія боїв',
+  // §24.4: a card for each pool of energy and the way to its battles.
+  pools: {
+    fight: { title: 'Бій', action: 'До бою' },
+    campaign: { title: 'Похід', action: 'У похід' },
+  } satisfies Record<EnergyPool, { title: string; action: string }>,
+  // §24.7: the fights of the game in their card.
+  fights: 'Статистика боїв',
+  fought: 'Проведено боїв',
+  fightWins: 'Перемог',
+  // The fights won one after another since the last one that was not.
+  streak: 'Серія перемог',
   // §24.8: the most repetitions done in one set of the journey, for every exercise of its campaigns.
   best: 'Рекорди походу',
   // After the number: «12 за підхід».
   bestUnit: 'за підхід',
   bestNone: 'ще немає',
+  // §24.10: every exercise of the player, the ready-made ones and their own.
+  physical: 'Фізична статистика',
+  physicalLead: 'Найбільше повторень за один підхід і всі повторення в боях і поході.',
+  physicalBest: 'Рекорд за підхід',
+  physicalTotal: 'Усього повторень',
+  customFailed: 'Не вдалося завантажити твої вправи, тут лише готові.',
 };
 
 export const ranksTexts = {
@@ -124,11 +138,11 @@ export const ranksTexts = {
 // §14, §24.1: the one history of every attempt, a section of the game.
 export const gameHistoryTexts = {
   title: 'Історія',
-  lead: 'Усі завершені бої, рівні походу, бої з Королем розбійників і старі тренування сайту.',
+  lead: 'Усі завершені бої, рівні походу й бої з Королем розбійників.',
   // The word after the number of attempts: «12 тренувань».
   total: (count: number) => plural(count, { one: 'тренування', few: 'тренування', many: 'тренувань' }),
-  // Where an attempt comes from: a fight of the game, a level of the journey or an old workout of the site (§24.1).
-  kinds: { fight: 'Бій', journey: 'Похід', duel: 'Фінальна битва', workout: 'Тренування' },
+  // Where an attempt comes from: a fight of the game, a level of the journey or a battle of the duel (§24.1).
+  kinds: { fight: 'Бій', journey: 'Похід', duel: 'Фінальна битва' },
   journey: 'Похід',
   // Non-breaking spaces keep «етап 1» and «3 з 4» on one line.
   level: (campaign: string, stage: number, done: number, total: number) =>
@@ -154,11 +168,22 @@ export const energyStatus = {
   value: (value: number, max: number) => `${value} / ${max}`,
   // What a screen reader says instead of the slash.
   spoken: (value: number, max: number) => `${value} з ${max}`,
+  // On a card of the cossack, where the bolt alone names the energy.
+  named: (name: string, value: number, max: number) => `${name}: ${value} з ${max}`,
   full: 'Повна',
   next: (time: string) => `+1 через ${time}`,
+  // The countdown on a card of the cossack: «+1 енергії через 1:24», in words for a screen reader.
+  countdown: (time: string) => `+1 енергії через ${time}`,
   empty: (time: string) => `Енергії немає. Наступна одиниця через ${time}.`,
   soon: 'менше хвилини',
 };
+
+// The countdown to the next unit in hours and minutes: «1:24», «0:05». A started minute counts whole.
+export function formatClock(ms: number): string {
+  const minutes = Math.ceil(ms / 60_000);
+
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+}
 
 // How long until the next unit: «1 год 5 хв», «35 хв», «менше хвилини».
 export function formatWait(ms: number): string {
@@ -254,7 +279,6 @@ export const fightResultTexts = {
   newFight: 'Новий бій',
   history: 'Історія',
   // An attempt of a mode the site had before §6: the history keeps it as it was.
-  legacyNote: 'Це бій старого режиму сайту: його вже не повторити, але можна скласти новий.',
 };
 
 export const journeyTexts = {

@@ -69,7 +69,7 @@ final class AccountTest extends ApiTestCase
         $accountBurpees = ExerciseId::generate()->value;
         $this->send('PUT', '/api/v1/exercises/'.$accountBurpees, ['name' => 'Бурпі', 'description' => 'Як у залі']);
         $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
-        $accountAttempt = Documents::target('win', '2026-11-03T10:00:00.000Z');
+        $accountAttempt = Documents::fight('win', '2026-11-03T10:00:00.000Z', overrides: ['startedAt' => '2026-11-03T09:40:00.000Z']);
         $this->send('PUT', '/api/v1/attempts/'.$accountAttempt['id'], $accountAttempt);
         $account = $this->user()['id'] ?? null;
 
@@ -79,9 +79,9 @@ final class AccountTest extends ApiTestCase
         $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'бурпі', 'description' => 'Вдома']);
         $this->send('PUT', '/api/v1/exercises/'.$plank, ['name' => 'Планка', 'description' => '']);
         $this->send('PUT', '/api/v1/settings/fight', ['mode' => 'fight', 'exercises' => [['id' => 'pull-ups', 'name' => 'Підтягування', 'sets' => [3]]]]);
-        $guestAttempt = Documents::ladder('loss', '2026-11-04T09:00:00.000Z');
+        $guestAttempt = Documents::level(outcome: 'loss', overrides: ['startedAt' => '2026-11-04T08:50:00.000Z', 'finishedAt' => '2026-11-04T09:00:00.000Z']);
         $this->send('PUT', '/api/v1/attempts/'.$guestAttempt['id'], $guestAttempt);
-        $this->send('POST', '/api/v1/events', ['name' => 'workout_completed', 'mode' => 'ladder', 'outcome' => 'loss']);
+        $this->send('POST', '/api/v1/events', ['name' => 'workout_completed', 'mode' => 'fight', 'outcome' => 'loss']);
         $this->signInWithGoogle(['sub' => '1001']);
 
         $this->send('POST', '/api/v1/me/merge');
@@ -159,14 +159,16 @@ final class AccountTest extends ApiTestCase
      */
     private function accountWithGuestOnThisBrowser(): array
     {
+        // The server takes a battle of the last days only (§24.4).
+        self::mockTime('2026-11-04 10:00:00');
         $this->signInWithGoogle(['sub' => '1001']);
-        $accountAttempt = Documents::target('win', '2026-11-03T10:00:00.000Z');
+        $accountAttempt = Documents::fight('win', '2026-11-03T10:00:00.000Z', overrides: ['startedAt' => '2026-11-03T09:40:00.000Z']);
         $this->send('PUT', '/api/v1/attempts/'.$accountAttempt['id'], $accountAttempt);
         $account = $this->user()['id'] ?? null;
 
         $this->switchBrowser();
         $guest = $this->signUp();
-        $guestAttempt = Documents::ladder('loss', '2026-11-04T09:00:00.000Z');
+        $guestAttempt = Documents::level(outcome: 'loss', overrides: ['startedAt' => '2026-11-04T08:50:00.000Z', 'finishedAt' => '2026-11-04T09:00:00.000Z']);
         $this->send('PUT', '/api/v1/attempts/'.$guestAttempt['id'], $guestAttempt);
         $this->signInWithGoogle(['sub' => '1001']);
 

@@ -27,18 +27,10 @@ final readonly class JsonSchemaAttemptFormat implements AttemptFormat
         $this->validator = new Validator(new SchemaLoader(new SchemaParser(), $resolver));
     }
 
+    // The schema allows the current version only.
     public function readAttempt(string $json): ?array
     {
-        $attempt = $this->read($json, self::URI);
-
-        if (null === $attempt || self::VERSION === $attempt['schemaVersion']) {
-            return $attempt;
-        }
-
-        // A tab opened before the release or an attempt that waited for the network still speaks an
-        // older version, and the history keeps every attempt in one format. Version 2 knew no game:
-        // it was a workout of the site.
-        return ['schemaVersion' => self::VERSION] + (2 === $attempt['schemaVersion'] ? ['game' => null] : []) + $attempt;
+        return $this->read($json, self::URI);
     }
 
     public function readConfiguration(string $json, Mode $mode): ?array
@@ -46,8 +38,8 @@ final readonly class JsonSchemaAttemptFormat implements AttemptFormat
         $definition = match ($mode) {
             // §6: the last fight the player put together.
             Mode::Fight => 'fightConfig',
-            // The journey sets its levels, and the old modes of the site start no more (§24.5, §24.6).
-            Mode::Campaign, Mode::Duel, Mode::Target, Mode::RandomOpponent, Mode::OpponentLevels, Mode::Ladder => null,
+            // The journey sets its levels and the rounds of the duel (§24.5, §24.9).
+            Mode::Campaign, Mode::Duel => null,
         };
 
         return null === $definition ? null : $this->read($json, self::URI.'#/definitions/'.$definition);

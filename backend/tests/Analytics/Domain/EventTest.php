@@ -14,7 +14,7 @@ final class EventTest extends TestCase
     {
         $now = new \DateTimeImmutable();
 
-        self::assertNull(Event::record(EventId::generate(), ['name' => 'page_viewed', 'mode' => 'target'], null, $now));
+        self::assertNull(Event::record(EventId::generate(), ['name' => 'page_viewed', 'mode' => 'fight'], null, $now));
         self::assertNull(Event::record(EventId::generate(), ['name' => 'workout_started'], null, $now));
         self::assertNull(Event::record(EventId::generate(), ['name' => 'workout_started', 'mode' => 42], null, $now));
     }

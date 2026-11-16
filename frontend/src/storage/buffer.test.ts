@@ -10,7 +10,7 @@ import {
   GAME_SESSION,
   type OutboxEntry,
 } from './buffer';
-import { finishedAttempt } from './testing/attempts';
+import { finishedFight } from './testing/attempts';
 
 // A localStorage that accepts the given number of writes and then reports a full quota.
 function storageWithRoomFor(writes: number): Storage {
@@ -40,7 +40,7 @@ function storageWithRoomFor(writes: number): Storage {
 }
 
 function entry(finishedAt: string, status: OutboxEntry['status'] = 'pending'): OutboxEntry {
-  return { document: finishedAttempt('win', finishedAt), owner: null, status };
+  return { document: finishedFight('win', finishedAt), owner: null, status };
 }
 
 afterEach(() => {

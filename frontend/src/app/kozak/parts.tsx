@@ -23,6 +23,8 @@ const ICONS = {
   glory: 'M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.6z',
   plus: 'M12 5v14M5 12h14',
   close: 'M6 6l12 12M18 6 6 18',
+  // A dumbbell: the repetitions of the exercises (§24.10).
+  strength: 'M6 5v14M18 5v14M2.5 9v6M21.5 9v6M6 12h12',
 } as const;
 
 export type KozakIconName = keyof typeof ICONS;
@@ -117,12 +119,19 @@ export function EnergyMeter({ pool, energy, now, compact = false }: { pool: Ener
           <span className="visually-hidden">{energyStatus.spoken(energy.value, energy.max)}</span>
         </b>
       </p>
-      <div className="k-energy__cells" aria-hidden="true">
-        {Array.from({ length: energy.max }, (_, index) => (
-          <span key={index} className={index < energy.value ? 'k-energy__cell k-energy__cell--full' : 'k-energy__cell'} />
-        ))}
-      </div>
+      <EnergyCells energy={energy} />
       <p className="k-energy__note">{wait === null ? `${energyStatus.full} · ${every}` : energyStatus.next(wait)}</p>
+    </div>
+  );
+}
+
+// A cell for every unit of a pool, the full ones in gold. The number beside it speaks for it.
+export function EnergyCells({ energy }: { energy: Energy }) {
+  return (
+    <div className="k-energy__cells" aria-hidden="true">
+      {Array.from({ length: energy.max }, (_, index) => (
+        <span key={index} className={index < energy.value ? 'k-energy__cell k-energy__cell--full' : 'k-energy__cell'} />
+      ))}
     </div>
   );
 }

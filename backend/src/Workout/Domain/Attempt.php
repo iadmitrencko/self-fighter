@@ -22,9 +22,9 @@ final class Attempt
         private readonly UserId $owner,
         private readonly Mode $mode,
         private readonly Outcome $outcome,
-        private readonly ?GamePool $pool,
+        private readonly GamePool $pool,
         private readonly ?string $level,
-        private readonly ?\DateTimeImmutable $energyFullAt,
+        private readonly \DateTimeImmutable $energyFullAt,
         private readonly int $schemaVersion,
         private readonly \DateTimeImmutable $startedAt,
         private readonly \DateTimeImmutable $finishedAt,
@@ -47,12 +47,12 @@ final class Attempt
         $startedAt = Instant::parse(self::text($document['startedAt'] ?? null));
         $finishedAt = Instant::parse(self::text($document['finishedAt'] ?? null));
         $schemaVersion = $document['schemaVersion'] ?? null;
-        // §24: a battle of the game names its pool of energy and the moment that pool is full again
-        // as the browser counted it, and a level of the journey names its level, so the record of
-        // the game is counted in SQL. The server counts the energy anew when it saves the battle.
-        $game = $document['game'] ?? null;
-        $pool = \is_array($game) ? GamePool::tryFrom(self::text($game['pool'] ?? null)) : null;
-        $energyFullAt = \is_array($game) ? Instant::parse(self::text($game['energyFullAt'] ?? null)) : null;
+        // §24: every battle of the game names its pool of energy and the moment that pool is full
+        // again as the browser counted it, and a level of the journey names its level, so the record
+        // of the game is counted in SQL. The server counts the energy anew when it saves the battle.
+        $game = \is_array($document['game'] ?? null) ? $document['game'] : [];
+        $pool = GamePool::tryFrom(self::text($game['pool'] ?? null));
+        $energyFullAt = Instant::parse(self::text($game['energyFullAt'] ?? null));
         $config = \is_array($document['config'] ?? null) ? $document['config'] : [];
         // §24.9: a battle of the duel names its round as a level names itself.
         $level = match ($mode) {
@@ -61,11 +61,12 @@ final class Attempt
             default => '',
         };
 
-        if (null === $id || null === $mode || null === $outcome || null === $startedAt || null === $finishedAt || !\is_int($schemaVersion)) {
+        if (null === $id || null === $mode || null === $outcome || null === $pool || null === $energyFullAt
+            || null === $startedAt || null === $finishedAt || !\is_int($schemaVersion)
+        ) {
             return null;
         }
-        if ((\is_array($game) && (null === $pool || null === $energyFullAt))
-            || ((Mode::Campaign === $mode || Mode::Duel === $mode) && (GamePool::Campaign !== $pool || '' === $level))
+        if (((Mode::Campaign === $mode || Mode::Duel === $mode) && (GamePool::Campaign !== $pool || '' === $level))
             // §6: a fight of the game always takes the energy of fights.
             || (Mode::Fight === $mode && GamePool::Fight !== $pool)
         ) {
@@ -121,7 +122,7 @@ final class Attempt
         return $this->finishedAt;
     }
 
-    public function pool(): ?GamePool
+    public function pool(): GamePool
     {
         return $this->pool;
     }
@@ -131,7 +132,7 @@ final class Attempt
         return $this->level;
     }
 
-    public function energyFullAt(): ?\DateTimeImmutable
+    public function energyFullAt(): \DateTimeImmutable
     {
         return $this->energyFullAt;
     }

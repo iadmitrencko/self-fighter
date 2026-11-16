@@ -9,7 +9,7 @@ import { newId } from './ids';
 import { createMemoryStorage, type TestGoogleAccount } from './memory';
 import { levelConfig } from '../domain/kozak/battle';
 import { findLevel, SICH } from '../domain/kozak/journey';
-import { duelAttempt, finishedAttempt, gameFight, levelAttempt, oldGameFight } from './testing/attempts';
+import { duelAttempt, finishedFight, gameFight, levelAttempt } from './testing/attempts';
 import { createFakeServer } from './testing/fakeServer';
 
 // Screens rely on these rules whichever storage runs underneath (section 3.7 of the plan).
@@ -46,7 +46,7 @@ describe.each([
 
     it('deletes every piece of data', async () => {
       await storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
-      await storage.attempts.save(finishedAttempt('win', '2026-11-02T10:00:00.000Z'));
+      await storage.attempts.save(finishedFight('win', '2026-11-02T10:00:00.000Z'));
       await storage.attempts.flush();
       storage.gameSessions.fight.save(createSession(fightConfig(), testDeps()));
 
@@ -100,7 +100,7 @@ describe.each([
 
   describe('attempts', () => {
     it('finds a saved attempt by its id', async () => {
-      const attempt = finishedAttempt('draw', '2026-11-02T10:00:00.000Z');
+      const attempt = finishedFight('loss', '2026-11-02T10:00:00.000Z');
 
       await storage.attempts.save(attempt);
 
@@ -110,7 +110,7 @@ describe.each([
 
     // §17.2: saving again after a lost answer must not add a second record.
     it('keeps one record when the same attempt is saved twice', async () => {
-      const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+      const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
 
       await storage.attempts.save(attempt);
       await storage.attempts.flush();
@@ -122,7 +122,7 @@ describe.each([
 
     it('lists the newest first, page by page', async () => {
       const attempts = ['09', '10', '11', '12', '13'].map((hour) =>
-        finishedAttempt('win', `2026-11-02T${hour}:00:00.000Z`),
+        finishedFight('win', `2026-11-02T${hour}:00:00.000Z`),
       );
 
       for (const attempt of attempts) {
@@ -148,11 +148,11 @@ describe.each([
 
     // §14.3
     it('filters by mode, outcome and period', async () => {
-      const morningWin = finishedAttempt('win', '2026-11-01T08:00:00.000Z');
-      const eveningLoss = finishedAttempt('loss', '2026-11-01T20:00:00.000Z');
-      const ladder = finishedAttempt('win', '2026-11-02T08:00:00.000Z', 'ladder');
+      const morningWin = finishedFight('win', '2026-11-01T08:00:00.000Z');
+      const eveningLoss = finishedFight('loss', '2026-11-01T20:00:00.000Z');
+      const level = levelAttempt('forest-ravens/1/1', 'win', '2026-11-02T08:00:00.000Z', '2026-11-02T10:00:00.000Z');
 
-      for (const attempt of [morningWin, eveningLoss, ladder]) {
+      for (const attempt of [morningWin, eveningLoss, level]) {
         await storage.attempts.save(attempt);
       }
       await storage.attempts.flush();
@@ -160,8 +160,8 @@ describe.each([
       const ids = async (filter: Parameters<GameStorage['attempts']['list']>[0]) =>
         (await storage.attempts.list(filter)).items.map(({ attempt }) => attempt.id);
 
-      expect(await ids({ mode: 'target' })).toEqual([eveningLoss.id, morningWin.id]);
-      expect(await ids({ outcome: 'win' })).toEqual([ladder.id, morningWin.id]);
+      expect(await ids({ mode: 'fight' })).toEqual([eveningLoss.id, morningWin.id]);
+      expect(await ids({ outcome: 'win' })).toEqual([level.id, morningWin.id]);
       expect(
         await ids({ from: '2026-11-01T12:00:00.000Z', to: '2026-11-02T08:00:00.000Z' }),
       ).toEqual([eveningLoss.id]);
@@ -169,23 +169,21 @@ describe.each([
 
     // §14.2: finished workouts equal wins plus draws plus losses.
     it('counts statistics that agree with the history', async () => {
-      for (const outcome of ['win', 'draw', 'loss', 'win'] as const) {
-        await storage.attempts.save(finishedAttempt(outcome, '2026-11-02T10:00:00.000Z'));
+      for (const outcome of ['win', 'loss', 'win'] as const) {
+        await storage.attempts.save(finishedFight(outcome, '2026-11-02T10:00:00.000Z'));
       }
-      await storage.attempts.save(finishedAttempt('loss', '2026-11-02T11:00:00.000Z', 'ladder'));
+      await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'loss', '2026-11-02T11:00:00.000Z', '2026-11-02T13:00:00.000Z'));
       await storage.attempts.flush();
 
-      expect(await storage.attempts.stats()).toEqual({ total: 5, wins: 2, draws: 1, losses: 2 });
-      expect(await storage.attempts.stats({ mode: 'ladder' })).toEqual({ total: 1, wins: 0, draws: 0, losses: 1 });
+      expect(await storage.attempts.stats()).toEqual({ total: 4, wins: 2, draws: 0, losses: 2 });
+      expect(await storage.attempts.stats({ mode: 'campaign' })).toEqual({ total: 1, wins: 0, draws: 0, losses: 1 });
     });
   });
 
-  // §24: the record of the game counts its own battles only.
+  // §24: the record of the game counts its battles.
   describe('the game', () => {
-    it('counts the battles of the game apart from the workouts of the site', async () => {
-      await storage.attempts.save(finishedAttempt('win', '2026-11-01T10:00:00.000Z'));
+    it('counts the battles of the game', async () => {
       await storage.attempts.save(gameFight('win', '2026-11-01T11:00:00.000Z', '2026-11-01T13:00:00.000Z'));
-      await storage.attempts.save(oldGameFight('draw', '2026-11-01T12:00:00.000Z', '2026-11-01T15:00:00.000Z'));
       await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'loss', '2026-11-02T09:00:00.000Z', '2026-11-02T14:00:00.000Z'));
       await storage.attempts.save(levelAttempt('forest-ravens/1/1', 'win', '2026-11-02T10:00:00.000Z', '2026-11-02T19:00:00.000Z'));
       // §24.9: the first round of the duel, left after two of its three sets.
@@ -193,24 +191,33 @@ describe.each([
       await storage.attempts.flush();
 
       expect(await storage.attempts.game()).toEqual({
-        fights: { wins: 1, draws: 1, losses: 0 },
+        fights: { wins: 1, draws: 0, losses: 0 },
+        fightStreak: 1,
         campaign: { wins: 1, draws: 0, losses: 2 },
         passed: ['forest-ravens/1/1'],
-        energy: { fight: '2026-11-01T15:00:00.000Z', campaign: '2026-11-02T21:00:00.000Z' },
+        energy: { fight: '2026-11-01T13:00:00.000Z', campaign: '2026-11-02T21:00:00.000Z' },
         best: { 'pull-ups': 1, 'push-ups': 20 },
+        // §24.10: every set done of the fight, the levels and the duel.
+        exercises: {
+          'pull-ups': { best: 1, total: 3 },
+          'push-ups': { best: 20, total: 67 },
+          squats: { best: 20, total: 50 },
+        },
         duel: { 'final-battle/1/1': [0, 1] },
         duelAt: '2026-11-02T11:00:00.000Z',
       });
-      expect((await storage.attempts.stats()).total).toBe(6);
+      expect((await storage.attempts.stats()).total).toBe(4);
     });
 
     it('has an empty record before the first battle', async () => {
       expect(await storage.attempts.game()).toEqual({
         fights: { wins: 0, draws: 0, losses: 0 },
+        fightStreak: 0,
         campaign: { wins: 0, draws: 0, losses: 0 },
         passed: [],
         energy: { fight: null, campaign: null },
         best: {},
+        exercises: {},
         duel: {},
         duelAt: null,
       });
@@ -297,7 +304,7 @@ describe.each([
   // An account with a workout that is no longer open in this browser.
   async function accountElsewhere(): Promise<string> {
     browser.signIn(OLENA);
-    const attempt = finishedAttempt('win', '2026-11-01T10:00:00.000Z');
+    const attempt = finishedFight('win', '2026-11-01T10:00:00.000Z');
     await browser.storage.attempts.save(attempt);
     await browser.storage.attempts.flush();
     await browser.storage.account.signOut();
@@ -307,7 +314,7 @@ describe.each([
 
   // §23.3: the first sign-in moves nothing, the guest becomes the account.
   it('turns the guest into the account on the first sign-in', async () => {
-    const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+    const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
     await browser.storage.attempts.save(attempt);
     await browser.storage.attempts.flush();
     const guest = await browser.storage.account.current();
@@ -353,7 +360,7 @@ describe.each([
   // §23.3: a guest with attempts or custom exercises waits for the person to decide.
   it('keeps the guest of the browser beside a known account', async () => {
     const accountAttempt = await accountElsewhere();
-    await browser.storage.attempts.save(finishedAttempt('loss', '2026-11-02T10:00:00.000Z'));
+    await browser.storage.attempts.save(finishedFight('loss', '2026-11-02T10:00:00.000Z'));
     await browser.storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
     await browser.storage.attempts.flush();
     const guest = await browser.storage.account.current();
@@ -371,7 +378,7 @@ describe.each([
     const burpees = await browser.storage.exercises.save({ id: newId(), name: 'Бурпі', description: 'Як у залі' });
     await browser.storage.settings.save(fightConfig());
     await browser.storage.account.signOut();
-    const guestAttempt = finishedAttempt('loss', '2026-11-02T10:00:00.000Z');
+    const guestAttempt = finishedFight('loss', '2026-11-02T10:00:00.000Z');
     await browser.storage.attempts.save(guestAttempt);
     await browser.storage.attempts.flush();
     await browser.storage.exercises.save({ id: newId(), name: 'бурпі', description: 'Вдома' });
@@ -391,7 +398,7 @@ describe.each([
   // §23.3: a person who did not join the guest finds it after signing out.
   it('brings the kept guest back after signing out', async () => {
     await accountElsewhere();
-    const guestAttempt = finishedAttempt('loss', '2026-11-02T10:00:00.000Z');
+    const guestAttempt = finishedFight('loss', '2026-11-02T10:00:00.000Z');
     await browser.storage.attempts.save(guestAttempt);
     await browser.storage.attempts.flush();
     browser.signIn(OLENA);
@@ -416,7 +423,7 @@ describe.each([
   // §15.5: deleting the account brings back the guest the browser kept beside it.
   it('goes back to the kept guest when the account is deleted', async () => {
     await accountElsewhere();
-    await browser.storage.attempts.save(finishedAttempt('loss', '2026-11-02T10:00:00.000Z'));
+    await browser.storage.attempts.save(finishedFight('loss', '2026-11-02T10:00:00.000Z'));
     await browser.storage.attempts.flush();
     const guest = await browser.storage.account.current();
     browser.signIn(OLENA);

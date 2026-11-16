@@ -100,11 +100,13 @@ final readonly class AttemptController
 
         return Json::response([
             'fights' => $tally($record->fights),
+            'fightStreak' => $record->fightStreak,
             'campaign' => $tally($record->campaign),
             'passed' => $record->passed,
             'energy' => array_map(static fn (?\DateTimeImmutable $time): ?string => null === $time ? null : Instant::format($time), $record->energy),
             // Objects even when empty, as the browser expects them.
             'best' => (object) $record->best,
+            'exercises' => (object) $record->exercises,
             'duel' => (object) $record->duel,
             'duelAt' => null === $record->duelAt ? null : Instant::format($record->duelAt),
         ]);

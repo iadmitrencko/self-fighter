@@ -4,7 +4,7 @@ import { isEmbeddedBrowser, isWorthJoining, readSignInOutcome, signInPath, witho
 describe('signing in with Google', () => {
   // The server brings the browser back to the screen it left.
   it('leads back to the screen it starts from', () => {
-    expect(signInPath('/fight/setup/ladder')).toBe('/connect/google?to=%2Fgame%2Ffight%2Fsetup%2Fladder');
+    expect(signInPath('/journey/forest-ravens/1')).toBe('/connect/google?to=%2Fgame%2Fjourney%2Fforest-ravens%2F1');
     expect(signInPath('/')).toBe('/connect/google?to=%2Fgame');
     // §24.1: the history and the settings are sections of the game.
     expect(signInPath('/history')).toBe('/connect/google?to=%2Fgame%2Fhistory');

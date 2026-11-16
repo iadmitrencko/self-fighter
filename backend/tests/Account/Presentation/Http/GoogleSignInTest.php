@@ -63,7 +63,7 @@ final class GoogleSignInTest extends ApiTestCase
     {
         self::mockTime('2026-11-04 10:00:00');
         $guest = $this->signUp();
-        $attempt = Documents::target();
+        $attempt = Documents::fight();
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
         $guestCookie = $this->deviceCookie();
 
@@ -109,9 +109,11 @@ final class GoogleSignInTest extends ApiTestCase
     // §23.1: a browser without a guest gets a new account, and another browser opens the same one.
     public function testTheAccountOpensOnAnyBrowser(): void
     {
+        // The server takes a battle of the last days only (§24.4).
+        self::mockTime('2026-11-02 12:00:00');
         $this->signInWithGoogle(['sub' => '1001']);
         $account = $this->me()['user']['id'] ?? null;
-        $attempt = Documents::ladder();
+        $attempt = Documents::level();
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
 
         $this->switchBrowser();
@@ -128,12 +130,13 @@ final class GoogleSignInTest extends ApiTestCase
     // §23.3: the person decides whether to join a guest that has attempts or custom exercises.
     public function testGuestWithDataStaysWithTheBrowserUntilThePersonDecides(): void
     {
+        self::mockTime('2026-11-02 12:00:00');
         $this->signInWithGoogle(['sub' => '1001']);
         $account = $this->me()['user']['id'] ?? null;
 
         $this->switchBrowser();
         $guest = $this->signUp();
-        $attempt = Documents::target();
+        $attempt = Documents::fight();
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
         $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'Бурпі', 'description' => '']);
 
@@ -155,7 +158,7 @@ final class GoogleSignInTest extends ApiTestCase
         $this->switchBrowser();
         $this->signUp();
         $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
-        $this->send('POST', '/api/v1/events', ['name' => 'setup_error', 'mode' => 'ladder', 'error' => 'ladder-max-required']);
+        $this->send('POST', '/api/v1/events', ['name' => 'setup_error', 'mode' => 'fight', 'error' => 'exercises-required']);
 
         $this->signInWithGoogle(['sub' => '1001']);
 

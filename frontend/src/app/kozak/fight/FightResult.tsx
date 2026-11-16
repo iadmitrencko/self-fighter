@@ -1,6 +1,6 @@
 import { useCallback, useId, useState, type CSSProperties } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
-import { isLegacy, type FightAttempt } from '../../../domain/history/attempt';
+import type { FightAttempt } from '../../../domain/history/attempt';
 import { FIGHT_GLORY } from '../../../domain/kozak/glory';
 import { standingOf } from '../../../domain/kozak/ranks';
 import type { FightResult as Result } from '../../../domain/results/results';
@@ -17,7 +17,6 @@ import { kozakPaths } from '../paths';
 import { KozakIcon, KozakScreen } from '../parts';
 import { useCossack, useFresh } from '../record';
 import { useFightStart, type FightRefusal } from './FightArena';
-import { LegacyResult } from './LegacyResult';
 
 // §6, §13: how a fight ended, also opened from the history.
 export function FightResult() {
@@ -61,7 +60,7 @@ export function FightResult() {
     return <Navigate to={kozakPaths.outcome(attempt.id)} replace />;
   }
 
-  return isLegacy(attempt) ? <LegacyResult attempt={attempt} status={status} /> : <FightOutcome attempt={attempt} status={status} />;
+  return <FightOutcome attempt={attempt} status={status} />;
 }
 
 function FightOutcome({ attempt, status }: { attempt: FightAttempt; status: AttemptStatus }) {

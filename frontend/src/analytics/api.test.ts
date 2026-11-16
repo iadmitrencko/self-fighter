@@ -26,22 +26,20 @@ describe('the events of the game', () => {
     expect(validate(event)).toBe(true);
   });
 
-  // A tab opened before §6 changed the fights still sends the events of its modes.
-  it.each([
-    { name: 'workout_started', mode: 'target' },
-    { name: 'workout_completed', mode: 'ladder', outcome: 'draw' },
-    { name: 'setup_error', mode: 'ladder', error: 'ladder-max-invalid' },
-  ])('still take the events of an old tab: %o', (event) => {
-    expect(validate(event)).toBe(true);
+  // §19: the difficulties of setting a fight up, though the grid of the hall lets no wrong fight be put together.
+  it('take a code of a setup error', () => {
+    expect(validate({ name: 'setup_error', mode: 'fight', error: 'exercises-required' })).toBe(true);
   });
 
   it.each([
     { name: 'workout_started', mode: 'fight', outcome: 'win' },
     { name: 'workout_completed', mode: 'fight' },
     { name: 'workout_started', mode: 'boxing' },
+    // The modes of the site before a fight was put together freely (§6) are gone.
+    { name: 'workout_started', mode: 'target' },
     { name: 'page_viewed', mode: 'fight' },
     { name: 'workout_started', mode: 'fight', userId: '019a3b2c-1d2e-7f30-8a41-b52c63d74e85' },
-    { name: 'setup_error', mode: 'target', error: 'Target required' },
+    { name: 'setup_error', mode: 'fight', error: 'Add an exercise' },
   ])('carry nothing the server refuses: %o', (event) => {
     expect(validate(event)).toBe(false);
   });

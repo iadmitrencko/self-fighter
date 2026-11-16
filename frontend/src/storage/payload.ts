@@ -1,6 +1,6 @@
 import type { Attempt } from '../domain/history/attempt';
 import type { Statistics } from '../domain/history/statistics';
-import type { GameRecord, Tally } from '../domain/kozak/record';
+import type { ExerciseTotal, GameRecord, Tally } from '../domain/kozak/record';
 import { isRecord } from './buffer';
 import type {
   AttemptPage,
@@ -112,20 +112,40 @@ export function parseGameRecord(body: unknown): GameRecord {
     !isRecord(body.energy) ||
     !isOptionalText(body.energy.fight) ||
     !isOptionalText(body.energy.campaign) ||
-    !isOptionalText(body.duelAt)
+    !isOptionalText(body.duelAt) ||
+    !isCount(body.fightStreak)
   ) {
     throw unexpected();
   }
 
   return {
     fights: parseTally(body.fights),
+    fightStreak: body.fightStreak,
     campaign: parseTally(body.campaign),
     passed: body.passed,
     energy: { fight: body.energy.fight, campaign: body.energy.campaign },
     best: parseBest(body.best),
+    exercises: parseExerciseTotals(body.exercises),
     duel: parseDuel(body.duel),
     duelAt: body.duelAt,
   };
+}
+
+// §24.10: the largest set and every repetition done of each exercise, by its id.
+function parseExerciseTotals(value: unknown): Readonly<Record<string, ExerciseTotal>> {
+  if (!isRecord(value)) {
+    throw unexpected();
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([exercise, totals]) => {
+      if (!isRecord(totals) || !isCount(totals.best) || !isCount(totals.total)) {
+        throw unexpected();
+      }
+
+      return [exercise, { best: totals.best, total: totals.total }];
+    }),
+  );
 }
 
 // §24.9: the places of the sets of the duel done, by the round.

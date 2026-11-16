@@ -63,10 +63,12 @@ final readonly class AttemptHistory
 
         return new GameRecord(
             Tally::of($this->attempts->countByOutcome($owner, new AttemptFilter(pool: GamePool::Fight))),
+            $this->attempts->fightStreak($owner),
             Tally::of($this->attempts->countByOutcome($owner, new AttemptFilter(pool: GamePool::Campaign))),
             $this->attempts->passedLevels($owner),
             $energy,
             $this->attempts->bestSets($owner),
+            $this->attempts->exerciseTotals($owner),
             $this->attempts->duelDone($owner),
             $this->attempts->duelAt($owner),
         );

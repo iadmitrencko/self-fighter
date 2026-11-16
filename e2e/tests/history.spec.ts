@@ -7,9 +7,7 @@ test('one history keeps every fight, a fight left in the middle as lost', async 
   await playFight(page);
   await playFight(page, 'loss');
 
-  // The old address of the site leads to the game.
-  await page.goto('/workout/history');
-  await expect(page).toHaveURL('/game/history');
+  await page.goto('/game/history');
   const stats = page.getByRole('region', { name: 'Загальна статистика' });
   await expect(stats.locator('.k-tally__total')).toHaveText('2 тренування');
   await expect(stats.getByRole('definition')).toHaveText(['1', '0', '1']);

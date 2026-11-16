@@ -222,63 +222,6 @@ final class PagesTest extends WebTestCase
         }
     }
 
-    // §24.1: the workouts of /workout are gone. Each of its screens leads to the same screen of the
-    // fights of the game and keeps the query, such as how a sign-in with Google went.
-    public function testTheScreensOfWorkoutLeadToTheGame(): void
-    {
-        $client = self::createClient();
-        $moved = [
-            '/workout' => '/game/fight',
-            '/workout/setup/ladder' => '/game/fight',
-            // §6: a fight has no modes any more, so their setup leads to the hall where a fight is put together.
-            '/game/fight/setup/ladder' => '/game/fight',
-            '/workout/fight' => '/game/fight',
-            '/workout/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85' => '/game/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
-            '/workout/history' => '/game/history',
-            '/workout/history?sign-in=done' => '/game/history?sign-in=done',
-            '/workout/account?sign-in=cancelled' => '/game/settings?sign-in=cancelled',
-            '/workout/setup/target?sign-in=failed' => '/game/fight?sign-in=failed',
-            // The query cannot change where the screen leads.
-            '/workout/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85?id=42' => '/game/fight/result/019a3b2c-1d2e-7f30-8a41-b52c63d74e85',
-        ];
-
-        foreach ($moved as $address => $screen) {
-            $client->request('GET', $address);
-
-            self::assertResponseRedirects($screen, 302, $address);
-        }
-
-        foreach (['/workout/setup/boxing', '/game/fight/setup/boxing', '/workout/result/42', '/workout/unknown'] as $address) {
-            $client->request('GET', $address);
-
-            self::assertResponseStatusCodeSame(404, $address);
-        }
-    }
-
-    // §24.1: the ready-made challenges, the pages of the modes and of the exercises and the guides
-    // (§21.2) are gone; their old addresses lead into the game.
-    public function testRemovedSectionsLeadToTheGame(): void
-    {
-        $client = self::createClient();
-        $addresses = [
-            '/challenges',
-            '/challenges/100-push-ups',
-            '/workout/challenge/push-ups-ladder-to-10',
-            '/modes',
-            '/modes/ladder',
-            '/exercises',
-            '/exercises/squats',
-            '/guides',
-            '/guides/ladder-training',
-        ];
-
-        foreach ($addresses as $address) {
-            $client->request('GET', $address);
-
-            self::assertResponseRedirects('/game', 302, $address);
-        }
-    }
-
     // A page that sets no cookie stays the same for everyone and can be cached by a CDN.
     public function testPagesSetNoCookies(): void
     {

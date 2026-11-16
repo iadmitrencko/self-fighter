@@ -1,100 +1,24 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "A finished attempt, format version 5",
-  "description": "The structure and limits of an attempt. The server also checks the energy of a battle of the game by backend/schema/energy.json (§24.4); the other rules of the game stay in frontend/src/domain. Version 5 adds the duel with the King of robbers, the final battle of the journey (§24.9). Version 4 puts a fight of the game together freely from exercises and rounds (§6); the old modes of the site stay readable for the attempts the history keeps. Version 3 marked the battles of the game and added the levels of its journey (§24). The API also accepts versions 2, 3 and 4 and stores them as version 5; version 2 knows no game and becomes a workout of the site. Section 3.7 of the plan.",
+  "title": "A finished attempt, format version 6",
+  "description": "The structure and limits of an attempt: a fight of the game, a level of its journey or a battle of the duel with the King of robbers. The server also checks the energy of a battle by backend/schema/energy.json (§24.4); the other rules of the game stay in frontend/src/domain. Version 6 leaves the old modes of the site and their ready-made challenges behind, and the API accepts this version only. Section 3.7 of the plan.",
   "oneOf": [
     { "$ref": "#/definitions/fightAttempt" },
-    { "$ref": "#/definitions/targetAttempt" },
-    { "$ref": "#/definitions/randomOpponentAttempt" },
-    { "$ref": "#/definitions/opponentLevelsAttempt" },
-    { "$ref": "#/definitions/ladderAttempt" },
     { "$ref": "#/definitions/campaignAttempt" },
     { "$ref": "#/definitions/duelAttempt" }
   ],
-  "if": { "properties": { "schemaVersion": { "const": 2 } } },
-  "then": { "not": { "required": ["game"] } },
-  "else": { "required": ["game"] },
   "definitions": {
-    "targetAttempt": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
-      "properties": {
-        "schemaVersion": { "enum": [2, 3, 4, 5] },
-        "id": { "$ref": "#/definitions/attemptId" },
-        "startedAt": { "$ref": "#/definitions/instant" },
-        "finishedAt": { "$ref": "#/definitions/instant" },
-        "durationMs": { "$ref": "#/definitions/duration" },
-        "challenge": { "$ref": "#/definitions/challengeRef" },
-        "game": { "$ref": "#/definitions/fightGame" },
-        "mode": { "enum": ["target"] },
-        "config": { "$ref": "#/definitions/targetConfig" },
-        "result": { "$ref": "#/definitions/fightResult" }
-      }
-    },
-    "randomOpponentAttempt": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
-      "properties": {
-        "schemaVersion": { "enum": [2, 3, 4, 5] },
-        "id": { "$ref": "#/definitions/attemptId" },
-        "startedAt": { "$ref": "#/definitions/instant" },
-        "finishedAt": { "$ref": "#/definitions/instant" },
-        "durationMs": { "$ref": "#/definitions/duration" },
-        "challenge": { "$ref": "#/definitions/challengeRef" },
-        "game": { "$ref": "#/definitions/fightGame" },
-        "mode": { "enum": ["random-opponent"] },
-        "config": { "$ref": "#/definitions/randomOpponentConfig" },
-        "result": { "$ref": "#/definitions/fightResult" }
-      }
-    },
-    "opponentLevelsAttempt": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
-      "properties": {
-        "schemaVersion": { "enum": [2, 3, 4, 5] },
-        "id": { "$ref": "#/definitions/attemptId" },
-        "startedAt": { "$ref": "#/definitions/instant" },
-        "finishedAt": { "$ref": "#/definitions/instant" },
-        "durationMs": { "$ref": "#/definitions/duration" },
-        "challenge": { "$ref": "#/definitions/challengeRef" },
-        "game": { "$ref": "#/definitions/fightGame" },
-        "mode": { "enum": ["opponent-levels"] },
-        "config": { "$ref": "#/definitions/opponentLevelsConfig" },
-        "result": { "$ref": "#/definitions/fightResult" }
-      }
-    },
-    "ladderAttempt": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "mode", "config", "result"],
-      "properties": {
-        "schemaVersion": { "enum": [2, 3, 4, 5] },
-        "id": { "$ref": "#/definitions/attemptId" },
-        "startedAt": { "$ref": "#/definitions/instant" },
-        "finishedAt": { "$ref": "#/definitions/instant" },
-        "durationMs": { "$ref": "#/definitions/duration" },
-        "challenge": { "$ref": "#/definitions/challengeRef" },
-        "game": { "$ref": "#/definitions/fightGame" },
-        "mode": { "enum": ["ladder"] },
-        "config": { "$ref": "#/definitions/ladderConfig" },
-        "result": { "$ref": "#/definitions/ladderResult" }
-      }
-    },
     "fightAttempt": {
-      "description": "Version 4: a fight of the game the player puts together (§6). It always takes the energy of fights and no ready-made challenge.",
+      "description": "A fight of the game the player puts together (§6). It always takes the energy of fights.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "game", "mode", "config", "result"],
+      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "game", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [4, 5] },
+        "schemaVersion": { "const": 6 },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
         "durationMs": { "$ref": "#/definitions/duration" },
-        "challenge": { "type": "null" },
         "game": { "$ref": "#/definitions/fightBattleGame" },
         "mode": { "enum": ["fight"] },
         "config": { "$ref": "#/definitions/fightConfig" },
@@ -102,17 +26,16 @@
       }
     },
     "campaignAttempt": {
-      "description": "Version 3: a level of the journey of the game (§24.5). It takes no ready-made challenge of the site.",
+      "description": "A level of the journey of the game (§24.5). It takes the energy of the journey.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "game", "mode", "config", "result"],
+      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "game", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [3, 4, 5] },
+        "schemaVersion": { "const": 6 },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
         "durationMs": { "$ref": "#/definitions/duration" },
-        "challenge": { "type": "null" },
         "game": { "$ref": "#/definitions/campaignGame" },
         "mode": { "enum": ["campaign"] },
         "config": { "$ref": "#/definitions/campaignConfig" },
@@ -120,17 +43,16 @@
       }
     },
     "duelAttempt": {
-      "description": "Version 5: a battle of the duel with the King of robbers, the final battle of the journey (§24.9). It takes the energy of the journey.",
+      "description": "A battle of the duel with the King of robbers, the final battle of the journey (§24.9). It takes the energy of the journey.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "challenge", "game", "mode", "config", "result"],
+      "required": ["schemaVersion", "id", "startedAt", "finishedAt", "durationMs", "game", "mode", "config", "result"],
       "properties": {
-        "schemaVersion": { "enum": [5] },
+        "schemaVersion": { "const": 6 },
         "id": { "$ref": "#/definitions/attemptId" },
         "startedAt": { "$ref": "#/definitions/instant" },
         "finishedAt": { "$ref": "#/definitions/instant" },
         "durationMs": { "$ref": "#/definitions/duration" },
-        "challenge": { "type": "null" },
         "game": { "$ref": "#/definitions/campaignGame" },
         "mode": { "enum": ["duel"] },
         "config": { "$ref": "#/definitions/duelConfig" },
@@ -139,7 +61,7 @@
     },
 
     "fightConfig": {
-      "description": "Version 4: the exercises of a fight with the repetitions of every round; every exercise has as many rounds (§6).",
+      "description": "The exercises of a fight with the repetitions of every round; every exercise has as many rounds (§6).",
       "type": "object",
       "additionalProperties": false,
       "required": ["mode", "exercises"],
@@ -167,100 +89,6 @@
         }
       }
     },
-    "targetConfig": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["mode", "rule", "rounds", "exercises"],
-      "properties": {
-        "mode": { "enum": ["target"] },
-        "rule": { "$ref": "#/definitions/rule" },
-        "rounds": { "$ref": "#/definitions/rounds" },
-        "exercises": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 20,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["id", "name", "targets"],
-            "properties": {
-              "id": { "$ref": "#/definitions/exerciseId" },
-              "name": { "$ref": "#/definitions/exerciseName" },
-              "targets": {
-                "type": "array",
-                "minItems": 1,
-                "maxItems": 20,
-                "items": { "$ref": "#/definitions/reps" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "randomOpponentConfig": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["mode", "rule", "rounds", "exercises"],
-      "properties": {
-        "mode": { "enum": ["random-opponent"] },
-        "rule": { "$ref": "#/definitions/rule" },
-        "rounds": { "$ref": "#/definitions/rounds" },
-        "exercises": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 20,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["id", "name", "min", "max"],
-            "properties": {
-              "id": { "$ref": "#/definitions/exerciseId" },
-              "name": { "$ref": "#/definitions/exerciseName" },
-              "min": { "$ref": "#/definitions/opponentBound" },
-              "max": { "$ref": "#/definitions/opponentBound" }
-            }
-          }
-        }
-      }
-    },
-    "opponentLevelsConfig": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["mode", "rule", "rounds", "difficulty", "exercises"],
-      "properties": {
-        "mode": { "enum": ["opponent-levels"] },
-        "rule": { "$ref": "#/definitions/rule" },
-        "rounds": { "$ref": "#/definitions/rounds" },
-        "difficulty": { "enum": ["easy", "medium", "hard"] },
-        "exercises": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 20,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["id", "name", "upperBound"],
-            "properties": {
-              "id": { "$ref": "#/definitions/exerciseId" },
-              "name": { "$ref": "#/definitions/exerciseName" },
-              "upperBound": { "$ref": "#/definitions/opponentBound" }
-            }
-          }
-        }
-      }
-    },
-    "ladderConfig": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["mode", "rule", "exercise", "max", "returnDown"],
-      "properties": {
-        "mode": { "enum": ["ladder"] },
-        "rule": { "$ref": "#/definitions/rule" },
-        "exercise": { "$ref": "#/definitions/exercise" },
-        "max": { "$ref": "#/definitions/ladderStep" },
-        "returnDown": { "type": "boolean" }
-      }
-    },
     "campaignConfig": {
       "type": "object",
       "additionalProperties": false,
@@ -279,7 +107,7 @@
     },
 
     "fightGridResult": {
-      "description": "Version 4: every set of a fight, done or not. The fight is won when every set is done (§6).",
+      "description": "Every set of a fight, done or not. The fight is won when every set is done (§6).",
       "type": "object",
       "additionalProperties": false,
       "required": ["exercises", "outcome"],
@@ -313,76 +141,6 @@
       "properties": {
         "target": { "$ref": "#/definitions/fightReps" },
         "done": { "type": "boolean" }
-      }
-    },
-    "fightResult": {
-      "description": "Versions 2 and 3: the rounds of the old modes against a goal or an opponent.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["rounds", "won", "drawn", "lost", "outcome"],
-      "properties": {
-        "rounds": {
-          "type": "array",
-          "maxItems": 20,
-          "items": { "$ref": "#/definitions/roundResult" }
-        },
-        "won": { "$ref": "#/definitions/roundCount" },
-        "drawn": { "$ref": "#/definitions/roundCount" },
-        "lost": { "$ref": "#/definitions/roundCount" },
-        "outcome": { "$ref": "#/definitions/outcome" }
-      }
-    },
-    "roundResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["exercises", "won", "lost", "outcome"],
-      "properties": {
-        "exercises": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 20,
-          "items": { "$ref": "#/definitions/exerciseResult" }
-        },
-        "won": { "$ref": "#/definitions/roundCount" },
-        "lost": { "$ref": "#/definitions/roundCount" },
-        "outcome": { "$ref": "#/definitions/outcome" }
-      }
-    },
-    "exerciseResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["exercise", "target", "actual", "outcome"],
-      "properties": {
-        "exercise": { "$ref": "#/definitions/exercise" },
-        "target": { "$ref": "#/definitions/reps" },
-        "actual": { "$ref": "#/definitions/reps" },
-        "outcome": { "$ref": "#/definitions/decisiveOutcome" }
-      }
-    },
-    "ladderResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["stages", "maxPassed", "passedCount", "outcome"],
-      "properties": {
-        "stages": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 199,
-          "items": { "$ref": "#/definitions/ladderStageResult" }
-        },
-        "maxPassed": { "type": "integer", "minimum": 0, "maximum": 100 },
-        "passedCount": { "type": "integer", "minimum": 0, "maximum": 199 },
-        "outcome": { "$ref": "#/definitions/decisiveOutcome" }
-      }
-    },
-    "ladderStageResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["target", "actual", "passed"],
-      "properties": {
-        "target": { "$ref": "#/definitions/ladderStep" },
-        "actual": { "type": ["integer", "null"], "minimum": 0, "maximum": 9999 },
-        "passed": { "type": "boolean" }
       }
     },
     "campaignResult": {
@@ -459,38 +217,8 @@
       }
     },
 
-    "challengeRef": {
-      "description": "Version 2: the ready-made challenge the attempt took with the settings of its page, or null.",
-      "oneOf": [
-        { "type": "null" },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["slug", "title"],
-          "properties": {
-            "slug": { "type": "string", "maxLength": 80, "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
-            "title": { "type": "string", "minLength": 1, "maxLength": 160 }
-          }
-        }
-      ]
-    },
-    "fightGame": {
-      "description": "Version 3: null for a workout of the site, or a fight of the game with the pool of energy it took and the moment that pool is full again (§24.4).",
-      "oneOf": [
-        { "type": "null" },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["pool", "energyFullAt"],
-          "properties": {
-            "pool": { "enum": ["fight"] },
-            "energyFullAt": { "$ref": "#/definitions/instant" }
-          }
-        }
-      ]
-    },
     "fightBattleGame": {
-      "description": "Version 4: a fight of the game always takes the energy of fights (§24.4).",
+      "description": "A fight of the game always takes the energy of fights (§24.4).",
       "type": "object",
       "additionalProperties": false,
       "required": ["pool", "energyFullAt"],
@@ -500,7 +228,7 @@
       }
     },
     "campaignGame": {
-      "description": "Version 3: a level of the journey always takes the energy of the journey (§24.4).",
+      "description": "A level of the journey and a battle of the duel always take the energy of the journey (§24.4).",
       "type": "object",
       "additionalProperties": false,
       "required": ["pool", "energyFullAt"],
@@ -542,15 +270,8 @@
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
     },
     "duration": { "type": "integer", "minimum": 0, "maximum": 31536000000 },
-    "rule": { "enum": ["over", "meet"] },
-    "rounds": { "type": "integer", "minimum": 1, "maximum": 20 },
-    "roundCount": { "type": "integer", "minimum": 0, "maximum": 20 },
-    "reps": { "type": "integer", "minimum": 0, "maximum": 9999 },
-    "opponentBound": { "type": "integer", "minimum": 1, "maximum": 100 },
-    "ladderStep": { "type": "integer", "minimum": 1, "maximum": 100 },
     "setReps": { "type": "integer", "minimum": 1, "maximum": 100 },
     "fightReps": { "type": "integer", "minimum": 1, "maximum": 999 },
-    "outcome": { "enum": ["win", "draw", "loss"] },
     "decisiveOutcome": { "enum": ["win", "loss"] }
   }
 }

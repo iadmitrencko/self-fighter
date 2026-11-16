@@ -1,7 +1,7 @@
 /*
  * §24: the screens of the cossack game, from kozak_design/screens. Mobile first; the sections of
- * the game stand on the left of a wide screen and as tabs above the screen of a phone. The
- * fights run the screens of a workout (app.css) in the colors of the game.
+ * the game stand on the left of a wide screen and as tabs above the screen of a phone. The screens
+ * and dialogs the game shares (app.css) take its colors as well.
  */
 @import '../app.css';
 @import '../../styles/kozak.css';
@@ -522,26 +522,30 @@
   color: var(--k-ember-soft);
 }
 
-/* The cossack, resesign/kozak.html: the portrait beside the glory, the energy and the way to a
-   battle, the record under them. */
+/* The cossack, resesign/kozak.html: the cossack at full height beside his rank, glory and record of
+   battles; a card for each pool of energy under them; and what he has done of every exercise. */
 
 .k-cossack {
   container: k-cossack / inline-size;
   gap: 1.25rem;
 }
 
+/* The panel of «?» may open over the cards below, so the card does not clip what it holds: the
+   portrait rounds its own corners. */
 .k-hero {
   display: grid;
-  overflow: hidden;
   border: 1px solid var(--k-line);
   border-radius: var(--k-r-card);
   background: var(--k-surface);
 }
 
+/* A phone shows the cossack whole across the card, above the rank. */
 .k-hero__portrait {
   position: relative;
+  overflow: hidden;
   aspect-ratio: 4 / 5;
   max-height: 26.25rem;
+  border-radius: calc(var(--k-r-card) - 1px) calc(var(--k-r-card) - 1px) 0 0;
   background: var(--k-map-ground);
 }
 
@@ -552,7 +556,7 @@
   aspect-ratio: 3 / 4;
 }
 
-/* The picture covers its box whatever its height: the figure stays in the middle. */
+/* The picture covers its box whatever its shape: the figure stays in the middle. */
 .k-hero__portrait .k-figure {
   position: absolute;
   inset: 0;
@@ -565,7 +569,7 @@
   flex-direction: column;
   gap: var(--space-l);
   min-width: 0;
-  padding: var(--space-l) var(--space-m);
+  padding: 1.25rem;
 }
 
 .k-hero__title {
@@ -591,53 +595,51 @@
   line-height: 1;
 }
 
+/* «★ 3 / 10 слави», the next rank and «?»: in one line where the card is wide, the next rank under
+   the glory where it is narrow, with «?» beside both. */
 .k-glory {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-s);
-  padding: 1.125rem 1.25rem;
-  border-radius: var(--k-r-btn);
-  background: var(--k-tile);
 }
 
 .k-glory__top {
-  display: flex;
+  display: grid;
+  grid-template-areas:
+    'value help'
+    'next help';
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-s);
+  gap: 0.125rem var(--space-m);
 }
 
 .k-glory__value {
   display: flex;
-  align-items: baseline;
-  gap: 0.625rem;
+  grid-area: value;
+  align-items: center;
+  gap: var(--space-xs);
   color: var(--k-ash);
-  font-size: var(--text-s);
+  font-size: var(--text-m);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .k-glory__icon {
-  align-self: center;
-  width: 1.375rem;
-  height: 1.375rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
   color: var(--k-gold);
 }
 
 .k-glory__number {
   color: var(--k-gold-light);
-  font-size: 2.25rem;
+  font-size: 1.75rem;
   font-weight: 800;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.k-glory .k-bar,
-.k-progress .k-bar {
-  height: 0.5rem;
-  border-radius: 4px;
 }
 
 .k-glory__next {
+  grid-area: next;
   color: var(--k-ash);
   font-size: var(--text-s);
 }
@@ -646,9 +648,21 @@
   color: var(--k-parchment);
 }
 
-/* «?» beside the glory and the panel it opens over the card. */
+/* The track shows the whole way to the next rank, so no glory yet is an empty track, not a dot. */
+.k-glory .k-bar {
+  height: 0.5rem;
+  border-radius: 4px;
+  background: var(--k-line);
+}
+
+.k-glory .k-bar__fill {
+  width: var(--share);
+}
+
+/* «?» beside the next rank and the panel it opens under itself, over what follows. */
 .k-help {
-  flex: none;
+  position: relative;
+  grid-area: help;
 }
 
 .k-help__button {
@@ -676,13 +690,13 @@
 
 .k-help__panel {
   position: absolute;
-  top: 4rem;
-  right: var(--space-m);
+  top: calc(100% + var(--space-xs));
+  right: 0;
   z-index: 5;
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  width: min(17.5rem, calc(100% - 2 * var(--space-m)));
+  width: min(17.5rem, calc(100vw - 2 * var(--page-gutter)));
   padding: var(--space-m);
   border: 1px solid var(--k-line);
   border-radius: var(--k-r-btn);
@@ -706,103 +720,127 @@
   color: var(--k-parchment-dim);
 }
 
-.k-hero__energy {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(13.75rem, 100%), 1fr));
-  gap: var(--space-m);
-}
-
-.k-hero__energy .k-energy__head {
-  font-size: var(--text-s);
-}
-
-.k-hero__energy .k-energy__name {
-  font-size: inherit;
-  font-weight: 600;
-}
-
-.k-hero__energy .k-energy__value {
-  font-size: inherit;
-  font-weight: 700;
-}
-
-.k-hero__energy .k-energy__cell {
-  height: 0.375rem;
-  border-radius: 3px;
-}
-
-.k-hero__actions {
+/* §24.7: the record of battles at the foot of the card, large numbers over their words, in the
+   colors the history gives the results. */
+.k-score {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-s);
   margin-top: auto;
 }
 
-.k-action {
+.k-score__counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xs);
+  padding: 0;
+  list-style: none;
+}
+
+/* A tile measures itself, so a long number shrinks to fit the narrowest phone. */
+.k-score__count {
   display: flex;
-  flex: 1 1 12.5rem;
   flex-direction: column;
-  align-items: center;
-  gap: 0.125rem;
-  padding: 0.875rem 1.25rem;
-  border: 1px solid var(--k-gold-line-soft);
+  gap: 0.25rem;
+  min-width: 0;
+  padding: var(--space-s);
   border-radius: var(--k-r-tile);
-  color: var(--k-parchment);
-  text-align: center;
-  text-decoration: none;
+  background: var(--k-tile);
+  container-type: inline-size;
 }
 
-.k-action__name {
-  font-size: var(--text-base);
-  font-weight: 700;
-}
-
-.k-action__cost {
-  color: var(--k-ash);
-  font-size: var(--text-xs);
-  font-weight: 500;
-}
-
-.k-action--primary {
-  border-color: var(--k-gold);
-  background: var(--k-gold);
-  color: var(--k-text-on-gold);
-}
-
-.k-action--primary .k-action__name {
+.k-score__number {
+  color: var(--k-parchment-dim);
+  font-size: clamp(1.25rem, 36cqi, 2rem);
   font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.k-action--primary .k-action__cost {
-  color: inherit;
+.k-score__count--win .k-score__number {
+  color: var(--k-gold-light);
 }
 
-@media (hover: hover) {
-  .k-action:hover {
-    border-color: var(--k-gold);
-    background: var(--k-gold-wash);
-    color: var(--k-parchment);
-  }
-
-  .k-action--primary:hover {
-    border-color: var(--k-gold-light);
-    background: var(--k-gold-light);
-    color: var(--k-text-on-gold);
-  }
+.k-score__count--loss .k-score__number {
+  color: var(--k-ember-soft);
 }
 
-.k-record {
+.k-score__word {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+/* The title of a card: «Бій», «Похід», «Фізична статистика», each with its icon. */
+.k-section-title {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-s) 1.75rem;
-  padding: 1.125rem 1.25rem;
-  border: 1px solid var(--k-line);
-  border-radius: var(--k-r-card);
-  background: var(--k-surface);
+  gap: var(--space-xs);
+  font-family: var(--k-font-display);
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
-.k-record__title,
+.k-section-title__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  color: var(--k-gold);
+}
+
+/* §24.4: a card for each pool of energy. Side by side they share their height, so the buttons stand
+   on one line at the bottom. */
+.k-pools {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.k-pool {
+  gap: var(--space-m);
+  padding: 1.25rem;
+}
+
+.k-pool__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+}
+
+.k-pool__energy {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--text-base);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.k-pool__bolt {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: var(--k-gold);
+}
+
+.k-pool--empty .k-pool__energy {
+  color: var(--k-ember-soft);
+}
+
+.k-pool__wait {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  font-variant-numeric: tabular-nums;
+}
+
+.k-pool__action {
+  margin-top: auto;
+}
+
+.k-score__title,
+.k-facts__title,
 .k-card__label,
 .k-rank-group__title,
 .k-filter__legend {
@@ -815,83 +853,188 @@
   text-transform: uppercase;
 }
 
-.k-record__counts {
+/* Three facts of a card in a row, a word over each number: the fights in «Бій», the best sets of
+   the journey in «Похід» (§24.8). The numbers stand on one line however the words wrap. */
+.k-facts {
   display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2xs) 1.25rem;
-  color: var(--k-ash);
-  font-size: var(--text-m);
+  flex-direction: column;
+  gap: var(--space-xs);
 }
 
-.k-record__counts strong {
-  color: var(--k-parchment);
-  font-size: var(--text-l);
-  font-variant-numeric: tabular-nums;
-}
-
-/* §24.8: the best sets of the journey, one column for every exercise of its campaigns. */
-.k-best {
+.k-facts__list {
   display: grid;
-  flex: 1 1 auto;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-s) 1.25rem;
+  gap: var(--space-s);
   margin: 0;
 }
 
-.k-best__exercise,
-.k-best__reps {
+.k-facts__item {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.125rem;
+}
+
+.k-facts__label,
+.k-facts__value {
   margin: 0;
   color: var(--k-ash);
-  font-size: var(--text-s);
+  font-size: var(--text-xs);
 }
 
-.k-best__number {
+/* On the narrowest phones «Підтягування» breaks rather than run into its neighbour. */
+.k-facts__label {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.k-facts__number {
   color: var(--k-parchment);
   font-size: var(--text-l);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.k-record__link,
-.k-progress__back {
-  color: var(--k-gold-light);
+/* «за підхід» moves under the number whole where the column is narrow. */
+.k-facts__unit {
+  white-space: nowrap;
+}
+
+/* §24.10: a tile for every exercise of the player with its best set and every repetition. */
+.k-physical {
+  gap: var(--space-m);
+  padding: 1.25rem;
+}
+
+.k-physical__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.k-physical__lead {
+  color: var(--k-ash);
   font-size: var(--text-s);
-  font-weight: 600;
-  text-decoration: none;
+  line-height: 1.5;
 }
 
-.k-record__link:hover,
-.k-progress__back:hover {
-  color: var(--k-gold-rim);
+.k-physical__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-s);
+  padding: 0;
+  list-style: none;
 }
 
-/* Wider than a phone, the portrait stands beside the rest and takes at most two fifths of the card.
-   A phone shows it whole above them: a box wider than this would crop the head of the cossack. */
-@container k-cossack (min-width: 27rem) {
+.k-physical__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  min-width: 0;
+  padding: var(--space-m);
+  border-radius: var(--k-r-tile);
+  background: var(--k-tile);
+}
+
+.k-physical__exercise {
+  overflow-wrap: anywhere;
+  font-size: var(--text-m);
+  font-weight: 700;
+}
+
+/* The best set and the total side by side while both fit, the total under the best set when a long
+   number does not. */
+.k-physical__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-s) var(--space-xl);
+  margin: 0;
+}
+
+/* The number above its word, as in the record of battles. */
+.k-physical__stat {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+.k-physical__label {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-physical__value {
+  margin: 0;
+  color: var(--k-parchment);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.k-physical__value .k-facts__number {
+  font-size: inherit;
+}
+
+/* Wider than a phone, the cossack stands beside the rest from his cap to his boots. */
+@container k-cossack (min-width: 36rem) {
   .k-hero {
-    grid-template-columns: minmax(10rem, min(23.75rem, 40%)) minmax(0, 1fr);
+    grid-template-columns: 15rem minmax(0, 1fr);
   }
 
   .k-hero__portrait {
     aspect-ratio: auto;
     max-height: none;
-    min-height: 26.25rem;
+    min-height: 20rem;
+    border-radius: calc(var(--k-r-card) - 1px) 0 0 calc(var(--k-r-card) - 1px);
   }
 
   .k-hero__body {
-    padding: var(--space-l) 1.25rem;
+    padding: var(--space-l);
+  }
+}
+
+/* The cards of the pools share a row where three facts fit each of them. */
+@container k-cossack (min-width: 42rem) {
+  .k-pools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @container k-cossack (min-width: 45rem) {
+  .k-hero {
+    grid-template-columns: 18rem minmax(0, 1fr);
+  }
+
+  .k-hero__portrait {
+    min-height: 24rem;
+  }
+
   .k-hero__body {
     padding: var(--space-xl) 2.25rem;
   }
 
   .k-hero__rank {
     font-size: 2.25rem;
+  }
+
+  .k-glory__top {
+    grid-template-areas: 'value next help';
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .k-glory__next {
+    text-align: right;
+  }
+
+  .k-score__count {
+    padding: var(--space-s) var(--space-m);
+  }
+
+  .k-score__number {
+    font-size: clamp(1.25rem, 36cqi, 2.5rem);
   }
 }
 
@@ -983,8 +1126,21 @@
   color: var(--k-gold);
 }
 
+.k-progress .k-bar {
+  height: 0.5rem;
+  border-radius: 4px;
+}
+
 .k-progress__back {
   align-self: flex-start;
+  color: var(--k-gold-light);
+  font-size: var(--text-s);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.k-progress__back:hover {
+  color: var(--k-gold-rim);
 }
 
 .k-rank-group {
@@ -3616,13 +3772,10 @@ button.k-marker::before {
   }
 }
 
-/* The screens of a workout in the colors of the game: names and headings in Cormorant, numbers in
+/* The shared screens in the colors of the game: names and headings in Cormorant, numbers in
    Manrope. */
 
 .kozak .screen-head__title,
-.kozak .result-hero__title,
-.kozak .ladder-result__title,
-.kozak .round-card__title,
 .kozak .sign-in-prompt__title,
 .kozak .dialog__title {
   font-family: var(--k-font-display);
@@ -3638,17 +3791,6 @@ button.k-marker::before {
 .kozak .dialog__title {
   font-size: 1.75rem;
   line-height: 1.05;
-}
-
-/* Cormorant is never smaller in the game than the names of its entries (k-entry__name--level). */
-.kozak .round-card__title {
-  font-size: 1.25rem;
-  line-height: 1.1;
-}
-
-.kozak .ladder-result__title {
-  font-size: 1.5rem;
-  line-height: 1.1;
 }
 
 .kozak .screen-head__title {

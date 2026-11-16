@@ -1,44 +1,15 @@
-import type { ChallengeRef } from '../../domain/catalog/challenge';
 import { createSession } from '../../domain/engine/session';
-import { finalize, type Attempt, type CampaignAttempt, type DuelAttempt, type FightAttempt } from '../../domain/history/attempt';
+import { finalize, type CampaignAttempt, type DuelAttempt, type FightAttempt } from '../../domain/history/attempt';
 import { levelConfig, retreat } from '../../domain/kozak/battle';
 import type { DuelDone } from '../../domain/kozak/duel';
 import { findLevel, SICH } from '../../domain/kozak/journey';
-import type { BattleOutcome, Outcome } from '../../domain/results/results';
-import {
-  duelBattle,
-  fightConfig,
-  legacyLadderAttempt,
-  legacyTargetAttempt,
-  play,
-  pullUps,
-  testDeps,
-} from '../../domain/testing/fixtures';
+import type { BattleOutcome } from '../../domain/results/results';
+import { duelBattle, fightConfig, play, pullUps, testDeps } from '../../domain/testing/fixtures';
 import { newId } from '../ids';
 
-/**
- * A workout of the old site (§24.1): «Ціль» or a ladder as the server stored them, before a fight
- * was put together freely (§6). It may name a ready-made challenge of that time.
- */
-export function finishedAttempt(
-  outcome: Outcome,
-  finishedAt: string,
-  mode: 'target' | 'ladder' = 'target',
-  challenge: ChallengeRef | null = null,
-): Attempt {
-  const options = { id: newId(Date.parse(finishedAt)), finishedAt: new Date(finishedAt), challenge };
-
-  return mode === 'ladder' ? legacyLadderAttempt(outcome === 'win' ? 'win' : 'loss', options) : legacyTargetAttempt(outcome, options);
-}
-
-// §24: a fight of «Ціль» the game played before §6, with the energy of fights. It could end in a draw.
-export function oldGameFight(outcome: Outcome, finishedAt: string, energyFullAt: string): Attempt {
-  return { ...finishedAttempt(outcome, finishedAt), game: { pool: 'fight', energyFullAt } };
-}
-
 // §6: a fight of the game, every set done or left before its last one.
-export function gameFight(outcome: BattleOutcome, finishedAt: string, energyFullAt: string): FightAttempt {
-  const session = createSession(fightConfig(), testDeps({ newId: () => newId(Date.parse(finishedAt)) }));
+export function gameFight(outcome: BattleOutcome, finishedAt: string, energyFullAt: string, config = fightConfig()): FightAttempt {
+  const session = createSession(config, testDeps({ newId: () => newId(Date.parse(finishedAt)) }));
   const played = play(session, outcome === 'win' ? null : session.stages.length - 1);
 
   return { ...finalize(played, new Date(finishedAt)), game: { pool: 'fight', energyFullAt } };
@@ -70,4 +41,9 @@ export function duelAttempt(
   options: { readonly done?: DuelDone; readonly retreatAt?: number | null } = {},
 ): DuelAttempt {
   return duelBattle(round, finishedAt, energyFullAt, { ...options, newId: () => newId(Date.parse(finishedAt)) });
+}
+
+// A fight that finished at this time, for a test that needs any attempt of the history.
+export function finishedFight(outcome: BattleOutcome, finishedAt: string): FightAttempt {
+  return gameFight(outcome, finishedAt, new Date(Date.parse(finishedAt) + 2 * 3_600_000).toISOString());
 }

@@ -8,7 +8,7 @@ import type { Outcome } from '../../domain/results/results';
 import { formatShortDateTime } from '../../i18n/format';
 import { gameHistoryTexts, kozakTexts } from '../../i18n/kozak';
 import { campaignName, levelName } from '../../i18n/kozak-names';
-import { commonTexts, historyTexts, modeNames, outcomeTexts, signInTexts } from '../../i18n/uk';
+import { commonTexts, historyTexts, outcomeTexts, signInTexts } from '../../i18n/uk';
 import type { AttemptFilter, StoredAttempt } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
 import { Title } from '../components/Screen';
@@ -19,10 +19,9 @@ import { errorCode, useLoad } from '../useLoad';
 import { kozakPaths } from './paths';
 import { KozakScreen } from './parts';
 
-type HistoryMode = Extract<Attempt['mode'], 'fight' | 'campaign' | 'duel'>;
+type HistoryMode = Attempt['mode'];
 
-// §6, §24.5, §24.9: the fights, the journey and the duel with the King. The attempts of the old
-// modes of the site show among all.
+// §6, §24.5, §24.9: the fights, the journey and the duel with the King.
 const MODE_FILTERS: readonly HistoryMode[] = ['fight', 'campaign', 'duel'];
 const MODE_LABELS: Readonly<Record<HistoryMode, string>> = {
   fight: gameHistoryTexts.kinds.fight,
@@ -40,7 +39,7 @@ interface MorePages {
 
 /**
  * §14, §24.1: the one history of every attempt as a section of the game: the fights of the game,
- * the levels of the journey and the workouts of the site, with the statistics and the filters
+ * the levels of the journey and the battles of the duel, with the statistics and the filters
  * beside the list on a wide screen and above it on a phone.
  */
 export function HistoryScreen() {
@@ -245,19 +244,12 @@ function Empty({ filtered }: { filtered: boolean }) {
   );
 }
 
-// A fight of the game, a level of the journey, a battle of the duel or a workout of the site.
+// A fight of the game, a level of the journey or a battle of the duel.
 function kindOf(attempt: Attempt): keyof typeof gameHistoryTexts.kinds {
-  if (attempt.mode === 'campaign') {
-    return 'journey';
-  }
-  if (attempt.mode === 'duel') {
-    return 'duel';
-  }
-
-  return attempt.game === null ? 'workout' : 'fight';
+  return attempt.mode === 'campaign' ? 'journey' : attempt.mode;
 }
 
-// A level or a round of the duel by its name, a fight by its exercises, an attempt of an old mode by the mode.
+// A level or a round of the duel by its name, a fight by its exercises.
 function nameOf(attempt: Attempt): string {
   switch (attempt.mode) {
     case 'campaign':
@@ -266,8 +258,6 @@ function nameOf(attempt: Attempt): string {
       return levelName(attempt.config.round);
     case 'fight':
       return attempt.config.exercises.map(({ name }) => name).join(', ');
-    default:
-      return modeNames[attempt.mode];
   }
 }
 
@@ -288,22 +278,13 @@ function details(attempt: Attempt): string {
 
     return gameHistoryTexts.round(levelPlace(attempt.config.round)?.number ?? 0, sets.filter(({ done }) => done).length, sets.length);
   }
-  if (attempt.mode === 'fight') {
-    const sets = attempt.result.exercises.flatMap((exercise) => exercise.sets);
+  const sets = attempt.result.exercises.flatMap((exercise) => exercise.sets);
 
-    return historyTexts.setsDetails(roundsOf(attempt.config), attempt.config.exercises.length, sets.filter(({ done }) => done).length, sets.length);
-  }
-  if (attempt.mode === 'ladder') {
-    const { config, result } = attempt;
-
-    return historyTexts.ladderDetails(config.exercise.name, config.max, config.returnDown, result.passedCount, result.stages.length);
-  }
-
-  return historyTexts.fightDetails(attempt.config.rounds, attempt.config.exercises.length, attempt.result.won, attempt.result.lost);
+  return historyTexts.setsDetails(roundsOf(attempt.config), attempt.config.exercises.length, sets.filter(({ done }) => done).length, sets.length);
 }
 
-// The whole card opens the result: a level and a battle of the duel have their own, a fight and
-// an old workout of the site open as a fight of the game.
+// The whole card opens the result: a level and a battle of the duel have their own, a fight the
+// result of a fight.
 function EntryLink({ attempt, className, children }: { attempt: Attempt; className: string; children: ReactNode }) {
   return (
     <Link

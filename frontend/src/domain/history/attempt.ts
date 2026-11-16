@@ -1,4 +1,3 @@
-import type { ChallengeRef } from '../catalog/challenge';
 import type { CampaignConfig, DuelConfig, FightConfig } from '../config/types';
 import {
   nextStageIndex,
@@ -17,7 +16,6 @@ import {
   type DuelResult,
   type FightResult,
 } from '../results/results';
-import { isLegacyMode, type LegacyAttempt } from './legacy';
 
 export interface AttemptBase {
   readonly schemaVersion: typeof SCHEMA_VERSION;
@@ -25,9 +23,8 @@ export interface AttemptBase {
   readonly startedAt: string;
   readonly finishedAt: string;
   readonly durationMs: number;
-  // The ready-made challenge an attempt of the old site took (§21.3), or null.
-  readonly challenge: ChallengeRef | null;
-  // The pool of energy a battle of the game took, or null for a workout of the old site (§24.4).
+  // The pool of energy the battle took (§24.4). A saved attempt always names it; only a battle that
+  // never started, as a test may finish one, has none.
   readonly game: GameMark | null;
 }
 
@@ -52,20 +49,16 @@ export interface DuelAttempt extends AttemptBase {
   readonly result: DuelResult;
 }
 
-export type BattleAttempt = FightAttempt | CampaignAttempt | DuelAttempt;
-export type Attempt = BattleAttempt | LegacyAttempt;
+// Every attempt is a battle of the game (§24.1).
+export type Attempt = FightAttempt | CampaignAttempt | DuelAttempt;
 export type AttemptMode = Attempt['mode'];
-
-export function isLegacy(attempt: Attempt): attempt is LegacyAttempt {
-  return isLegacyMode(attempt.mode);
-}
 
 export function finalize(session: FightSession, finishedAt: Date): FightAttempt;
 export function finalize(session: CampaignSession, finishedAt: Date): CampaignAttempt;
 export function finalize(session: DuelSession, finishedAt: Date): DuelAttempt;
-export function finalize(session: Session, finishedAt: Date): BattleAttempt;
+export function finalize(session: Session, finishedAt: Date): Attempt;
 // The attempt keeps the id of the session, so saving it twice cannot create a second record.
-export function finalize(session: Session, finishedAt: Date): BattleAttempt {
+export function finalize(session: Session, finishedAt: Date): Attempt {
   if (nextStageIndex(session) !== null) {
     throw new Error(`Session ${session.id} is not finished`);
   }
@@ -77,7 +70,6 @@ export function finalize(session: Session, finishedAt: Date): BattleAttempt {
     finishedAt: finishedAt.toISOString(),
     // The device clock can move backwards during a battle.
     durationMs: Math.max(0, finishedAt.getTime() - Date.parse(session.startedAt)),
-    challenge: session.challenge,
     game: session.game,
   };
 

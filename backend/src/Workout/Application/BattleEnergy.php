@@ -43,11 +43,6 @@ final readonly class BattleEnergy
     public function admit(UserId $owner, Attempt $attempt): Attempt
     {
         $pool = $attempt->pool();
-
-        // A workout of the site takes no energy.
-        if (null === $pool) {
-            return $attempt;
-        }
         $now = $this->clock->now();
         $battle = new Battle($attempt->id(), self::seconds($attempt->startedAt()));
 

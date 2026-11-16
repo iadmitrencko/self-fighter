@@ -6,10 +6,22 @@ import { createBrowserBuffer, type BrowserBuffer } from './buffer';
 import type { GameStorage } from './contract';
 import { StorageError } from './errors';
 import { newId } from './ids';
-import { finishedAttempt, levelAttempt } from './testing/attempts';
+import { finishedFight, levelAttempt } from './testing/attempts';
 import { createFakeServer, type FakeServer } from './testing/fakeServer';
 
 const NO_TALLY = { wins: 0, draws: 0, losses: 0 };
+// A record of the game the server may send, for the broken ones to start from.
+const GAME = {
+  fights: NO_TALLY,
+  fightStreak: 0,
+  campaign: NO_TALLY,
+  passed: [],
+  energy: { fight: null, campaign: null },
+  best: {},
+  exercises: {},
+  duel: {},
+  duelAt: null,
+};
 
 describe('storage over the API', () => {
   let server: FakeServer;
@@ -106,7 +118,7 @@ describe('storage over the API', () => {
   describe('attempts without the network', () => {
     // §15.4
     it('keeps an attempt finished offline and sends it once the network is back', async () => {
-      const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+      const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
       server.online = false;
 
       await storage.attempts.save(attempt);
@@ -123,7 +135,7 @@ describe('storage over the API', () => {
 
     it('tries again by itself, less often each time', async () => {
       vi.useFakeTimers();
-      const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+      const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
       server.online = false;
 
       // Two failed tries: the pause before the next one has grown from 5 to 10 seconds.
@@ -140,9 +152,9 @@ describe('storage over the API', () => {
     });
 
     it('shows waiting attempts in the history and the statistics', async () => {
-      await storage.attempts.save(finishedAttempt('win', '2026-11-02T09:00:00.000Z'));
+      await storage.attempts.save(finishedFight('win', '2026-11-02T09:00:00.000Z'));
       await storage.attempts.flush();
-      const waiting = finishedAttempt('loss', '2026-11-02T10:00:00.000Z');
+      const waiting = finishedFight('loss', '2026-11-02T10:00:00.000Z');
       server.failNext(503, 2);
 
       await storage.attempts.save(waiting);
@@ -157,7 +169,7 @@ describe('storage over the API', () => {
     });
 
     it('marks an attempt the server refuses and stops sending it', async () => {
-      const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+      const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
       await storage.settings.save(fightConfig());
       server.failNext(422);
 
@@ -173,7 +185,7 @@ describe('storage over the API', () => {
     // A browser has one guest at a time: the attempts of the guest it lost belong to the next one.
     it('gives the attempts of a lost guest to the new one', async () => {
       await storage.settings.save(fightConfig());
-      const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+      const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
       server.online = false;
       await storage.attempts.save(attempt);
       await storage.attempts.flush();
@@ -187,7 +199,7 @@ describe('storage over the API', () => {
     });
 
     it('deletes the attempts waiting in the browser together with the data', async () => {
-      const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+      const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
       await storage.settings.save(fightConfig());
       storage.gameSessions.fight.save(createSession(fightConfig(), testDeps()));
       server.failNext(503, 2);
@@ -315,8 +327,8 @@ describe('storage over the API', () => {
       await storage.account.current();
     }
 
-    async function finishOffline(): Promise<ReturnType<typeof finishedAttempt>> {
-      const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+    async function finishOffline(): Promise<ReturnType<typeof finishedFight>> {
+      const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
       server.online = false;
       await storage.attempts.save(attempt);
       await storage.attempts.flush();
@@ -522,7 +534,15 @@ describe('storage over the API', () => {
       [
         'a best set that is no count',
         '/api/v1/game',
-        { fights: NO_TALLY, campaign: NO_TALLY, passed: [], energy: { fight: null, campaign: null }, best: { 'pull-ups': -1 } },
+        { ...GAME, best: { 'pull-ups': -1 } },
+        (s: GameStorage) => s.attempts.game(),
+      ],
+      ['a record of the game without the run of fights', '/api/v1/game', { ...GAME, fightStreak: undefined }, (s: GameStorage) => s.attempts.game()],
+      ['a record of the game without the exercises', '/api/v1/game', { ...GAME, exercises: undefined }, (s: GameStorage) => s.attempts.game()],
+      [
+        'an exercise without its total',
+        '/api/v1/game',
+        { ...GAME, exercises: { 'push-ups': { best: 12 } } },
         (s: GameStorage) => s.attempts.game(),
       ],
     ])('reports %s as a server failure', async (_, brokenPath, body, read) => {
@@ -580,7 +600,7 @@ describe('storage of the running game', () => {
     vi.stubGlobal('fetch', server.fetch);
     const storage = createBrowserStorage();
     server.online = false;
-    const attempt = finishedAttempt('win', '2026-11-02T10:00:00.000Z');
+    const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
     await storage.attempts.save(attempt);
     await storage.attempts.flush();
     server.online = true;

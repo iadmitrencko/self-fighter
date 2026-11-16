@@ -76,12 +76,14 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Козак' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeVisible();
   await expect(page.getByRole('progressbar', { name: 'Ще 8 слави до звання «Заставний»' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Бойовий рахунок' }).getByRole('listitem')).toHaveText(['1 перемога', '0 нічиїх', '0 поразок']);
   // §24.8: the level brought the first best set of the pull-ups.
-  await expect(page.getByRole('region', { name: 'Рекорди походу' }).getByRole('definition')).toHaveText([
-    /ще немає/,
-    /ще немає/,
-    '1 за підхід',
-  ]);
+  await expect(page.getByRole('region', { name: 'Похід' }).getByRole('definition')).toHaveText([/ще немає/, /ще немає/, '1 за підхід']);
+  // §24.10: and its three pull-ups.
+  await expect(
+    page.getByRole('region', { name: 'Фізична статистика' }).getByRole('listitem').filter({ hasText: 'Підтягування' }).getByRole('definition'),
+  ).toHaveText(['1', '3']);
+  await expectAccessible(page);
 });
 
 // §24.5: «Чорний прапор» opens beside «Лісові круки», with its own maps and levels.

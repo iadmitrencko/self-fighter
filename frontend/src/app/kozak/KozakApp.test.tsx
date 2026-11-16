@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { createMemoryStorage, type MemoryStorage } from '../../storage/memory';
-import { finishedAttempt } from '../../storage/testing/attempts';
+import { gameFight } from '../../storage/testing/attempts';
 import { renderKozak } from '../testing/render';
 
 describe('the game', () => {
@@ -48,7 +48,7 @@ describe('the links of the site', () => {
     tab.href = '/game/fight';
     tab.target = '_blank';
     tab.textContent = 'Бій у новій вкладці';
-    // §24.1: an old address of the site, which the server leads into the game.
+    // An address outside the game, such as one the site no longer has.
     const removed = document.createElement('a');
     removed.href = '/workout/setup/ladder';
     removed.textContent = 'Старе тренування';
@@ -77,9 +77,9 @@ describe('the links of the site', () => {
 async function accountWithKeptGuest(): Promise<MemoryStorage> {
   const storage = createMemoryStorage();
   storage.signIn({ sub: '1001' });
-  await storage.attempts.save(finishedAttempt('loss', '2026-10-28T10:00:00.000Z'));
+  await storage.attempts.save(gameFight('loss', '2026-10-28T10:00:00.000Z', '2026-10-28T12:00:00.000Z'));
   await storage.account.signOut();
-  await storage.attempts.save(finishedAttempt('win', '2026-10-29T10:00:00.000Z'));
+  await storage.attempts.save(gameFight('win', '2026-10-29T10:00:00.000Z', '2026-10-29T12:00:00.000Z'));
   storage.signIn({ sub: '1001' });
 
   return storage;

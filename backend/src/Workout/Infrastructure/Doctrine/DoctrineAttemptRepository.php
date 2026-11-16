@@ -109,6 +109,68 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
         return $best;
     }
 
+    // A battle keeps whether each set was done. A fight names the exercise of its sets once for each
+    // exercise, a level once for all its sets, a battle of the duel in every set.
+    public function exerciseTotals(UserId $owner): array
+    {
+        $rows = $this->entityManager->getConnection()->fetchAllAssociative(
+            <<<'SQL'
+                SELECT done.exercise AS exercise, MAX(done.reps) AS best, SUM(done.reps) AS total
+                FROM (
+                    SELECT s.exercise AS exercise, s.reps AS reps
+                    FROM attempt a,
+                        JSON_TABLE(a.document, '$.result.exercises[*]' COLUMNS (
+                            exercise VARCHAR(80) PATH '$.exercise.id',
+                            NESTED PATH '$.sets[*]' COLUMNS (reps INT PATH '$.target', done BOOLEAN PATH '$.done')
+                        )) s
+                    WHERE a.user_id = :owner AND a.mode = :fight AND s.done
+                    UNION ALL
+                    SELECT COALESCE(s.exercise, a.document->>'$.config.exercise.id'), s.reps
+                    FROM attempt a,
+                        JSON_TABLE(a.document, '$.result.sets[*]' COLUMNS (
+                            reps INT PATH '$.target',
+                            done BOOLEAN PATH '$.done',
+                            exercise VARCHAR(80) PATH '$.exercise.id'
+                        )) s
+                    WHERE a.user_id = :owner AND a.mode IN (:campaign, :duel) AND s.done
+                ) done
+                GROUP BY done.exercise
+                ORDER BY done.exercise
+                SQL,
+            ['owner' => $owner, 'fight' => Mode::Fight->value, 'campaign' => Mode::Campaign->value, 'duel' => Mode::Duel->value],
+            ['owner' => UserIdType::NAME],
+        );
+        $totals = [];
+
+        foreach ($rows as $row) {
+            $totals[(string) $row['exercise']] = ['best' => (int) $row['best'], 'total' => (int) $row['total']];
+        }
+
+        return $totals;
+    }
+
+    // The fights won after the latest fight that was not, in the order of the history.
+    public function fightStreak(UserId $owner): int
+    {
+        $streak = $this->entityManager->getConnection()->fetchOne(
+            <<<'SQL'
+                SELECT COUNT(*)
+                FROM attempt a
+                WHERE a.user_id = :owner AND a.pool = :pool AND a.outcome = :win
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM attempt b
+                        WHERE b.user_id = a.user_id AND b.pool = :pool AND b.outcome <> :win
+                            AND (b.finished_at > a.finished_at OR (b.finished_at = a.finished_at AND b.id > a.id))
+                    )
+                SQL,
+            ['owner' => $owner, 'pool' => GamePool::Fight->value, 'win' => Outcome::Win->value],
+            ['owner' => UserIdType::NAME],
+        );
+
+        return is_numeric($streak) ? (int) $streak : 0;
+    }
+
     // The place of a set in its round is where its battle started plus its place in the battle.
     public function duelDone(UserId $owner): array
     {

@@ -13,8 +13,6 @@ import { allLevels, SICH } from '../domain/kozak/journey';
 import {
   fightConfig,
   fightConfigArbitrary,
-  legacyLadderAttempt,
-  legacyTargetAttempt,
   play,
   pullUps,
   pushUps,
@@ -86,14 +84,16 @@ describe('the format of attempts', () => {
 
   it.each([
     ['an unknown field', { rating: 5 }],
-    ['an unknown format version', { schemaVersion: 6 }],
-    ['the version 3 that knew no such fight', { schemaVersion: 3 }],
+    ['an unknown format version', { schemaVersion: 7 }],
+    ['the previous version', { schemaVersion: 5 }],
     ['no game', { game: null }],
     ['the energy of the journey', { game: { pool: 'campaign', energyFullAt: '2026-11-02T12:00:00.000Z' } }],
-    ['a challenge', { challenge: { slug: '100-push-ups', title: '100 віджимань' } }],
+    // The ready-made challenges of the old site are gone, and so is their field (§21.3).
+    ['the field of a ready-made challenge', { challenge: null }],
     ['an id the browser did not create', { id: 'attempt-1' }],
     ['a time with an offset', { finishedAt: '2026-11-02T12:00:00.000+02:00' }],
-    ['the mode of another configuration', { mode: 'target' }],
+    ['the mode of another configuration', { mode: 'campaign' }],
+    ['a mode of the old site', { mode: 'target' }],
     ['a draw', { result: { exercises: [{ exercise: pullUps, sets: [{ target: 1, done: true }] }], outcome: 'draw' } }],
   ])('refuses a fight with %s', (_, change) => {
     expect(check(null, { ...fightOf(fightConfig()), ...change })).not.toBeNull();
@@ -122,7 +122,7 @@ describe('the format of attempts', () => {
 
   it.each([
     ['the energy of fights', { game: { pool: 'fight', energyFullAt: '2026-11-02T12:00:00.000Z' } }],
-    ['the version 4 that knew no duel', { schemaVersion: 4 }],
+    ['the previous version', { schemaVersion: 5 }],
     ['no place in its round', { config: { mode: 'duel', round: 'final-battle/1/1', sets: [{ exercise: pushUps, reps: 15 }] } }],
   ])('refuses a battle of the duel with %s', (_, change) => {
     const config = duelConfig(duelProgress(DUEL, {}, true).rounds[0] ?? (undefined as never), [pushUps]);
@@ -144,8 +144,8 @@ describe('the format of attempts', () => {
   it.each([
     ['no game', { game: null }],
     ['the energy of fights', { game: { pool: 'fight', energyFullAt: '2026-11-02T12:00:00.000Z' } }],
-    ['a challenge', { challenge: { slug: '100-pull-ups', title: '100 підтягувань' } }],
-    ['version 2', { schemaVersion: 2 }],
+    ['the field of a ready-made challenge', { challenge: null }],
+    ['the previous version', { schemaVersion: 5 }],
     ['a draw', { result: { sets: [{ target: 1, done: true }], outcome: 'draw' } }],
   ])('refuses a level of the journey with %s', (_, change) => {
     const level = allLevels(SICH)[0];
@@ -153,39 +153,5 @@ describe('the format of attempts', () => {
     const attempt = finalize(play(start ?? (undefined as never)), FINISHED_AT);
 
     expect(check(null, { ...attempt, ...change })).not.toBeNull();
-  });
-});
-
-// §24.6: the history keeps the attempts of the old modes, and a tab opened before §6 still sends them.
-describe('the attempts of the old modes', () => {
-  const challenge = { slug: 'pull-ups-ladder-to-3', title: 'Драбина підтягувань до 3' };
-  const game = { pool: 'fight', energyFullAt: '2026-11-02T12:00:00.000Z' };
-
-  it.each([
-    ['«Ціль» of the site', legacyTargetAttempt('draw', { id: newId() })],
-    ['a ladder of the site', legacyLadderAttempt('win', { id: newId() })],
-    ['a fight of the game in «Ціль»', { ...legacyTargetAttempt('loss', { id: newId() }), game }],
-    ['an attempt that took a challenge', legacyLadderAttempt('loss', { id: newId(), challenge })],
-    ['version 3', { ...legacyTargetAttempt('win', { id: newId() }), schemaVersion: 3 }],
-  ])('stay readable: %s', (_, attempt) => {
-    expect(check(null, attempt)).toBeNull();
-  });
-
-  // Section 3.7 of the plan: version 2 knew no game.
-  it('still take version 2', () => {
-    const attempt: Record<string, unknown> = { ...legacyTargetAttempt('win', { id: newId() }), schemaVersion: 2 };
-    delete attempt.game;
-
-    expect(check(null, attempt)).toBeNull();
-  });
-
-  it.each([
-    ['version 1 the API no longer takes', { schemaVersion: 1, game: undefined }],
-    ['no game in version 3', { schemaVersion: 3, game: undefined }],
-    ['a game in version 2', { schemaVersion: 2, game }],
-    ['a fight of the old modes that took the energy of the journey', { game: { pool: 'campaign', energyFullAt: '2026-11-02T12:00:00.000Z' } }],
-    ['a challenge with a strange address', { challenge: { slug: '100 Push-Ups', title: '100 віджимань' } }],
-  ])('refuse %s', (_, change) => {
-    expect(check(null, { ...legacyTargetAttempt('win', { id: newId() }), ...change })).not.toBeNull();
   });
 });

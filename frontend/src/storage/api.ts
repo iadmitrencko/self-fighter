@@ -8,7 +8,6 @@ import {
   createBrowserBuffer,
   createOutbox,
   GAME_SESSION,
-  SITE_SESSION,
   type BrowserBuffer,
   type Owner,
 } from './buffer';
@@ -56,8 +55,6 @@ export interface ApiStorageOptions {
 // The storage of the running game: the API of this site and the localStorage of this browser.
 export function createBrowserStorage(): GameStorage {
   const buffer = createBrowserBuffer(browserLocalStorage());
-  // §24.1: a workout left in progress on /workout has nowhere to go on.
-  buffer.remove(SITE_SESSION);
   const storage = createApiStorage({ fetch: (path, init) => globalThis.fetch(path, init), buffer });
 
   // The attempts that waited for the connection go to the server the moment it is back.

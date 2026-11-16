@@ -7,14 +7,12 @@ import {
   deepFreeze,
   fightConfig,
   fightConfigArbitrary,
-  legacyLadderAttempt,
-  legacyTargetAttempt,
   play,
   pullUps,
   STARTED_AT,
   testDeps,
 } from '../testing/fixtures';
-import { finalize, isLegacy } from './attempt';
+import { finalize } from './attempt';
 
 const FINISHED_AT = new Date(STARTED_AT.getTime() + 18 * 60_000 + 24_000);
 
@@ -25,9 +23,8 @@ describe('finalize', () => {
     const attempt = finalize(session, FINISHED_AT);
 
     expect(attempt).toMatchObject({
-      schemaVersion: 5,
+      schemaVersion: 6,
       id: session.id,
-      challenge: null,
       game: null,
       mode: 'fight',
       startedAt: '2026-10-30T10:00:00.000Z',
@@ -78,14 +75,5 @@ describe('finalize', () => {
         expect(JSON.parse(JSON.stringify(attempt))).toEqual(attempt);
       }),
     );
-  });
-});
-
-// §24.6: the history keeps the attempts of the old modes of the site and tells them apart.
-describe('an attempt of an old mode', () => {
-  it('is told apart from a battle of the game', () => {
-    expect(isLegacy(legacyTargetAttempt('draw'))).toBe(true);
-    expect(isLegacy(legacyLadderAttempt('win'))).toBe(true);
-    expect(isLegacy(finalize(play(createSession(fightConfig(), testDeps())), FINISHED_AT))).toBe(false);
   });
 });

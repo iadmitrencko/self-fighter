@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { nextStageIndex, type Session } from '../../../domain/engine/session';
-import { finalize, type BattleAttempt } from '../../../domain/history/attempt';
+import { finalize, type Attempt } from '../../../domain/history/attempt';
 import { completeSet, retreat } from '../../../domain/kozak/battle';
 import { battleTexts } from '../../../i18n/kozak';
 import { commonTexts } from '../../../i18n/uk';
@@ -45,7 +45,7 @@ export function Battle<TSession extends Session>({
   exitTo: string;
   resultOf: (id: string) => string;
   view: BattleView<TSession>;
-  onSaved?: (attempt: BattleAttempt) => void;
+  onSaved?: (attempt: Attempt) => void;
 }) {
   const { storage, deps } = useGame();
   const navigate = useNavigate();

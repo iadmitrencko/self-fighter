@@ -38,3 +38,10 @@ export function formatDuration(milliseconds: number): string {
 
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
 }
+
+// Whole numbers with their thousands apart: «1 250».
+const count = new Intl.NumberFormat('uk', { maximumFractionDigits: 0 });
+
+export function formatCount(value: number): string {
+  return count.format(value);
+}

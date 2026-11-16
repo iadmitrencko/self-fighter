@@ -22,19 +22,19 @@ final class MetricsReportCommandTest extends KernelTestCase
     {
         [$first, $second, $third] = [$this->signUpGuest(), $this->signUpGuest(), $this->signUpGuest()];
 
-        $this->record('2026-11-01 10:00:00', $first, 'workout_started', 'target');
-        $this->record('2026-11-01 10:20:00', $first, 'workout_completed', 'target', ['outcome' => 'win']);
-        $this->record('2026-11-01 10:21:00', $first, 'workout_repeated', 'target');
-        $this->record('2026-11-01 10:21:00', $first, 'workout_started', 'target');
-        $this->record('2026-11-09 08:00:00', $first, 'workout_started', 'random-opponent');
+        $this->record('2026-11-01 10:00:00', $first, 'workout_started');
+        $this->record('2026-11-01 10:20:00', $first, 'workout_completed', ['outcome' => 'win']);
+        $this->record('2026-11-01 10:21:00', $first, 'workout_repeated');
+        $this->record('2026-11-01 10:21:00', $first, 'workout_started');
+        $this->record('2026-11-09 08:00:00', $first, 'workout_started');
 
-        $this->record('2026-11-01 21:00:00', null, 'setup_error', 'target', ['error' => 'target-required']);
-        $this->record('2026-11-01 21:05:00', $second, 'setup_error', 'ladder', ['error' => 'ladder-max-invalid']);
-        $this->record('2026-11-01 21:06:00', $second, 'workout_started', 'ladder');
-        $this->record('2026-11-02 07:00:00', $second, 'workout_started', 'ladder');
-        $this->record('2026-11-02 07:15:00', $second, 'workout_completed', 'ladder', ['outcome' => 'loss']);
+        $this->record('2026-11-01 21:00:00', null, 'setup_error', ['error' => 'exercises-required']);
+        $this->record('2026-11-01 21:05:00', $second, 'setup_error', ['error' => 'reps-invalid']);
+        $this->record('2026-11-01 21:06:00', $second, 'workout_started');
+        $this->record('2026-11-02 07:00:00', $second, 'workout_started');
+        $this->record('2026-11-02 07:15:00', $second, 'workout_completed', ['outcome' => 'loss']);
 
-        $this->record('2026-11-09 19:00:00', $third, 'workout_started', 'opponent-levels');
+        $this->record('2026-11-09 19:00:00', $third, 'workout_started');
     }
 
     // §19: who started, finished, repeated and came back, with the modes and the problems of the setup.
@@ -47,8 +47,8 @@ final class MetricsReportCommandTest extends KernelTestCase
         self::assertStringContainsString('repeated a workout 1 33%', $report);
         self::assertStringContainsString('came back on another day 2 67%', $report);
         self::assertStringContainsString('came back a week later or more 1 33%', $report);
-        self::assertStringContainsString('Mode Starts Completions Players --- ladder 2 1 1 target 2 1 1 opponent-levels 1 0 1 random-opponent 1 0 1', $report);
-        self::assertStringContainsString('ladder-max-invalid 1 1 target-required 1 0', $report);
+        self::assertStringContainsString('Mode Starts Completions Players --- fight 6 2 3', $report);
+        self::assertStringContainsString('exercises-required 1 0 reps-invalid 1 1', $report);
     }
 
     // The players who began in a period: the first one is no newcomer on November 2.
@@ -60,8 +60,8 @@ final class MetricsReportCommandTest extends KernelTestCase
         self::assertStringContainsString('started a first workout 1', $report);
         self::assertStringContainsString('completed a workout 0 0%', $report);
         self::assertStringContainsString('came back on another day 0 0%', $report);
-        self::assertStringContainsString('Mode Starts Completions Players --- ladder 1 1 1 opponent-levels 1 0 1 random-opponent 1 0 1', $report);
-        self::assertStringNotContainsString('target-required', $report);
+        self::assertStringContainsString('Mode Starts Completions Players --- fight 3 1 3', $report);
+        self::assertStringNotContainsString('exercises-required', $report);
     }
 
     public function testRefusesADayItCannotRead(): void
@@ -102,12 +102,12 @@ final class MetricsReportCommandTest extends KernelTestCase
     /**
      * @param array<string, string> $fields
      */
-    private function record(string $time, ?UserId $user, string $name, string $mode, array $fields = []): void
+    private function record(string $time, ?UserId $user, string $name, array $fields = []): void
     {
         self::mockTime($time);
         $recordEvent = self::getContainer()->get(RecordEvent::class);
         self::assertInstanceOf(RecordEvent::class, $recordEvent);
 
-        $recordEvent($user, json_encode(['name' => $name, 'mode' => $mode, ...$fields], \JSON_THROW_ON_ERROR));
+        $recordEvent($user, json_encode(['name' => $name, 'mode' => 'fight', ...$fields], \JSON_THROW_ON_ERROR));
     }
 }

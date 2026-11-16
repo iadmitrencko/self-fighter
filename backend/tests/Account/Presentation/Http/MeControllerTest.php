@@ -118,17 +118,19 @@ final class MeControllerTest extends ApiTestCase
     // §15.5: the data of every module goes with the user, and the data of others stays.
     public function testDeletingDataRemovesEverythingOfThisUserOnly(): void
     {
+        // The server takes a battle of the last days only (§24.4).
+        self::mockTime('2026-11-02 12:00:00');
         $this->signUp();
         $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'Бурпі', 'description' => '']);
         $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
-        $attempt = Documents::ladder();
+        $attempt = Documents::level();
         $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
         $mine = $this->deviceCookie();
 
         $this->switchBrowser();
         $this->signUp();
         $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
-        $foreign = Documents::target();
+        $foreign = Documents::fight();
         $this->send('PUT', '/api/v1/attempts/'.$foreign['id'], $foreign);
 
         $this->switchBrowser($mine);

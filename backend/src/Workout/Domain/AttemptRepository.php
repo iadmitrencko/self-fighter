@@ -39,6 +39,17 @@ interface AttemptRepository
     public function bestSets(UserId $owner): array;
 
     /**
+     * §24.10: the most repetitions done in one set and every repetition done, by the exercise: in
+     * the fights, the journey and the duel alike.
+     *
+     * @return array<string, array{best: int, total: int}> by the id of the exercise, in alphabetical order
+     */
+    public function exerciseTotals(UserId $owner): array;
+
+    // §24.7: the fights of the game won one after another since the last one that was not.
+    public function fightStreak(UserId $owner): int;
+
+    /**
      * §24.9: the places in their rounds of the sets of the duel with the King done, by the round.
      *
      * @return array<string, list<int>> by the round in alphabetical order, the places in order

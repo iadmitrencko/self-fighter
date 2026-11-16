@@ -12,15 +12,13 @@ use App\Workout\Domain\Mode;
  */
 interface AttemptFormat
 {
-    // Version 2 added the ready-made challenge of an attempt, version 3 the battles of the game and
-    // the levels of its journey (§24), version 4 the fight the player puts together (§6), version 5
-    // the duel with the King of robbers (§24.9). Versions 2 to 4 are still accepted (section 3.7 of
-    // the plan).
-    public const int VERSION = 5;
+    // Version 6 knows the battles of the game only: a fight (§6), a level of the journey (§24.5) and a
+    // battle of the duel with the King of robbers (§24.9). No other version is accepted (section 3.7
+    // of the plan).
+    public const int VERSION = 6;
 
     /**
-     * @return array<mixed>|null the attempt in the current format version, or null when the JSON is not
-     *                           a finished attempt of a supported version
+     * @return array<mixed>|null the attempt, or null when the JSON is not a finished attempt of the current version
      */
     public function readAttempt(string $json): ?array;
 

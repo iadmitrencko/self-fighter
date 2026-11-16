@@ -1,6 +1,5 @@
 import type { ExerciseErrorCode } from '../domain/catalog/exercise';
 import { EXERCISE_DESCRIPTION_MAX, EXERCISE_NAME_MAX } from '../domain/config/limits';
-import type { LegacyMode, WinRule } from '../domain/history/legacy';
 import type { Outcome } from '../domain/results/results';
 import type { StorageErrorCode } from '../storage/errors';
 import { plural } from './plural';
@@ -24,20 +23,6 @@ export const storageMessages: Record<StorageErrorCode, string> = {
 // Shown while the browser refuses localStorage and keeps the workout in memory only.
 export const memoryOnlyWarning =
   'Браузер не дає зберегти тренування на цьому пристрої. Якщо оновити сторінку, незавершена спроба зникне.';
-
-// §24.6: the modes the site had before a fight was put together freely (§6). The history still
-// names their attempts.
-export const modeNames: Record<LegacyMode, string> = {
-  target: 'Ціль',
-  'random-opponent': 'Випадковий суперник',
-  'opponent-levels': 'Рівні суперників',
-  ladder: 'Драбина',
-};
-
-export const ruleTexts: Record<WinRule, { name: string }> = {
-  over: { name: 'Перевиконати' },
-  meet: { name: 'Виконати' },
-};
 
 // Results are told by a symbol and a word, never by color alone (§16.2).
 export const outcomeTexts: Record<Outcome, { symbol: string; name: string; plural: string }> = {
@@ -92,40 +77,10 @@ export const exerciseFormTexts = {
   close: 'Закрити',
 };
 
-export const ladderTexts = {
-  // Not «з поверненням»: in capitals the «З» reads as «3».
-  name: (returnDown: boolean) => (returnDown ? 'Драбина · вгору й униз' : 'Драбина'),
-};
-
 export const resultTexts = {
   notFound: 'Спробу не знайдено',
   notFoundText: 'Можливо, її видалено разом з усіма даними.',
-  byRounds: 'за раундами',
-  won: 'виграно',
-  drawn: 'нічия',
-  lost: 'програно',
   duration: (value: string) => `Тривалість ${value}`,
-  rounds: 'Раунди',
-  roundNumber: (round: number) => `Раунд ${round}`,
-  you: 'Ти',
-  rival: 'Суп.',
-  rivalFull: 'Суперник',
-  goal: 'Ціль',
-  exerciseWin: 'перемога',
-  exerciseLoss: 'поразка',
-  // A slash, as the display font draws «з» almost like «3».
-  ladderPassed: (passed: number, total: number) => `${passed} / ${total}`,
-  ladderStages: 'етапів пройдено',
-  ladderMax: 'Максимум драбини',
-  ladderBest: 'Найвищий пройдений етап',
-  returnDown: 'Повернення вниз',
-  yes: 'так',
-  no: 'ні',
-  sequence: 'Етапи',
-  stageResult: (target: number, actual: number | null, passed: boolean) =>
-    actual === null
-      ? `Етап ${target}: не дійшли`
-      : `Етап ${target}: ${actual}, ${passed ? 'пройдено' : 'не пройдено'}`,
   pending: "Спроба очікує надсилання: вона піде на сервер, щойно з'явиться зв'язок.",
   rejected: 'Сервер не прийняв цю спробу, тож вона лишається тільки в цьому браузері.',
 };
@@ -136,13 +91,9 @@ export const historyTexts = {
   modeFilter: 'Режим',
   outcomeFilter: 'Результат',
   all: 'Усі',
-  // Non-breaking spaces keep «2 : 1» and «9 з 9» on one line.
+  // Non-breaking spaces keep «9 з 9» on one line.
   setsDetails: (rounds: number, exercises: number, done: number, total: number) =>
     `${counts.rounds(rounds)} · ${counts.exercises(exercises)} · ${done}\u00a0з\u00a0${total} підходів`,
-  fightDetails: (rounds: number, exercises: number, won: number, lost: number) =>
-    `${counts.rounds(rounds)} · ${counts.exercises(exercises)} · ${won}\u00a0:\u00a0${lost}`,
-  ladderDetails: (exercise: string, max: number, returnDown: boolean, passed: number, total: number) =>
-    `${exercise} · до\u00a0${max}${returnDown ? ' і вниз' : ''} · ${passed}\u00a0з\u00a0${total}`,
   emptyFiltered: 'За цим фільтром тренувань немає.',
   more: 'Показати ще',
   note: "Історія прив'язана до цього браузера.",

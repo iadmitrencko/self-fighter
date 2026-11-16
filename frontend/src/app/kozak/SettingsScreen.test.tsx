@@ -2,12 +2,12 @@ import { screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StorageError } from '../../storage/errors';
 import { createMemoryStorage, type MemoryStorage } from '../../storage/memory';
-import { finishedAttempt } from '../../storage/testing/attempts';
+import { gameFight } from '../../storage/testing/attempts';
 import { renderKozak } from '../testing/render';
 
 async function guestWithAttempt() {
   const storage = createMemoryStorage();
-  await storage.attempts.save(finishedAttempt('win', '2026-10-29T10:00:00.000Z'));
+  await storage.attempts.save(gameFight('win', '2026-10-29T10:00:00.000Z', '2026-10-29T12:00:00.000Z'));
 
   return storage;
 }
@@ -59,9 +59,9 @@ describe('the settings of the game', () => {
 async function accountWithKeptGuest(): Promise<MemoryStorage> {
   const storage = createMemoryStorage();
   storage.signIn({ sub: '1001' });
-  await storage.attempts.save(finishedAttempt('loss', '2026-10-28T10:00:00.000Z'));
+  await storage.attempts.save(gameFight('loss', '2026-10-28T10:00:00.000Z', '2026-10-28T12:00:00.000Z'));
   await storage.account.signOut();
-  await storage.attempts.save(finishedAttempt('win', '2026-10-29T10:00:00.000Z'));
+  await storage.attempts.save(gameFight('win', '2026-10-29T10:00:00.000Z', '2026-10-29T12:00:00.000Z'));
   storage.signIn({ sub: '1001' });
 
   return storage;

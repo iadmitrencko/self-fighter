@@ -10,6 +10,7 @@ use App\Account\Application\SignIn;
 use App\Account\Application\SignUpGuest;
 use App\Account\Domain\DeviceToken;
 use App\Account\Domain\IdentityProvider;
+use App\Shared\Domain\Instant;
 use App\Shared\Domain\UserId;
 use App\Tests\Workout\Documents;
 use App\Workout\Application\SaveAttempt;
@@ -17,6 +18,7 @@ use App\Workout\Domain\AttemptId;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -107,7 +109,9 @@ final class PurgeGuestsCommandTest extends KernelTestCase
     {
         $saveAttempt = self::getContainer()->get(SaveAttempt::class);
         self::assertInstanceOf(SaveAttempt::class, $saveAttempt);
-        $attempt = Documents::ladder();
+        // A level played now: the server takes a battle of the last days only (§24.4).
+        $now = Instant::format(Clock::get()->now());
+        $attempt = Documents::level(overrides: ['startedAt' => $now, 'finishedAt' => $now]);
 
         $saveAttempt($owner, AttemptId::fromString((string) $attempt['id']), json_encode($attempt, \JSON_THROW_ON_ERROR));
     }

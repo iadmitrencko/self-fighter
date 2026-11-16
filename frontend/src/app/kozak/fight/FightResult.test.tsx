@@ -5,7 +5,7 @@ import { fightConfig } from '../../../domain/testing/fixtures';
 import { createApiStorage } from '../../../storage/api';
 import { createBrowserBuffer } from '../../../storage/buffer';
 import { createMemoryStorage } from '../../../storage/memory';
-import { finishedAttempt, gameFight, levelAttempt } from '../../../storage/testing/attempts';
+import { gameFight, levelAttempt } from '../../../storage/testing/attempts';
 import { createFakeServer } from '../../../storage/testing/fakeServer';
 import { renderKozak } from '../../testing/render';
 
@@ -73,31 +73,6 @@ describe('the result of a fight', () => {
     renderKozak(`/fight/result/${level.id}`, { storage: await saved(level) });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Розбійника схоплено' })).toBeTruthy();
-  });
-
-  // §24.6: an attempt of an old mode keeps its rounds and cannot be repeated.
-  it('shows an attempt of an old mode as it was', async () => {
-    const workout = finishedAttempt('draw', '2026-10-29T17:42:00.000Z');
-    renderKozak(`/fight/result/${workout.id}`, { storage: await saved(workout) });
-
-    expect(await screen.findByRole('heading', { level: 1, name: 'Нічия' })).toBeTruthy();
-    expect(screen.getByText('29 жовтня о 17:42')).toBeTruthy();
-    expect(within(screen.getByRole('article')).getAllByRole('row').map((row) => row.textContent)).toEqual([
-      'РаундиТиЦільРезультат',
-      'Відтискання1110▲перемога',
-      'Присідання910▼поразка',
-    ]);
-    expect(screen.queryByRole('button', { name: /^Повторити/ })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Новий бій' }).getAttribute('href')).toBe('/fight');
-  });
-
-  it('shows the steps of an old ladder', async () => {
-    const ladder = finishedAttempt('win', '2026-10-29T17:42:00.000Z', 'ladder');
-    renderKozak(`/fight/result/${ladder.id}`, { storage: await saved(ladder) });
-
-    expect(await screen.findByRole('heading', { level: 1, name: 'Перемога' })).toBeTruthy();
-    expect(screen.getByText('Найвищий пройдений етап').nextElementSibling?.textContent).toBe('1');
-    expect(screen.getByText('Етап 1: 1, пройдено')).toBeTruthy();
   });
 
   it('says when there is no such attempt', async () => {

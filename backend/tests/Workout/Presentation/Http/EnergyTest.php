@@ -133,18 +133,6 @@ final class EnergyTest extends ApiTestCase
         self::assertSame('2026-11-02T12:00:00.000Z', $this->energyFullAt('fight'));
     }
 
-    public function testAWorkoutOfTheSiteTakesNoEnergy(): void
-    {
-        $this->signUp();
-
-        for ($workout = 0; $workout < 12; ++$workout) {
-            $this->save(Documents::target());
-            self::assertResponseStatusCodeSame(201);
-        }
-
-        self::assertNull($this->energyFullAt('fight'));
-    }
-
     // §23.3: the battles of a guest join those of the account, which counts its energy anew.
     public function testJoiningAGuestAddsItsBattlesToTheEnergy(): void
     {

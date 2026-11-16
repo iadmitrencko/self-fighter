@@ -3,10 +3,9 @@ import { roundsOf } from '../config/grid';
 import type { CampaignConfig, DuelConfig, FightConfig } from '../config/types';
 import type { EnergyPool } from '../kozak/energy';
 
-// Version 5 adds the duel with the King of robbers, the final battle of the journey (§24.9);
-// version 4 puts a fight together from exercises and rounds (§6) instead of the modes of the site;
-// version 3 marked the battles of the game, version 2 a ready-made challenge (section 3.7 of the plan).
-export const SCHEMA_VERSION = 5 as const;
+// Version 6 knows the battles of the game only: a fight (§6), a level of the journey (§24.5) and a
+// battle of the duel with the King of robbers (§24.9). Section 3.7 of the plan.
+export const SCHEMA_VERSION = 6 as const;
 
 // A battle of the game: the pool of energy it took and when that pool is full again (§24.4).
 export interface GameMark {
@@ -36,8 +35,6 @@ interface SessionBase {
   readonly schemaVersion: typeof SCHEMA_VERSION;
   readonly id: string;
   readonly startedAt: string;
-  // The site offers no ready-made challenges any more (§21.3), so a battle never takes one.
-  readonly challenge: null;
   // The pool of energy the battle took, set as it starts (§24.4).
   readonly game: GameMark | null;
 }
@@ -114,7 +111,6 @@ export function createSession(source: FightConfig | CampaignConfig | DuelConfig,
     schemaVersion: SCHEMA_VERSION,
     id: newId(),
     startedAt: now().toISOString(),
-    challenge: null,
     game: null,
   };
 

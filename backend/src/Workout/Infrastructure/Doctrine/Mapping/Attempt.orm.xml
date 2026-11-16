@@ -18,10 +18,10 @@
         <field name="owner" column="user_id" type="user_id"/>
         <field name="mode" length="20" enum-type="App\Workout\Domain\Mode"/>
         <field name="outcome" length="4" enum-type="App\Workout\Domain\Outcome"/>
-        <field name="pool" length="8" nullable="true" enum-type="App\Workout\Domain\GamePool"/>
+        <field name="pool" length="8" enum-type="App\Workout\Domain\GamePool"/>
         <field name="level" length="80" nullable="true"/>
         <!-- As the server counted it (§24.4); the document keeps what the browser counted -->
-        <field name="energyFullAt" type="datetime_immutable" nullable="true"/>
+        <field name="energyFullAt" type="datetime_immutable"/>
         <field name="schemaVersion" type="smallint"/>
         <field name="startedAt" type="datetime_immutable"/>
         <field name="finishedAt" type="datetime_immutable"/>

@@ -1,22 +1,13 @@
 import fc from 'fast-check';
-import type { ChallengeRef } from '../catalog/challenge';
 import type { ExerciseRef } from '../catalog/exercise';
 import { EXERCISES_MAX, ROUNDS_MAX, SET_REPS_MAX, SET_REPS_MIN } from '../config/limits';
 import type { FightConfig } from '../config/types';
-import {
-  createSession,
-  nextStageIndex,
-  SCHEMA_VERSION,
-  type GameMark,
-  type Session,
-  type SessionDeps,
-} from '../engine/session';
+import { createSession, nextStageIndex, type GameMark, type Session, type SessionDeps } from '../engine/session';
 import { finalize, type CampaignAttempt, type DuelAttempt, type FightAttempt } from '../history/attempt';
-import type { LadderAttempt, RoundsAttempt } from '../history/legacy';
 import { completeSet, levelConfig, retreat } from '../kozak/battle';
 import { DUEL, duelConfig, duelProgress, type DuelDone } from '../kozak/duel';
 import { findLevel, SICH } from '../kozak/journey';
-import type { BattleOutcome, Outcome } from '../results/results';
+import type { BattleOutcome } from '../results/results';
 
 export const pushUps: ExerciseRef = { id: 'push-ups', name: 'Відтискання' };
 export const squats: ExerciseRef = { id: 'squats', name: 'Присідання' };
@@ -120,80 +111,6 @@ export function campaignAttempt(
   const played = outcome === 'win' ? play(session) : play(session, retreatAt);
 
   return { ...finalize(played, FINISHED_AT), game: { pool: 'campaign', energyFullAt } };
-}
-
-interface LegacyOptions {
-  readonly id?: string;
-  readonly finishedAt?: Date;
-  readonly game?: GameMark | null;
-  readonly challenge?: ChallengeRef | null;
-}
-
-function legacyBase({ id = 'legacy-1', finishedAt = FINISHED_AT, game = null, challenge = null }: LegacyOptions) {
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    id,
-    startedAt: new Date(finishedAt.getTime() - 600_000).toISOString(),
-    finishedAt: finishedAt.toISOString(),
-    durationMs: 600_000,
-    challenge,
-    game,
-  };
-}
-
-// Push-ups and squats against 10 in one round: a draw wins one exercise and loses the other.
-const LEGACY_REPS: Record<Outcome, readonly [number, number]> = { win: [11, 11], draw: [11, 9], loss: [9, 9] };
-
-/**
- * An attempt of «Ціль», a mode of the site before a fight was put together freely (§6). The
- * history keeps such attempts as the server stored them, the draws among them.
- */
-export function legacyTargetAttempt(outcome: Outcome, options: LegacyOptions = {}): RoundsAttempt {
-  const exercises = [pushUps, squats].map((exercise, index) => {
-    const actual = LEGACY_REPS[outcome][index] ?? 0;
-
-    return { exercise, target: 10, actual, outcome: actual > 10 ? ('win' as const) : ('loss' as const) };
-  });
-  const won = exercises.filter((exercise) => exercise.outcome === 'win').length;
-  const lost = exercises.length - won;
-
-  return {
-    ...legacyBase(options),
-    mode: 'target',
-    config: {
-      mode: 'target',
-      rule: 'over',
-      rounds: 1,
-      exercises: [
-        { ...pushUps, targets: [10] },
-        { ...squats, targets: [10] },
-      ],
-    },
-    result: {
-      rounds: [{ exercises, won, lost, outcome }],
-      won: outcome === 'win' ? 1 : 0,
-      drawn: outcome === 'draw' ? 1 : 0,
-      lost: outcome === 'loss' ? 1 : 0,
-      outcome,
-    },
-  };
-}
-
-// A ladder of one step, the other old mode of the site with a result of its own.
-export function legacyLadderAttempt(outcome: BattleOutcome, options: LegacyOptions = {}): LadderAttempt {
-  const passed = outcome === 'win';
-
-  return {
-    ...legacyBase(options),
-    mode: 'ladder',
-    config: { mode: 'ladder', rule: 'meet', exercise: pullUps, max: 1, returnDown: false },
-    result: {
-      stages: [{ target: 1, actual: passed ? 1 : 0, passed }],
-      maxPassed: passed ? 1 : 0,
-      passedCount: passed ? 1 : 0,
-      outcome,
-    },
-  };
 }
 
 /**
