@@ -5,10 +5,11 @@ site:
   alternate_name: Селф Файтер
   skip_to_content: Перейти до змісту
   start: Почати тренування
+  # The one button of the header: the game, its cossack first.
+  play: Грати
   breadcrumbs: Ти тут
   og_image_alt: Логотип Self-Fighter, гетьман у синьому кунтуші з булавою на майдані Січі й напис «Від джури до гетьмана — підхід за підходом»
   nav:
-    label: Головна навігація
     game: Гра
     about: Про проєкт
     privacy: Приватність

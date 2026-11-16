@@ -44,49 +44,9 @@
   min-height: var(--header-height);
 }
 
-.site-nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-/* On a phone the game is an icon; the hubs of the site wait in the footer. */
-.site-nav__link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: var(--tap-target);
-  min-height: var(--tap-target);
-  border: 1px solid var(--k-line);
-  border-radius: 10px;
-  color: var(--k-parchment-dim);
-  font-size: var(--text-m);
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.site-nav__link:hover {
-  border-color: var(--k-line-strong);
-  color: var(--k-parchment);
-}
-
-.site-nav__icon {
-  width: 1.25rem;
-  height: 1.25rem;
+/* The one way into the game: the name of the site keeps its room beside it on a phone. */
+.site-header__play {
   flex: none;
-}
-
-.site-nav__label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.site-nav__cta {
-  display: none;
 }
 
 @media (min-width: 48rem) {
@@ -96,31 +56,6 @@
 
   .site-header .logo {
     font-size: 1.25rem;
-  }
-
-  .site-nav {
-    gap: 1.75rem;
-  }
-
-  .site-nav__link {
-    min-width: 0;
-    border: 0;
-  }
-
-  .site-nav__icon {
-    display: none;
-  }
-
-  .site-nav__label {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip-path: none;
-  }
-
-  .site-nav__cta {
-    display: inline-flex;
   }
 }
 

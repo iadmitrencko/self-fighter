@@ -89,7 +89,7 @@ final class PagesTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         self::assertSame(
-            ['/', '/game', '/about', '/game/fight', '/game/history', '/game/settings', '/privacy'],
+            ['/', '/game', '/about', '/game/history', '/game/settings', '/privacy'],
             $crawler->filter('footer nav a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
         // §22: the decision changes as easily as it was made.
@@ -136,8 +136,9 @@ final class PagesTest extends WebTestCase
         $site = $client->request('GET', '/');
         $links = static fn (Crawler $page): array => $page->filter('header a')->each(static fn (Crawler $link): string => (string) $link->attr('href'));
 
-        self::assertSame(['/', '/game', '/game/fight'], $links($site));
-        self::assertSelectorTextSame('header .site-nav__cta', 'Почати тренування');
+        // One way into the game: to the cossack, whose screen leads to the fights and the journey.
+        self::assertSame(['/', '/game'], $links($site));
+        self::assertSelectorTextSame('header .site-header__play', 'Грати');
         $footer = $site->filter('footer')->html();
         $game = $client->request('GET', '/game/fight');
 

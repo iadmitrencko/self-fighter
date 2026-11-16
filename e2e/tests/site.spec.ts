@@ -33,9 +33,8 @@ test('an address the game does not have is a real 404', async ({ page }) => {
 test('the game has a header of its own, the footer is everywhere and screens lead back', async ({ page }) => {
   await page.goto('/');
   const footer = await page.locator('footer.site-footer').innerHTML();
-  await expect(page.getByRole('banner').getByRole('link', { name: 'Гра' })).toHaveAttribute('href', '/game');
-  // A phone hides the button to a fight in the header; the landing and the footer keep it.
-  await expect(page.locator('header.site-header .site-nav__cta')).toHaveAttribute('href', '/game/fight');
+  // The header has one way into the game, a phone included: to the cossack.
+  await expect(page.getByRole('banner').getByRole('link', { name: 'Грати' })).toHaveAttribute('href', '/game');
 
   // §24.1: the history and the settings are sections of the game, so the footer leads there directly.
   await page.getByRole('contentinfo').getByRole('link', { name: 'Налаштування' }).click();
@@ -60,6 +59,6 @@ test('the game has a header of its own, the footer is everywhere and screens lea
   const inGame = await divider();
   await banner.getByRole('link', { name: 'Self-Fighter' }).click();
   await expect(page).toHaveURL('/');
-  await expect(banner.getByRole('link', { name: 'Гра' })).toBeVisible();
+  await expect(banner.getByRole('link', { name: 'Грати' })).toBeVisible();
   expect(await divider()).toBe(inGame);
 });

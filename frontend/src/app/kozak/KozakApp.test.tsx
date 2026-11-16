@@ -23,19 +23,19 @@ describe('the game', () => {
 });
 
 describe('the links of the site', () => {
-  // The header of the site opens screens of the game without loading the page again.
-  it('open a screen of the game from the header', async () => {
+  // The footer of the site opens screens of the game without loading the page again.
+  it('open a screen of the game from the footer', async () => {
     const { user } = renderKozak('/');
     await screen.findByRole('heading', { level: 1, name: /^Звання/ });
-    const header = document.createElement('a');
-    header.href = '/game/fight';
-    header.textContent = 'Почати тренування';
-    document.body.append(header);
+    const footer = document.createElement('a');
+    footer.href = '/game/history';
+    footer.textContent = 'Історія';
+    document.body.append(footer);
 
-    await user.click(header);
+    await user.click(footer);
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Бій' })).toBeTruthy();
-    header.remove();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Історія' })).toBeTruthy();
+    footer.remove();
   });
 
   it('leave the pages of the site and new tabs to the browser', async () => {

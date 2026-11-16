@@ -14,10 +14,10 @@ async function gameRecord(page: Page): Promise<GameRecord | null> {
   return response.ok() ? ((await response.json()) as GameRecord) : null;
 }
 
-// §24: the cossack game opens from the menu, and its first level is played to the end.
+// §24: the cossack game opens from the header, and its first level is played to the end.
 test('the first level of the journey is won and brings glory', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('navigation', { name: 'Головна навігація' }).getByRole('link', { name: 'Гра' }).click();
+  await page.getByRole('banner').getByRole('link', { name: 'Грати' }).click();
 
   await expect(page.getByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeVisible();
   await expectAccessible(page);

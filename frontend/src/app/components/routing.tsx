@@ -13,8 +13,8 @@ export function ScrollToTop() {
 }
 
 /**
- * The header and the footer of the site lead to screens of the game as well. Inside the game they
- * open a screen without loading the page again, so they work offline in the middle of a workout.
+ * The footer of the site leads to screens of the game as well. Inside the game its links open a
+ * screen without loading the page again, so they work offline in the middle of a workout.
  * `base` is the address the router of this page lives under.
  */
 export function SiteLinks({ base }: { base: string }) {
