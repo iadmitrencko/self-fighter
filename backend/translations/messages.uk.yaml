@@ -4,7 +4,8 @@ site:
   # How people say the name; search engines take it from the structured data of the home page.
   alternate_name: Селф Файтер
   skip_to_content: Перейти до змісту
-  start: Почати тренування
+  # The main action of the landing and of the page 404: a fight, named the way the game names it.
+  start: Почати бій
   # The one button of the header: the game, its cossack first.
   play: Грати
   breadcrumbs: Ти тут

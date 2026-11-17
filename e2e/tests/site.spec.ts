@@ -9,7 +9,7 @@ test('the landing explains the game and opens it without signing up', async ({ p
   await expect(page.locator('#game h3')).toHaveText(['Бій', 'Похід «Січ»', 'Слава й звання', 'Енергія']);
   await expectAccessible(page);
 
-  await page.getByRole('main').getByRole('link', { name: 'Почати тренування' }).first().click();
+  await page.getByRole('main').getByRole('link', { name: 'Почати бій' }).first().click();
 
   // §24.1: everything is made for the game, so a workout starts with the choice of a fight in it.
   await expect(page).toHaveURL('/game/fight');
@@ -46,7 +46,7 @@ test('the game has a header of its own, the footer is everywhere and screens lea
   const banner = page.getByRole('banner');
   await expect(banner.getByRole('link', { name: 'Енергія боїв: 10 з 10' })).toBeVisible();
   await expect(banner.getByRole('link', { name: 'Енергія походу: 6 з 6' })).toBeVisible();
-  await expect(banner.getByRole('link', { name: 'Почати тренування' })).toHaveCount(0);
+  await expect(banner.getByRole('link', { name: 'Грати' })).toHaveCount(0);
   await expectAccessible(page);
 
   await banner.getByRole('link', { name: 'Енергія боїв: 10 з 10' }).click();

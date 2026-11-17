@@ -85,7 +85,8 @@
   font-size: var(--text-base);
 }
 
-/* From here «Почати тренування» fits on one line at the size of the mockups. */
+/* From here «Вирушити в похід», the longest main action of the landing, fits on one line at the size
+   of the mockups. */
 @media (min-width: 30rem) {
   .button--large {
     font-size: 1.0625rem;
