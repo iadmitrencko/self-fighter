@@ -15,6 +15,8 @@ final class User
     // The longest address RFC 5321 lets through.
     public const int EMAIL_MAX = 254;
     public const int NAME_MAX = 100;
+    // §24.11: the name the player gives the cossack.
+    public const int NICKNAME_MAX = 40;
 
     private function __construct(
         private readonly UserId $id,
@@ -22,6 +24,7 @@ final class User
         // What the provider of the sign-in tells about the person; a guest has neither (§23.2).
         private ?string $email = null,
         private ?string $name = null,
+        private ?string $nickname = null,
     ) {
     }
 
@@ -51,6 +54,11 @@ final class User
         return $this->name;
     }
 
+    public function nickname(): ?string
+    {
+        return $this->nickname;
+    }
+
     /**
      * Every sign-in brings the current name and email, so a change on the side of Google shows here
      * too. Only a confirmed email is kept: a later sign-in with email and password relies on it (§23.4).
@@ -62,6 +70,22 @@ final class User
 
         $this->email = null !== $email && mb_strlen($email) <= self::EMAIL_MAX && str_contains($email, '@') ? $email : null;
         $this->name = null === $name ? null : mb_substr($name, 0, self::NAME_MAX);
+    }
+
+    /**
+     * §24.11: the name the player gives the cossack, a guest too. An empty one leaves the cossack the
+     * name Google gave, if any. A name longer than allowed changes nothing.
+     */
+    public function rename(?string $nickname): bool
+    {
+        $clean = self::clean($nickname);
+
+        if (null !== $clean && mb_strlen($clean) > self::NICKNAME_MAX) {
+            return false;
+        }
+        $this->nickname = $clean;
+
+        return true;
     }
 
     private static function clean(?string $text): ?string

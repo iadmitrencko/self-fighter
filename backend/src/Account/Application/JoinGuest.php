@@ -31,6 +31,14 @@ final readonly class JoinGuest
             $holder->transfer($guest, $account);
         }
 
+        // §24.11: an account without a name for its cossack takes the one the guest gave.
+        $joining = $this->users->find($guest);
+        $joined = $this->users->find($account);
+
+        if (null !== $joining && null !== $joined && null === $joined->nickname()) {
+            $joined->rename($joining->nickname());
+        }
+
         foreach ($this->devices->findUsedBy($guest) as $device) {
             if ($device->owner()->equals($guest)) {
                 $this->devices->remove($device);

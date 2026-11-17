@@ -38,6 +38,7 @@ createRoot(root).render(
           analytics,
           ...readPage(root),
           deps: { now: () => new Date(), newId },
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }}
       />
     </BrowserRouter>

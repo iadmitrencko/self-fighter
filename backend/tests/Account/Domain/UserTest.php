@@ -40,4 +40,22 @@ final class UserTest extends TestCase
         self::assertNull($user->email());
         self::assertSame(User::NAME_MAX, mb_strlen((string) $user->name()));
     }
+
+    // §24.11: the name the player gives the cossack is cleaned as the profile is.
+    public function testTakesTheNameThePlayerGivesTheCossack(): void
+    {
+        $user = User::signUp(UserId::generate(), new \DateTimeImmutable());
+
+        self::assertNull($user->nickname());
+        self::assertTrue($user->rename(" Іван\u{200B}  Сірко\n"));
+        self::assertSame('Іван Сірко', $user->nickname());
+
+        // A name too long changes nothing, an empty one takes the name away.
+        self::assertFalse($user->rename(str_repeat('я', User::NICKNAME_MAX + 1)));
+        self::assertSame('Іван Сірко', $user->nickname());
+        self::assertTrue($user->rename(str_repeat('я', User::NICKNAME_MAX)));
+        self::assertSame(User::NICKNAME_MAX, mb_strlen((string) $user->nickname()));
+        self::assertTrue($user->rename('   '));
+        self::assertNull($user->nickname());
+    }
 }

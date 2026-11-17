@@ -31,14 +31,6 @@ interface AttemptRepository
     public function passedLevels(UserId $owner): array;
 
     /**
-     * §24.8: the most repetitions done in one set of a level of the journey or of the duel with the
-     * King, won or not, by the exercise.
-     *
-     * @return array<string, int> by the id of the exercise, in alphabetical order
-     */
-    public function bestSets(UserId $owner): array;
-
-    /**
      * §24.10: the most repetitions done in one set and every repetition done, by the exercise: in
      * the fights, the journey and the duel alike.
      *
@@ -46,8 +38,21 @@ interface AttemptRepository
      */
     public function exerciseTotals(UserId $owner): array;
 
-    // §24.7: the fights of the game won one after another since the last one that was not.
-    public function fightStreak(UserId $owner): int;
+    /**
+     * §24.10: the repetitions done of each exercise in every battle that finished since the moment,
+     * with the time it finished.
+     *
+     * @return list<array{finishedAt: \DateTimeImmutable, exercise: string, reps: int}>
+     */
+    public function repsSince(UserId $owner, \DateTimeImmutable $since): array;
+
+    /**
+     * §24.12: when the battles that finished since the moment ended, a battle left before its first
+     * set too.
+     *
+     * @return list<\DateTimeImmutable>
+     */
+    public function finishedSince(UserId $owner, \DateTimeImmutable $since): array;
 
     /**
      * §24.9: the places in their rounds of the sets of the duel with the King done, by the round.

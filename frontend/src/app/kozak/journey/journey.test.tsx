@@ -209,7 +209,7 @@ describe('the battle of a level', () => {
     expect(screen.getByText('Лісова варта')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Далі' }).getAttribute('href')).toBe('/journey/forest-ravens/1/2');
     expect(storage.gameSessions.campaign.load()).toBeNull();
-    expect(await storage.attempts.game()).toMatchObject({
+    expect(await storage.attempts.game('UTC')).toMatchObject({
       campaign: { wins: 1, draws: 0, losses: 0 },
       passed: ['forest-ravens/1/1'],
     });
@@ -259,7 +259,7 @@ describe('the battle of a level', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Цього разу ворог устояв' })).toBeTruthy();
     expect(screen.getByText('1 / 3')).toBeTruthy();
     expect(await screen.findByRole('link', { name: 'Спробувати ще раз' })).toBeTruthy();
-    expect(await storage.attempts.game()).toMatchObject({
+    expect(await storage.attempts.game('UTC')).toMatchObject({
       campaign: { wins: 0, draws: 0, losses: 1 },
       passed: [],
       energy: { campaign: '2026-10-30T15:00:00.000Z' },

@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { Energy, EnergyPool } from '../../domain/kozak/energy';
 import type { Status } from '../../domain/kozak/progress';
-import { energyStatus, energyTexts, formatWait, gloryRewards, kozakTexts, statusNames } from '../../i18n/kozak';
+import { energyStatus, energyTexts, formatWait, kozakTexts, statusNames } from '../../i18n/kozak';
 import { Screen } from '../components/Screen';
 import { ErrorNotice } from '../components/notices';
 import { useCossack, type Cossack } from './record';
@@ -17,9 +17,15 @@ const ICONS = {
   lock: 'M7 11V7a5 5 0 0 1 10 0v4M5 11h14v10H5z',
   check: 'M5 12l5 5 9-10',
   back: 'M15 18l-6-6 6-6',
+  // The way on: the next rank leads to the page of the ranks.
+  forward: 'M9 6l6 6-6 6',
   pause: 'M7 5h3v14H7zM14 5h3v14h-3z',
   play: 'M8 5v14l11-7z',
   bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
+  // §24.12: the days in a row with a battle.
+  flame: 'M12 2c.6 3.6 6 6.2 6 11.6a6 6 0 0 1-12 0c0-2.6 1.3-4.4 2.7-5.8.2 2 1.3 3.3 2.8 3.9-.9-3.3-.2-6.5.5-9.7z',
+  // §24.10: the chart of the last days.
+  chart: 'M4 20h16M7 16v-4M12 16V7M17 16v-7',
   glory: 'M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.6z',
   plus: 'M12 5v14M5 12h14',
   close: 'M6 6l12 12M18 6 6 18',
@@ -33,7 +39,7 @@ const ICONS = {
 
 export type KozakIconName = keyof typeof ICONS;
 
-const FILLED: ReadonlySet<KozakIconName> = new Set(['pause', 'play', 'bolt', 'glory', 'more']);
+const FILLED: ReadonlySet<KozakIconName> = new Set(['pause', 'play', 'bolt', 'glory', 'flame', 'more']);
 
 export function KozakIcon({ name, className = 'kozak-icon' }: { name: KozakIconName; className?: string }) {
   const filled = FILLED.has(name);
@@ -130,27 +136,13 @@ export function EnergyMeter({ pool, energy, now, compact = false }: { pool: Ener
 }
 
 // A cell for every unit of a pool, the full ones in gold. The number beside it speaks for it.
-export function EnergyCells({ energy }: { energy: Energy }) {
+function EnergyCells({ energy }: { energy: Energy }) {
   return (
     <div className="k-energy__cells" aria-hidden="true">
       {Array.from({ length: energy.max }, (_, index) => (
         <span key={index} className={index < energy.value ? 'k-energy__cell k-energy__cell--full' : 'k-energy__cell'} />
       ))}
     </div>
-  );
-}
-
-// §24.3: what brings glory, beside the glory of the cossack and on the page of the ranks.
-export function GloryRewards() {
-  return (
-    <dl className="k-how">
-      {gloryRewards.map(([what, amount]) => (
-        <div key={what} className="k-how__item">
-          <dt>{what}</dt>
-          <dd>{amount}</dd>
-        </div>
-      ))}
-    </dl>
   );
 }
 

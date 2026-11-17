@@ -12,16 +12,22 @@ import type { Outcome } from '../domain/results/results';
 // A guest is a user of one browser. An account signs in with Google and opens on any browser (§23.1).
 export type CurrentUser = GuestUser | AccountUser;
 
+// §24.11: the longest name the player may give the cossack.
+export const NICKNAME_MAX = 40;
+
 export interface GuestUser {
   readonly id: string;
   readonly kind: 'guest';
   readonly createdAt: string;
+  // §24.11: the name the player gave the cossack, a guest too.
+  readonly nickname: string | null;
 }
 
 export interface AccountUser {
   readonly id: string;
   readonly kind: 'account';
   readonly createdAt: string;
+  readonly nickname: string | null;
   // What Google told about the person, so the screen shows whose account is open.
   readonly name: string | null;
   readonly email: string | null;
@@ -80,6 +86,9 @@ export interface AccountStore {
   keptGuest(): Promise<KeptGuest | null>;
   // §23.3: the kept guest joins the account. Asking again changes nothing.
   joinGuest(): Promise<void>;
+  // §24.11: the name the player gives the cossack; null or an empty one takes it away. Like any
+  // write, it makes this browser a guest when it has no user yet.
+  rename(nickname: string | null): Promise<void>;
   // §23.2: the browser goes back to its guest or to no user. Attempts of the account that still
   // wait here stay until the account signs in on this browser again.
   signOut(): Promise<void>;
@@ -109,7 +118,8 @@ export interface AttemptStore {
   // Counts every attempt the history shows, so the numbers always agree with it (§14.2).
   stats(filter?: AttemptFilter): Promise<Statistics>;
   // §24: what the attempts of the game add up to, the attempts that wait in the browser included.
-  game(): Promise<GameRecord>;
+  // Its days go by the calendar of the player in this time zone of the IANA database (§24.12).
+  game(timeZone: string): Promise<GameRecord>;
   // Sends the attempts that wait in the browser. The game calls it on start and on a retry.
   flush(): Promise<void>;
   // How many attempts of the user still wait in this browser for the server (§15.4).

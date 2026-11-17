@@ -992,18 +992,19 @@
   color: var(--k-ember-soft);
 }
 
-/* The cossack, resesign/kozak.html: the cossack at full height beside his rank, glory and record of
-   battles; a card for each pool of energy under them; and what he has done of every exercise. */
+/* The cossack, resesign/kozak.html: the cossack at full height beside his rank, the way to the next
+   one, his record of battles and the ways to the battles; and what he has done of every exercise. The
+   header of the game shows the energy (§24.1), so the screen leaves it out. */
 
 .k-cossack {
   container: k-cossack / inline-size;
   gap: 1.25rem;
 }
 
-/* The panel of «?» may open over the cards below, so the card does not clip what it holds: the
-   portrait rounds its own corners. */
+/* The card clips the portrait to its round corners. */
 .k-hero {
   display: grid;
+  overflow: hidden;
   border: 1px solid var(--k-line);
   border-radius: var(--k-r-card);
   background: var(--k-surface);
@@ -1017,7 +1018,6 @@
   width: 100%;
   aspect-ratio: 4 / 5;
   max-height: 26.25rem;
-  border-radius: calc(var(--k-r-card) - 1px) calc(var(--k-r-card) - 1px) 0 0;
   background: var(--k-map-ground);
 }
 
@@ -1045,13 +1045,73 @@
   padding: 1.25rem;
 }
 
+/* The name and the rank, with the days in a row beside them while they fit and under them where not. */
+.k-hero__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-s) var(--space-m);
+}
+
 .k-hero__title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  min-width: 0;
+  font-size: inherit;
+  font-weight: 400;
+}
+
+/* §24.11: the name the player gave the cossack, over his rank. */
+.k-hero__name {
+  overflow-wrap: anywhere;
+  color: var(--k-gold-light);
+  font-family: var(--k-font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.k-hero__rank-line {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.25rem var(--space-s);
-  font-size: inherit;
-  font-weight: 400;
+}
+
+/* §24.12: the days in a row with a battle beside a flame; a run that waits for today is quieter. */
+.k-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 0.375rem var(--space-s);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-btn);
+  color: var(--k-parchment);
+  font-size: var(--text-s);
+  font-weight: 700;
+}
+
+.k-streak__icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: var(--k-gold);
+}
+
+.k-streak--waiting .k-streak__icon {
+  color: var(--k-ash);
+}
+
+.k-streak__hint {
+  color: var(--k-ash);
+  font-weight: 500;
+}
+
+.k-streak__hint::before {
+  margin-inline: 0.375rem;
+  content: '·' / '';
 }
 
 .k-hero__label {
@@ -1068,8 +1128,8 @@
   line-height: 1;
 }
 
-/* «★ 3 / 10 слави», the next rank and «?»: in one line where the card is wide, the next rank under
-   the glory where it is narrow, with «?» beside both. */
+/* «★ 3 / 10 слави» and the next rank in one line while both fit, the next rank under the glory where
+   they do not. */
 .k-glory {
   display: flex;
   flex-direction: column;
@@ -1077,18 +1137,15 @@
 }
 
 .k-glory__top {
-  display: grid;
-  grid-template-areas:
-    'value help'
-    'next help';
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 0.125rem var(--space-m);
 }
 
 .k-glory__value {
   display: flex;
-  grid-area: value;
   align-items: center;
   gap: var(--space-xs);
   color: var(--k-ash);
@@ -1112,13 +1169,31 @@
 }
 
 .k-glory__next {
-  grid-area: next;
   color: var(--k-ash);
   font-size: var(--text-s);
 }
 
 .k-glory__next strong {
   color: var(--k-parchment);
+}
+
+/* The next rank leads to the page of the ranks, and the arrow says so where no pointer hovers. */
+.k-glory__link {
+  padding-block: var(--space-2xs);
+  text-decoration: none;
+}
+
+.k-glory__link:hover,
+.k-glory__link:hover strong {
+  color: var(--k-gold-light);
+}
+
+.k-glory__arrow {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-left: 0.25rem;
+  color: var(--k-gold);
+  vertical-align: -0.125rem;
 }
 
 /* The track shows the whole way to the next rank, so no glory yet is an empty track, not a dot. */
@@ -1132,73 +1207,9 @@
   width: var(--share);
 }
 
-/* «?» beside the next rank and the panel it opens under itself, over what follows. */
-.k-help {
-  position: relative;
-  grid-area: help;
-}
-
-.k-help__button {
-  width: var(--k-hit);
-  height: var(--k-hit);
-  border: 1px solid var(--k-line);
-  border-radius: 50%;
-  background: var(--k-surface);
-  color: var(--k-gold-light);
-  font: inherit;
-  font-size: var(--text-base);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.k-help__button[aria-expanded='true'] {
-  border-color: var(--k-gold);
-}
-
-@media (hover: hover) {
-  .k-help__button:hover {
-    border-color: var(--k-line-active);
-  }
-}
-
-.k-help__panel {
-  position: absolute;
-  top: calc(100% + var(--space-xs));
-  right: 0;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  width: min(17.5rem, calc(100vw - 2 * var(--page-gutter)));
-  padding: var(--space-m);
-  border: 1px solid var(--k-line);
-  border-radius: var(--k-r-btn);
-  background: var(--k-surface-raised);
-  box-shadow: var(--k-shadow-card);
-}
-
-.k-help__panel[hidden] {
-  display: none;
-}
-
-.k-help__title {
-  margin-bottom: var(--space-2xs);
-  font-size: var(--text-s);
-  font-weight: 700;
-}
-
-.k-help__panel .k-how__item {
-  padding: 0;
-  background: none;
-  color: var(--k-parchment-dim);
-}
-
-/* §24.7: the record of battles at the foot of the card, large numbers over their words, in the
-   colors the history gives the results. */
+/* §24.7: the record of battles at the foot of the card over the ways to the battles, large numbers
+   over their words, in the colors the history gives the results. */
 .k-score {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
   margin-top: auto;
 }
 
@@ -1244,7 +1255,14 @@
   font-size: var(--text-s);
 }
 
-/* The title of a card: «Бій», «Похід», «Фізична статистика», each with its icon. */
+/* The ways to a fight and to the journey side by side, the gold one first. */
+.k-hero__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-s);
+}
+
+/* The title of a card with its icon: «Фізична статистика». */
 .k-section-title {
   display: flex;
   align-items: center;
@@ -1262,58 +1280,6 @@
   color: var(--k-gold);
 }
 
-/* §24.4: a card for each pool of energy. Side by side they share their height, so the buttons stand
-   on one line at the bottom. */
-.k-pools {
-  display: grid;
-  gap: 1.25rem;
-}
-
-.k-pool {
-  gap: var(--space-m);
-  padding: 1.25rem;
-}
-
-.k-pool__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-s);
-}
-
-.k-pool__energy {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: var(--text-base);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.k-pool__bolt {
-  width: 1rem;
-  height: 1rem;
-  flex: none;
-  color: var(--k-gold);
-}
-
-.k-pool--empty .k-pool__energy {
-  color: var(--k-ember-soft);
-}
-
-.k-pool__wait {
-  color: var(--k-ash);
-  font-size: var(--text-s);
-  font-variant-numeric: tabular-nums;
-}
-
-.k-pool__action {
-  margin-top: auto;
-}
-
-.k-score__title,
-.k-facts__title,
 .k-card__label,
 .k-rank-group__title,
 .k-filter__legend {
@@ -1326,129 +1292,305 @@
   text-transform: uppercase;
 }
 
-/* Three facts of a card in a row, a word over each number: the fights in «Бій», the best sets of
-   the journey in «Похід» (§24.8). The numbers stand on one line however the words wrap. */
-.k-facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.k-facts__list {
+/* §24.10: what the cossack has done, the table of the exercises and the chart of the last days side
+   by side where the screen is wide. */
+.k-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-s);
-  margin: 0;
+  gap: 1.25rem;
 }
 
-.k-facts__item {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 0.125rem;
-}
-
-.k-facts__label,
-.k-facts__value {
-  margin: 0;
-  color: var(--k-ash);
-  font-size: var(--text-xs);
-}
-
-/* On the narrowest phones «Підтягування» breaks rather than run into its neighbour. */
-.k-facts__label {
-  overflow-wrap: anywhere;
-  hyphens: auto;
-}
-
-.k-facts__number {
-  color: var(--k-parchment);
-  font-size: var(--text-l);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-/* «за підхід» moves under the number whole where the column is narrow. */
-.k-facts__unit {
-  white-space: nowrap;
-}
-
-/* §24.10: a tile for every exercise of the player with its best set and every repetition. */
+/* §24.10: a row for every exercise of the player with its best set, the repetitions of the last seven
+   days and every repetition. A narrow card puts the exercise over its three numbers; a wide one
+   keeps the numbers in columns on the right and the exercise takes the rest. */
 .k-physical {
+  container: k-physical / inline-size;
   gap: var(--space-m);
   padding: 1.25rem;
 }
 
-.k-physical__head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
+.k-physical__table,
+.k-physical__table thead,
+.k-physical__table tbody {
+  display: block;
 }
 
-.k-physical__lead {
-  color: var(--k-ash);
-  font-size: var(--text-s);
-  line-height: 1.5;
-}
-
-.k-physical__list {
+.k-physical__table tr {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
-  gap: var(--space-s);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2xs) var(--space-s);
+  padding-block: var(--space-s);
+  border-top: 1px solid var(--k-line);
+}
+
+.k-physical__table thead tr {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.k-physical__table tbody tr:last-child {
+  padding-bottom: 0;
+}
+
+.k-physical__table th,
+.k-physical__table td {
+  display: block;
   padding: 0;
-  list-style: none;
+  text-align: right;
 }
 
-.k-physical__item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-  min-width: 0;
-  padding: var(--space-m);
-  border-radius: var(--k-r-tile);
-  background: var(--k-tile);
+/* The exercise names its row anyway, so a narrow card says «Вправа» to a screen reader only. */
+.k-physical__table thead th:first-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-.k-physical__exercise {
-  overflow-wrap: anywhere;
-  font-size: var(--text-m);
-  font-weight: 700;
-}
-
-/* The best set and the total side by side while both fit, the total under the best set when a long
-   number does not. */
-.k-physical__stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-s) var(--space-xl);
-  margin: 0;
-}
-
-/* The number above its word, as in the record of battles. */
-.k-physical__stat {
-  display: flex;
-  flex-direction: column-reverse;
-  justify-content: flex-end;
-  gap: 0.25rem;
-}
-
-.k-physical__label {
+.k-physical__table thead th {
+  align-self: end;
   color: var(--k-ash);
   font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.3;
 }
 
-.k-physical__value {
-  margin: 0;
+.k-physical__table tbody th {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+  hyphens: auto;
   color: var(--k-parchment);
-  font-size: 1.75rem;
+  font-size: var(--text-m);
+  font-weight: 700;
+  text-align: left;
+}
+
+.k-physical__table td {
+  color: var(--k-parchment);
+  font-size: var(--text-l);
   font-weight: 800;
-  line-height: 1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.k-physical__value .k-facts__number {
-  font-size: inherit;
+@container k-physical (min-width: 28rem) {
+  .k-physical__table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .k-physical__table thead {
+    display: table-header-group;
+  }
+
+  .k-physical__table tbody {
+    display: table-row-group;
+  }
+
+  .k-physical__table tr {
+    display: table-row;
+  }
+
+  .k-physical__table th,
+  .k-physical__table td {
+    display: table-cell;
+    padding: var(--space-s) 0 var(--space-s) var(--space-m);
+    border-top: 1px solid var(--k-line);
+    vertical-align: baseline;
+  }
+
+  .k-physical__table thead th {
+    padding-top: 0;
+    border-top: 0;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+
+  .k-physical__table :is(th, td):first-child {
+    width: 100%;
+    padding-left: 0;
+    text-align: left;
+  }
+
+  .k-physical__table thead th:first-child {
+    position: static;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+
+  .k-physical__table tbody tr:last-child > * {
+    padding-bottom: 0;
+  }
+}
+
+/* §24.10: the last seven days, a column for a day. The bars are the gold of the game, at most 24px
+   wide, rounded at the top and square at the baseline; the grid is a hairline. Only the peak carries
+   its number: the axis gives the scale, and every column its day and number on hover and on focus. */
+.k-week {
+  gap: var(--space-m);
+  padding: 1.25rem;
+}
+
+.k-week__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-xs) var(--space-m);
+}
+
+.k-week__total {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+}
+
+.k-week__total b {
+  color: var(--k-parchment);
+  font-size: var(--text-l);
+  font-weight: 800;
+}
+
+.k-week__chart {
+  --plot: 8rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--space-xs);
+  padding-top: var(--space-m);
+}
+
+/* The ticks stand at the top, the middle and the baseline of the plot. */
+.k-week__axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: var(--plot);
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
+}
+
+.k-week__tick:first-child {
+  transform: translateY(-50%);
+}
+
+.k-week__tick:last-child {
+  transform: translateY(50%);
+}
+
+.k-week__days {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.k-week__days::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--plot);
+  border-block: 1px solid var(--k-line);
+  background: linear-gradient(var(--k-line), var(--k-line)) center / 100% 1px no-repeat;
+  content: '';
+  pointer-events: none;
+}
+
+.k-week__day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  border-radius: var(--k-r-tile);
+}
+
+.k-week__plot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: var(--plot);
+}
+
+.k-week__bar {
+  position: relative;
+  width: min(1.5rem, 60%);
+  height: var(--share);
+  border-radius: 4px 4px 0 0;
+  background: var(--k-gold);
+}
+
+.k-week__day:is(:hover, :focus) .k-week__bar {
+  background: var(--k-gold-light);
+}
+
+.k-week__value {
+  position: absolute;
+  bottom: calc(100% + 0.25rem);
+  left: 50%;
+  color: var(--k-parchment);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.k-week__label {
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+}
+
+.k-week__day--today .k-week__label {
+  color: var(--k-parchment);
+  font-weight: 700;
+}
+
+/* The day and its number over the column under the pointer or the focus, kept inside the card at
+   its ends. */
+.k-week__tip {
+  position: absolute;
+  bottom: calc(100% + var(--space-xs));
+  left: 50%;
+  z-index: 2;
+  display: none;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: var(--space-xs) var(--space-s);
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-btn);
+  background: var(--k-surface-raised);
+  box-shadow: var(--k-shadow-card);
+  color: var(--k-ash);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.k-week__tip b {
+  color: var(--k-parchment);
+  font-size: var(--text-s);
+}
+
+.k-week__day:nth-child(-n + 2) .k-week__tip {
+  left: 0;
+  transform: none;
+}
+
+.k-week__day:nth-last-child(-n + 2) .k-week__tip {
+  right: 0;
+  left: auto;
+  transform: none;
+}
+
+.k-week__day:is(:hover, :focus) .k-week__tip {
+  display: flex;
 }
 
 /* Wider than a phone, the cossack stands beside the rest from his cap to his boots. */
@@ -1461,18 +1603,10 @@
     aspect-ratio: auto;
     max-height: none;
     min-height: 20rem;
-    border-radius: calc(var(--k-r-card) - 1px) 0 0 calc(var(--k-r-card) - 1px);
   }
 
   .k-hero__body {
     padding: var(--space-l);
-  }
-}
-
-/* The cards of the pools share a row where three facts fit each of them. */
-@container k-cossack (min-width: 42rem) {
-  .k-pools {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1493,15 +1627,6 @@
     font-size: 2.25rem;
   }
 
-  .k-glory__top {
-    grid-template-areas: 'value next help';
-    grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-
-  .k-glory__next {
-    text-align: right;
-  }
-
   .k-score__count {
     padding: var(--space-s) var(--space-m);
   }
@@ -1509,9 +1634,25 @@
   .k-score__number {
     font-size: clamp(1.25rem, 36cqi, 2.5rem);
   }
+
+  .k-physical,
+  .k-week {
+    padding: var(--space-l);
+  }
+
+  .k-hero__name {
+    font-size: 1.625rem;
+  }
 }
 
-/* What brings glory: on the page of the ranks and in the panel beside the glory. */
+/* The table and the chart side by side, the table wider. */
+@container k-cossack (min-width: 44rem) {
+  .k-stats {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+/* What brings glory, on the page of the ranks. */
 
 .k-how {
   display: grid;
@@ -2136,6 +2277,19 @@
 
 .k-setting .k-button {
   margin-top: var(--space-2xs);
+}
+
+/* §24.11: the name of the cossack, a field over its button. */
+.k-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-s);
+  width: 100%;
+}
+
+.k-name .field {
+  width: 100%;
 }
 
 .k-identity {

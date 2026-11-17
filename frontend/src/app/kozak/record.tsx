@@ -36,7 +36,7 @@ const CossackContext = createContext<CossackLoad | null>(null);
  * new record arrives the screen keeps showing the previous one.
  */
 export function CossackProvider({ children }: { children: ReactNode }) {
-  const { storage } = useGame();
+  const { storage, timeZone } = useGame();
   const { pathname } = useLocation();
   const { version } = useDataVersion();
   const [run, setRun] = useState(0);
@@ -48,7 +48,7 @@ export function CossackProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let current = true;
 
-    storage.attempts.game().then(
+    storage.attempts.game(timeZone).then(
       (value) => {
         if (current) {
           setLoaded({ record: { status: 'ready', value }, loadedFor: pathname });
@@ -64,7 +64,7 @@ export function CossackProvider({ children }: { children: ReactNode }) {
     return () => {
       current = false;
     };
-  }, [storage, pathname, version, run]);
+  }, [storage, timeZone, pathname, version, run]);
 
   const reload = useCallback(() => setRun((value) => value + 1), []);
   const value = useMemo<CossackLoad>(

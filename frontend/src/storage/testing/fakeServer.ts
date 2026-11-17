@@ -9,6 +9,7 @@ import { matches, newestFirst, PAGE_SIZE } from '../history';
 import { newId } from '../ids';
 import type { Fetch } from '../http';
 import type { TestGoogleAccount } from '../memory';
+import { cleanNickname } from '../nickname';
 
 // §6: the fight keeps the last settings of the player; the journey has none.
 const MODES: readonly string[] = ['fight'];
@@ -20,6 +21,8 @@ interface User {
   subject: string | null;
   name: string | null;
   email: string | null;
+  // §24.11: the name the player gave the cossack.
+  nickname: string | null;
   exercises: CustomExercise[];
   settings: Settings;
   attempts: Attempt[];
@@ -58,8 +61,8 @@ export function createFakeServer(): FakeServer {
 
   const describeUser = (user: User) =>
     user.subject === null
-      ? { id: user.id, kind: 'guest', createdAt: user.createdAt }
-      : { id: user.id, kind: 'account', createdAt: user.createdAt, name: user.name, email: user.email };
+      ? { id: user.id, kind: 'guest', createdAt: user.createdAt, nickname: user.nickname }
+      : { id: user.id, kind: 'account', createdAt: user.createdAt, nickname: user.nickname, name: user.name, email: user.email };
 
   function describe() {
     const user = device === null ? undefined : users.get(device.user);
@@ -81,6 +84,7 @@ export function createFakeServer(): FakeServer {
       subject: null,
       name: null,
       email: null,
+      nickname: null,
       exercises: [],
       settings: {},
       attempts: [],
@@ -93,6 +97,7 @@ export function createFakeServer(): FakeServer {
   // §23.3: attempts keep their ids, exercises with a name the account has give way, the account keeps its settings.
   function join(guest: User, account: User): void {
     const taken = new Set(account.exercises.map(({ name }) => exerciseNameKey(name)));
+    account.nickname ??= guest.nickname;
     account.attempts = [...account.attempts, ...guest.attempts];
     account.exercises = [...account.exercises, ...guest.exercises.filter(({ name }) => !taken.has(exerciseNameKey(name)))];
     account.settings = { ...guest.settings, ...account.settings };
@@ -132,6 +137,17 @@ export function createFakeServer(): FakeServer {
         fallBack();
 
         return reply(204);
+      case 'PATCH me': {
+        const nickname = isRecord(body) && Object.keys(body).length === 1 && 'nickname' in body ? body.nickname : undefined;
+        const clean = nickname === null || typeof nickname === 'string' ? cleanNickname(nickname) : false;
+
+        if (clean === false) {
+          return reply(422, { error: 'invalid-name' });
+        }
+        user.nickname = clean;
+
+        return reply(200, describe());
+      }
       case 'POST me/logout':
         if (user.subject === null) {
           return reply(409, { error: 'not-signed-in' });
@@ -180,8 +196,9 @@ export function createFakeServer(): FakeServer {
           200,
           computeStatistics(user.attempts.filter((attempt) => matches(attempt, filterOf(url.searchParams)))),
         );
+      // The server keeps a year of days and a week of repetitions; the game needs no more of them.
       case 'GET game':
-        return reply(200, computeGameRecord(user.attempts));
+        return reply(200, computeGameRecord(user.attempts, url.searchParams.get('tz') ?? 'UTC'));
       default:
         return reply(404, { error: 'not-found' });
     }

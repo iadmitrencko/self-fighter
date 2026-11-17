@@ -7,6 +7,7 @@ namespace App\Account\Presentation\Http;
 use App\Account\Application\DeleteUser;
 use App\Account\Application\DescribeBrowser;
 use App\Account\Application\MergeGuest;
+use App\Account\Application\RenameCossack;
 use App\Account\Application\SignOut;
 use App\Account\Application\SignUpGuest;
 use App\Account\Application\UserView;
@@ -14,6 +15,7 @@ use App\Account\Domain\Device;
 use App\Shared\Domain\UserId;
 use App\Shared\Presentation\Http\ApiProblem;
 use App\Shared\Presentation\Http\Json;
+use App\Shared\Presentation\Http\JsonBody;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,11 +27,14 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final readonly class MeController
 {
+    private const int MAX_BYTES = 1024;
+
     public function __construct(
         private DescribeBrowser $describeBrowser,
         private SignUpGuest $signUpGuest,
         private SignOut $signOut,
         private MergeGuest $mergeGuest,
+        private RenameCossack $renameCossack,
         private DeleteUser $deleteUser,
         private DeviceCookie $cookie,
         private RateLimiterFactoryInterface $guestCreationLimiter,
@@ -63,6 +68,21 @@ final readonly class MeController
         $this->cookie->issue($response, $guest->token);
 
         return $response;
+    }
+
+    // §24.11: the name the player gives the cossack; null or an empty one leaves the name Google gave.
+    #[Route('/api/v1/me', name: 'api_me_update', methods: ['PATCH'])]
+    public function update(Request $request, UserId $user, Device $device): JsonResponse
+    {
+        $fields = JsonBody::fields($request, self::MAX_BYTES) ?? [];
+        $nickname = $fields['nickname'] ?? null;
+
+        if (1 !== \count($fields) || !\array_key_exists('nickname', $fields) || (null !== $nickname && !\is_string($nickname))) {
+            throw new ApiProblem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid-name');
+        }
+        ($this->renameCossack)($user, $nickname);
+
+        return Json::response(($this->describeBrowser)($device));
     }
 
     // §15.5: the data of every module goes together with the user.

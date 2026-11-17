@@ -65,7 +65,7 @@ describe('a fight', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Бій виграно' })).toBeTruthy();
     expect(storage.gameSessions.fight.load()).toBeNull();
-    expect((await storage.attempts.game()).fights).toEqual({ wins: 1, draws: 0, losses: 0 });
+    expect((await storage.attempts.game('UTC')).fights).toEqual({ wins: 1, draws: 0, losses: 0 });
     expect(analytics.events).toEqual([{ name: 'workout_completed', mode: 'fight', outcome: 'win' }]);
   });
 
@@ -99,7 +99,7 @@ describe('a fight', () => {
     await user.click(within(screen.getByRole('dialog', { name: 'Відступити з бою?' })).getByRole('button', { name: 'Відступити' }));
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Бій програно' })).toBeTruthy();
-    expect((await storage.attempts.game()).fights.losses).toBe(1);
+    expect((await storage.attempts.game('UTC')).fights.losses).toBe(1);
   });
 
   // A fight of many sets shows them as one bar.

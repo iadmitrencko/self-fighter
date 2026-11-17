@@ -13,12 +13,12 @@ const NO_TALLY = { wins: 0, draws: 0, losses: 0 };
 // A record of the game the server may send, for the broken ones to start from.
 const GAME = {
   fights: NO_TALLY,
-  fightStreak: 0,
   campaign: NO_TALLY,
   passed: [],
   energy: { fight: null, campaign: null },
-  best: {},
   exercises: {},
+  days: [],
+  week: {},
   duel: {},
   duelAt: null,
 };
@@ -222,13 +222,13 @@ describe('storage over the API', () => {
     it('counts a battle that waits for the network with what the server said last', async () => {
       await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
       await storage.attempts.flush();
-      expect((await storage.attempts.game()).passed).toEqual(['forest-ravens/1/1']);
+      expect((await storage.attempts.game('UTC')).passed).toEqual(['forest-ravens/1/1']);
 
       server.online = false;
       await storage.attempts.save(won('forest-ravens/1/2', '2026-11-02T11:00:00.000Z', '2026-11-02T20:00:00.000Z'));
       await storage.attempts.flush();
 
-      expect(await storage.attempts.game()).toMatchObject({
+      expect(await storage.attempts.game('UTC')).toMatchObject({
         campaign: { wins: 2, draws: 0, losses: 0 },
         passed: ['forest-ravens/1/1', 'forest-ravens/1/2'],
         energy: { fight: null, campaign: '2026-11-02T20:00:00.000Z' },
@@ -243,7 +243,7 @@ describe('storage over the API', () => {
       await storage.attempts.flush();
 
       expect((await storage.attempts.list()).items.map(({ status }) => status)).toEqual(['rejected']);
-      expect(await storage.attempts.game()).toMatchObject({
+      expect(await storage.attempts.game('UTC')).toMatchObject({
         campaign: NO_TALLY,
         passed: [],
         energy: { fight: null, campaign: null },
@@ -256,7 +256,7 @@ describe('storage over the API', () => {
       server.online = false;
       await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
 
-      expect(await storage.attempts.game()).toMatchObject({
+      expect(await storage.attempts.game('UTC')).toMatchObject({
         campaign: { wins: 1, draws: 0, losses: 0 },
         passed: ['forest-ravens/1/1'],
       });
@@ -264,12 +264,12 @@ describe('storage over the API', () => {
 
     // §15.4: the network went away before the first write made the browser a guest.
     it('counts the battles of a browser that lost the network before it became a guest', async () => {
-      await storage.attempts.game();
+      await storage.attempts.game('UTC');
       server.online = false;
       await expect(storage.settings.save(fightConfig())).rejects.toEqual(new StorageError('offline'));
       await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
 
-      expect((await storage.attempts.game()).passed).toEqual(['forest-ravens/1/1']);
+      expect((await storage.attempts.game('UTC')).passed).toEqual(['forest-ravens/1/1']);
     });
 
     it('needs the server once before it can count without it', async () => {
@@ -279,19 +279,19 @@ describe('storage over the API', () => {
       await reopened.account.current();
       server.online = false;
 
-      await expect(reopened.attempts.game()).rejects.toEqual(new StorageError('offline'));
+      await expect(reopened.attempts.game('UTC')).rejects.toEqual(new StorageError('offline'));
     });
 
     it('does not take a failure of the server for a missing network', async () => {
       await storage.settings.save(fightConfig());
-      await storage.attempts.game();
+      await storage.attempts.game('UTC');
       server.failNext(500);
 
-      await expect(storage.attempts.game()).rejects.toEqual(new StorageError('server'));
+      await expect(storage.attempts.game('UTC')).rejects.toEqual(new StorageError('server'));
     });
 
     it('asks nothing while the browser has no user', async () => {
-      expect((await storage.attempts.game()).passed).toEqual([]);
+      expect((await storage.attempts.game('UTC')).passed).toEqual([]);
       expect(server.requests).not.toContain('GET /api/v1/game');
     });
 
@@ -300,18 +300,18 @@ describe('storage over the API', () => {
       await storage.attempts.flush();
       server.clearCookie();
 
-      expect((await storage.attempts.game()).passed).toEqual([]);
+      expect((await storage.attempts.game('UTC')).passed).toEqual([]);
     });
 
     it('forgets the record of the previous user', async () => {
       await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
       await storage.attempts.flush();
-      await storage.attempts.game();
+      await storage.attempts.game('UTC');
       await storage.account.deleteData();
       await storage.settings.save(fightConfig());
       server.online = false;
 
-      expect((await storage.attempts.game()).passed).toEqual([]);
+      expect((await storage.attempts.game('UTC')).passed).toEqual([]);
     });
   });
 
@@ -512,12 +512,13 @@ describe('storage over the API', () => {
     it.each([
       ['a page instead of JSON', '/api/v1/me', '<h1>Bad gateway</h1>', (s: GameStorage) => s.account.current()],
       ['a user without an id', '/api/v1/me', { user: { kind: 'guest' } }, (s: GameStorage) => s.account.current()],
+      ['a guest without the name of the cossack', '/api/v1/me', { user: { id: 'a', kind: 'guest', createdAt: '' } }, (s: GameStorage) => s.account.current()],
       ['an account without a name', '/api/v1/me', { user: { id: 'a', kind: 'account', createdAt: '' } }, (s: GameStorage) => s.account.current()],
       ['a user of another kind', '/api/v1/me', { user: { id: 'a', kind: 'admin', createdAt: '' } }, (s: GameStorage) => s.account.current()],
       [
         'a kept guest without counts',
         '/api/v1/me',
-        { user: { id: 'a', kind: 'account', createdAt: '', name: null, email: null }, guest: { id: 'b', attempts: 1 } },
+        { user: { id: 'a', kind: 'account', createdAt: '', nickname: null, name: null, email: null }, guest: { id: 'b', attempts: 1 } },
         (s: GameStorage) => s.account.keptGuest(),
       ],
       ['an exercise without a name', '/api/v1/exercises', [{ id: 'a' }], (s: GameStorage) => s.exercises.list()],
@@ -525,28 +526,20 @@ describe('storage over the API', () => {
       ['a page without items', '/api/v1/attempts', { nextCursor: null }, (s: GameStorage) => s.attempts.list()],
       ['an attempt without an id', '/api/v1/attempts', { items: [{}], nextCursor: null }, (s: GameStorage) => s.attempts.list()],
       ['statistics without numbers', '/api/v1/stats', { total: '1' }, (s: GameStorage) => s.attempts.stats()],
-      [
-        'a record of the game without the best sets',
-        '/api/v1/game',
-        { fights: NO_TALLY, campaign: NO_TALLY, passed: [], energy: { fight: null, campaign: null } },
-        (s: GameStorage) => s.attempts.game(),
-      ],
-      [
-        'a best set that is no count',
-        '/api/v1/game',
-        { ...GAME, best: { 'pull-ups': -1 } },
-        (s: GameStorage) => s.attempts.game(),
-      ],
-      ['a record of the game without the run of fights', '/api/v1/game', { ...GAME, fightStreak: undefined }, (s: GameStorage) => s.attempts.game()],
-      ['a record of the game without the exercises', '/api/v1/game', { ...GAME, exercises: undefined }, (s: GameStorage) => s.attempts.game()],
+      ['a record of the game without the exercises', '/api/v1/game', { ...GAME, exercises: undefined }, (s: GameStorage) => s.attempts.game('UTC')],
+      ['a record of the game without the days', '/api/v1/game', { ...GAME, days: undefined }, (s: GameStorage) => s.attempts.game('UTC')],
+      ['a day that is no date', '/api/v1/game', { ...GAME, days: ['30.10.2026'] }, (s: GameStorage) => s.attempts.game('UTC')],
+      ['a week by no dates', '/api/v1/game', { ...GAME, week: { today: { 'push-ups': 1 } } }, (s: GameStorage) => s.attempts.game('UTC')],
+      ['a week of no counts', '/api/v1/game', { ...GAME, week: { '2026-10-30': { 'push-ups': -1 } } }, (s: GameStorage) => s.attempts.game('UTC')],
+      ['a week of no exercises', '/api/v1/game', { ...GAME, week: { '2026-10-30': 5 } }, (s: GameStorage) => s.attempts.game('UTC')],
       [
         'an exercise without its total',
         '/api/v1/game',
         { ...GAME, exercises: { 'push-ups': { best: 12 } } },
-        (s: GameStorage) => s.attempts.game(),
+        (s: GameStorage) => s.attempts.game('UTC'),
       ],
     ])('reports %s as a server failure', async (_, brokenPath, body, read) => {
-      const guest = { user: { id: newId(), kind: 'guest', createdAt: '' } };
+      const guest = { user: { id: newId(), kind: 'guest', createdAt: '', nickname: null } };
       const broken = createApiStorage({
         // Every other answer introduces a user, so the read reaches the broken one.
         fetch: (path) =>

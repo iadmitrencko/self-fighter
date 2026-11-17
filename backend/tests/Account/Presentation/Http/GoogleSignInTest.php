@@ -71,7 +71,7 @@ final class GoogleSignInTest extends ApiTestCase
 
         self::assertNotSame($guestCookie->getValue(), $this->deviceCookie()->getValue());
         self::assertSame([
-            'user' => ['id' => $guest, 'kind' => 'account', 'createdAt' => '2026-11-04T10:00:00.000Z', 'name' => 'Олена', 'email' => 'olena@example.com'],
+            'user' => ['id' => $guest, 'kind' => 'account', 'createdAt' => '2026-11-04T10:00:00.000Z', 'nickname' => null, 'name' => 'Олена', 'email' => 'olena@example.com'],
             'guest' => null,
         ], $this->me());
         $this->send('GET', '/api/v1/attempts');
@@ -168,6 +168,27 @@ final class GoogleSignInTest extends ApiTestCase
         self::assertEquals(['fight' => Documents::fightConfig()], $this->responseData());
         self::assertSame(1, $this->rowCount('user'));
         self::assertSame([$account], $this->eventUsers());
+    }
+
+    // §24.11: an account without a name for its cossack takes the one the guest gave; its own stays.
+    public function testJoiningGuestBringsTheNameOfTheCossack(): void
+    {
+        $this->signInWithGoogle(['sub' => '1001']);
+
+        $this->switchBrowser();
+        $this->signUp();
+        $this->send('PATCH', '/api/v1/me', ['nickname' => 'Іван Сірко']);
+        $this->signInWithGoogle(['sub' => '1001']);
+
+        self::assertSame('Іван Сірко', $this->me()['user']['nickname'] ?? null);
+
+        $this->switchBrowser();
+        $this->signUp();
+        $this->send('PATCH', '/api/v1/me', ['nickname' => 'Максим']);
+        $this->signInWithGoogle(['sub' => '1001']);
+
+        self::assertSame('Іван Сірко', $this->me()['user']['nickname'] ?? null);
+        self::assertSame(1, $this->rowCount('user'));
     }
 
     // The person changed their mind on the page of Google.

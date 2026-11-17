@@ -273,6 +273,9 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       // The attempts of the guest that wait in the browser go to the account now.
       void attempts.flush();
     },
+    async rename(nickname) {
+      remember(parseMe(expectStatus(await write('PATCH', '/api/v1/me', { nickname }), 200)));
+    },
     async signOut() {
       const reply = await request('POST', '/api/v1/me/logout');
       const browser = reply.status === 401 ? NOBODY : parseMe(expectStatus(reply, 200));
@@ -380,7 +383,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
 
       return addStatistics(saved, queued);
     },
-    async game() {
+    async game(timeZone) {
       // Without the network the browser is who the server said last, so a battle still ends.
       const browser = await me.get().catch((error: unknown) => {
         if (answered && error instanceof StorageError && error.code === 'offline') {
@@ -392,7 +395,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
 
       if (browser.user !== null) {
         try {
-          const reply = await request('GET', '/api/v1/game');
+          const reply = await request('GET', `/api/v1/game?tz=${encodeURIComponent(timeZone)}`);
           saved = reply.status === 401 ? forgotten(EMPTY_RECORD) : parseGameRecord(expectStatus(reply, 200));
           lastGame = saved;
         } catch (error) {
@@ -408,6 +411,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
         waiting(browser, {})
           .filter(({ status }) => status === 'pending')
           .map(({ attempt }) => attempt),
+        timeZone,
       );
 
       return addGameRecords(saved, queued);

@@ -55,6 +55,49 @@ describe('the settings of the game', () => {
   });
 });
 
+// §24.11: the player names the cossack, a guest too, and an empty field takes the name away.
+describe('the name of the cossack', () => {
+  it('is given by a guest, the first save making the guest', async () => {
+    const storage = createMemoryStorage();
+    const { user } = renderKozak('/settings', { storage });
+
+    const field = await screen.findByRole('textbox', { name: 'Ім’я або псевдонім' });
+    expect(field.getAttribute('maxlength')).toBe('40');
+    expect(screen.getByText('Його видно над званням козака.')).toBeTruthy();
+    await user.type(field, ' Іван  Сірко ');
+    await user.click(screen.getByRole('button', { name: 'Зберегти' }));
+
+    expect(await screen.findByText('Ім’я козака збережено.')).toBeTruthy();
+    expect(await storage.account.current()).toMatchObject({ kind: 'guest', nickname: 'Іван Сірко' });
+
+    await user.clear(field);
+    await user.click(screen.getByRole('button', { name: 'Зберегти' }));
+
+    expect(await screen.findByText('Козак лишився без власного імені.')).toBeTruthy();
+    expect(await storage.account.current()).toMatchObject({ nickname: null });
+  });
+
+  // Without a name of its own the cossack of an account carries the name Google gave.
+  it('says an account falls back to the name of Google', async () => {
+    const storage = createMemoryStorage();
+    storage.signIn({ sub: '1001', name: 'Олена' });
+    renderKozak('/settings', { storage });
+
+    expect(await screen.findByText('Його видно над званням козака. Без нього козак носитиме ім’я з Google: Олена.')).toBeTruthy();
+  });
+
+  it('says when the server refuses the name', async () => {
+    const storage = createMemoryStorage();
+    vi.spyOn(storage.account, 'rename').mockRejectedValue(new StorageError('offline'));
+    const { user } = renderKozak('/settings', { storage });
+
+    await user.type(await screen.findByRole('textbox', { name: 'Ім’я або псевдонім' }), 'Іван');
+    await user.click(screen.getByRole('button', { name: 'Зберегти' }));
+
+    expect(await screen.findByText(/^Немає зв'язку із сервером/)).toBeTruthy();
+  });
+});
+
 // An account that also lives on another device, opened here beside a guest with one attempt.
 async function accountWithKeptGuest(): Promise<MemoryStorage> {
   const storage = createMemoryStorage();

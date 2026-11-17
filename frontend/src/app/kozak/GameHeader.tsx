@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router';
 import type { EnergyPool } from '../../domain/kozak/energy';
 import { formatCount } from '../../i18n/format';
-import { cossackTexts, energyStatus, energyTexts, formatWait, kozakTexts, rankNames, statusTexts } from '../../i18n/kozak';
+import { energyStatus, energyTexts, formatWait, kozakTexts, rankNames, statusTexts } from '../../i18n/kozak';
 import { accountTexts, signInTexts, storageMessages } from '../../i18n/uk';
 import { GoogleLogo, useCanSignIn } from '../components/SignIn';
 import { useSignOut } from '../components/SignOut';
@@ -68,11 +68,11 @@ function RankBadge({ cossack: { glory, standing } }: { cossack: Cossack }) {
   );
 }
 
-// The battles of a pool and the icon of their section, the same as in the column and the bar of the
-// sections, so the two pills differ at a glance.
-const POOLS: Readonly<Record<EnergyPool, { to: string; icon: KozakIconName }>> = {
-  fight: { to: kozakPaths.fight, icon: 'fight' },
-  campaign: { to: kozakPaths.journey, icon: 'journey' },
+// The battles of a pool with the name and the icon of their section, the same as in the column and
+// the bar of the sections, so the two pills differ at a glance.
+const POOLS: Readonly<Record<EnergyPool, { to: string; icon: KozakIconName; name: string }>> = {
+  fight: { to: kozakPaths.fight, icon: 'fight', name: kozakTexts.nav.fight },
+  campaign: { to: kozakPaths.journey, icon: 'journey', name: kozakTexts.nav.journey },
 };
 
 // §24.4: a pool of energy, when its next unit comes back, and the way to its battles. A small bolt
@@ -88,7 +88,7 @@ function EnergyPill({ pool, cossack, now }: { pool: EnergyPool; cossack: Cossack
       <Link className="game-pill game-energy__link" to={POOLS[pool].to} aria-describedby={tipId}>
         <KozakIcon name={POOLS[pool].icon} className="game-pill__icon" />
         <span className="game-pill__name" aria-hidden="true">
-          {cossackTexts.pools[pool].title}
+          {POOLS[pool].name}
         </span>
         <b className="game-pill__value" aria-hidden="true">
           <KozakIcon name="bolt" className="game-energy__bolt" />

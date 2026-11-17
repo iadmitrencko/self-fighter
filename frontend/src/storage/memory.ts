@@ -15,6 +15,7 @@ import type {
 import { StorageError } from './errors';
 import { matches, newestFirst, PAGE_SIZE } from './history';
 import { newId } from './ids';
+import { cleanNickname } from './nickname';
 
 // A Google account as the tests sign in with it.
 export interface TestGoogleAccount {
@@ -72,7 +73,7 @@ export function createMemoryStorage(): MemoryStorage {
       return found;
     }
     const created: Person = {
-      user: { id: newId(), kind: 'guest', createdAt: now() },
+      user: { id: newId(), kind: 'guest', createdAt: now(), nickname: null },
       google: null,
       exercises: [],
       settings: {},
@@ -85,13 +86,15 @@ export function createMemoryStorage(): MemoryStorage {
   }
 
   function account(user: CurrentUser, { name, email }: TestGoogleAccount): AccountUser {
-    return { id: user.id, kind: 'account', createdAt: user.createdAt, name: name ?? null, email: email ?? null };
+    return { id: user.id, kind: 'account', createdAt: user.createdAt, nickname: user.nickname, name: name ?? null, email: email ?? null };
   }
 
   // §23.3: attempts move with their ids, an exercise gives way to one with the same name, the
   // settings of the account stay.
   function join(guest: Person, into: Person): void {
     const taken = new Set(into.exercises.map(({ name }) => exerciseNameKey(name)));
+    // §24.11: an account without a name for its cossack takes the one the guest gave.
+    into.user = { ...into.user, nickname: into.user.nickname ?? guest.user.nickname };
     into.attempts = [...into.attempts, ...guest.attempts];
     into.exercises = [...into.exercises, ...guest.exercises.filter(({ name }) => !taken.has(exerciseNameKey(name)))];
     into.settings = { ...guest.settings, ...into.settings };
@@ -112,7 +115,7 @@ export function createMemoryStorage(): MemoryStorage {
         guest.google = google.sub;
       } else if (linked === undefined) {
         const created: Person = {
-          user: account({ id: newId(), kind: 'guest', createdAt: now() }, google),
+          user: account({ id: newId(), kind: 'guest', createdAt: now(), nickname: null }, google),
           google: google.sub,
           exercises: [],
           settings: {},
@@ -150,6 +153,17 @@ export function createMemoryStorage(): MemoryStorage {
           join(guest, into);
         }
         kept = null;
+
+        return Promise.resolve();
+      },
+      rename(nickname) {
+        const clean = cleanNickname(nickname);
+
+        if (clean === false) {
+          return Promise.reject(new StorageError('rejected'));
+        }
+        const owner = signUp();
+        owner.user = { ...owner.user, nickname: clean };
 
         return Promise.resolve();
       },
@@ -247,7 +261,7 @@ export function createMemoryStorage(): MemoryStorage {
       },
       stats: (filter = {}) =>
         Promise.resolve(computeStatistics((person()?.attempts ?? []).filter((attempt) => matches(attempt, filter)))),
-      game: () => Promise.resolve(computeGameRecord(person()?.attempts ?? [])),
+      game: (timeZone) => Promise.resolve(computeGameRecord(person()?.attempts ?? [], timeZone)),
       flush: () => Promise.resolve(),
       // Nothing waits: the memory is the server.
       unsent: () => Promise.resolve(0),

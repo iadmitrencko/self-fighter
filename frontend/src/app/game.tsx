@@ -5,7 +5,7 @@ import type { SessionDeps } from '../domain/engine/session';
 import type { GameStorage } from '../storage/contract';
 
 // What every screen may use: the data of the player, the events of §19, the ready-made exercises,
-// the ways to sign in, and the sources of randomness, time and ids that tests replace.
+// the ways to sign in, and the sources of randomness, time, the time zone and ids that tests replace.
 export interface Game {
   readonly storage: GameStorage;
   readonly analytics: Analytics;
@@ -13,6 +13,8 @@ export interface Game {
   // The ways to sign in this server offers (§23.2), such as ['google'].
   readonly signIn: readonly string[];
   readonly deps: SessionDeps;
+  // §24.12: the days of the game go by the calendar of the player, in this zone of the IANA database.
+  readonly timeZone: string;
 }
 
 const GameContext = createContext<Game | null>(null);

@@ -39,6 +39,23 @@ export function formatDuration(milliseconds: number): string {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
 }
 
+// §24.10: a date of the calendar of the player, 'YYYY-MM-DD', at noon so no zone moves it to another day.
+const noonOf = (day: string) => new Date(`${day}T12:00:00.000Z`);
+const weekday = new Intl.DateTimeFormat('uk', { weekday: 'short', timeZone: 'UTC' });
+const day = new Intl.DateTimeFormat('uk', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+// «Пн», under a column of the chart of the last days.
+export function formatWeekday(date: string): string {
+  const name = weekday.format(noonOf(date));
+
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+// «понеділок, 16 листопада»
+export function formatDay(date: string): string {
+  return day.format(noonOf(date));
+}
+
 // Whole numbers with their thousands apart: «1 250».
 const count = new Intl.NumberFormat('uk', { maximumFractionDigits: 0 });
 

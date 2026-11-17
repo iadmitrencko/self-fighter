@@ -11,7 +11,8 @@ use App\Shared\Domain\Instant;
 final class UserView
 {
     /**
-     * An account also shows the name and the email Google gave, so the person sees whose account is open.
+     * An account also shows the name and the email Google gave, so the person sees whose account is
+     * open. The name the player gave the cossack goes with a guest as well (§24.11).
      *
      * @return array<string, string|null>
      */
@@ -21,6 +22,7 @@ final class UserView
             'id' => $user->id()->value,
             'kind' => $account ? 'account' : 'guest',
             'createdAt' => Instant::format($user->createdAt()),
+            'nickname' => $user->nickname(),
         ];
 
         return $account ? [...$view, 'name' => $user->name(), 'email' => $user->email()] : $view;

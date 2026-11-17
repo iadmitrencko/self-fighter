@@ -112,20 +112,19 @@ export function parseGameRecord(body: unknown): GameRecord {
     !isRecord(body.energy) ||
     !isOptionalText(body.energy.fight) ||
     !isOptionalText(body.energy.campaign) ||
-    !isOptionalText(body.duelAt) ||
-    !isCount(body.fightStreak)
+    !isOptionalText(body.duelAt)
   ) {
     throw unexpected();
   }
 
   return {
     fights: parseTally(body.fights),
-    fightStreak: body.fightStreak,
     campaign: parseTally(body.campaign),
     passed: body.passed,
     energy: { fight: body.energy.fight, campaign: body.energy.campaign },
-    best: parseBest(body.best),
     exercises: parseExerciseTotals(body.exercises),
+    days: parseDays(body.days),
+    week: parseWeek(body.week),
     duel: parseDuel(body.duel),
     duelAt: body.duelAt,
   };
@@ -148,6 +147,48 @@ function parseExerciseTotals(value: unknown): Readonly<Record<string, ExerciseTo
   );
 }
 
+// §24.12: the days with a battle by the calendar of the player, as 'YYYY-MM-DD'.
+function parseDays(value: unknown): readonly string[] {
+  if (!Array.isArray(value) || !value.every(isDate)) {
+    throw unexpected();
+  }
+
+  return value;
+}
+
+// §24.10: the repetitions of each exercise by the day.
+function parseWeek(value: unknown): Readonly<Record<string, Readonly<Record<string, number>>>> {
+  if (!isRecord(value)) {
+    throw unexpected();
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([day, reps]) => {
+      if (!isDate(day) || !isRecord(reps)) {
+        throw unexpected();
+      }
+
+      return [day, parseCounts(reps)];
+    }),
+  );
+}
+
+function parseCounts(value: Readonly<Record<string, unknown>>): Readonly<Record<string, number>> {
+  return Object.fromEntries(
+    Object.entries(value).map(([key, count]) => {
+      if (!isCount(count)) {
+        throw unexpected();
+      }
+
+      return [key, count];
+    }),
+  );
+}
+
+function isDate(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 // §24.9: the places of the sets of the duel done, by the round.
 function parseDuel(value: unknown): Readonly<Record<string, readonly number[]>> {
   if (!isRecord(value)) {
@@ -165,23 +206,6 @@ function parseDuel(value: unknown): Readonly<Record<string, readonly number[]>> 
   );
 }
 
-// §24.8: the best set of every exercise of the journey, by its id.
-function parseBest(value: unknown): Readonly<Record<string, number>> {
-  if (!isRecord(value)) {
-    throw unexpected();
-  }
-
-  return Object.fromEntries(
-    Object.entries(value).map(([exercise, reps]) => {
-      if (!isCount(reps)) {
-        throw unexpected();
-      }
-
-      return [exercise, reps];
-    }),
-  );
-}
-
 function parseTally(value: unknown): Tally {
   if (!isRecord(value) || !isCount(value.wins) || !isCount(value.draws) || !isCount(value.losses)) {
     throw unexpected();
@@ -191,17 +215,19 @@ function parseTally(value: unknown): Tally {
 }
 
 function parseUser(value: unknown): CurrentUser {
-  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.createdAt !== 'string') {
+  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.createdAt !== 'string' || !isOptionalText(value.nickname)) {
     throw unexpected();
   }
+  const { id, createdAt, nickname } = value;
+
   if (value.kind === 'guest') {
-    return { id: value.id, kind: 'guest', createdAt: value.createdAt };
+    return { id, kind: 'guest', createdAt, nickname };
   }
   if (value.kind !== 'account' || !isOptionalText(value.name) || !isOptionalText(value.email)) {
     throw unexpected();
   }
 
-  return { id: value.id, kind: 'account', createdAt: value.createdAt, name: value.name, email: value.email };
+  return { id, kind: 'account', createdAt, nickname, name: value.name, email: value.email };
 }
 
 function parseKeptGuest(value: unknown): KeptGuest {

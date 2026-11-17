@@ -19,10 +19,11 @@ export function testClock(start = STARTED_AT): () => Date {
 }
 
 // Renders the cossack game at a path under /game (§24), with storage and events in memory and a
-// clock that moves. The server offers signing in with Google unless `signIn` says otherwise.
+// clock that moves. The server offers signing in with Google unless `signIn` says otherwise, and
+// the days of the game go by UTC unless `timeZone` says otherwise.
 export function renderKozak(
   path: string,
-  options: { storage?: GameStorage; now?: () => Date; signIn?: readonly string[] } = {},
+  options: { storage?: GameStorage; now?: () => Date; signIn?: readonly string[]; timeZone?: string } = {},
 ) {
   const storage = options.storage ?? createMemoryStorage();
   const analytics = createMemoryAnalytics();
@@ -32,6 +33,7 @@ export function renderKozak(
     exercises: READY_MADE,
     signIn: options.signIn ?? ['google'],
     deps: { now: options.now ?? testClock(), newId },
+    timeZone: options.timeZone ?? 'UTC',
   };
   const user = userEvent.setup();
   const view = render(

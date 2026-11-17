@@ -41,7 +41,25 @@ describe.each([
     it('becomes a guest with the first write', async () => {
       await storage.settings.save(fightConfig());
 
-      expect(await storage.account.current()).toMatchObject({ kind: 'guest' });
+      expect(await storage.account.current()).toMatchObject({ kind: 'guest', nickname: null });
+    });
+
+    // §24.11: a guest names the cossack too; naming is a write, so it makes the guest.
+    it('names the cossack', async () => {
+      await storage.account.rename(' Іван \n  Сірко ');
+
+      expect(await storage.account.current()).toMatchObject({ kind: 'guest', nickname: 'Іван Сірко' });
+
+      await storage.account.rename('   ');
+
+      expect(await storage.account.current()).toMatchObject({ nickname: null });
+    });
+
+    it('refuses a name longer than allowed', async () => {
+      await expect(storage.account.rename('я'.repeat(41))).rejects.toEqual(new StorageError('rejected'));
+      await storage.account.rename('я'.repeat(40));
+
+      expect(await storage.account.current()).toMatchObject({ nickname: 'я'.repeat(40) });
     });
 
     it('deletes every piece of data', async () => {
@@ -190,34 +208,47 @@ describe.each([
       await storage.attempts.save(duelAttempt(1, '2026-11-02T11:00:00.000Z', '2026-11-02T21:00:00.000Z', { retreatAt: 2 }));
       await storage.attempts.flush();
 
-      expect(await storage.attempts.game()).toEqual({
+      expect(await storage.attempts.game('UTC')).toEqual({
         fights: { wins: 1, draws: 0, losses: 0 },
-        fightStreak: 1,
         campaign: { wins: 1, draws: 0, losses: 2 },
         passed: ['forest-ravens/1/1'],
         energy: { fight: '2026-11-01T13:00:00.000Z', campaign: '2026-11-02T21:00:00.000Z' },
-        best: { 'pull-ups': 1, 'push-ups': 20 },
         // §24.10: every set done of the fight, the levels and the duel.
         exercises: {
           'pull-ups': { best: 1, total: 3 },
           'push-ups': { best: 20, total: 67 },
           squats: { best: 20, total: 50 },
         },
+        // §24.12: the days with a battle, the level left before its first set too, and their repetitions.
+        days: ['2026-11-01', '2026-11-02'],
+        week: { '2026-11-01': { 'push-ups': 32, squats: 50 }, '2026-11-02': { 'pull-ups': 3, 'push-ups': 35 } },
         duel: { 'final-battle/1/1': [0, 1] },
         duelAt: '2026-11-02T11:00:00.000Z',
       });
       expect((await storage.attempts.stats()).total).toBe(4);
     });
 
+    // §24.12: the days go by the calendar of the player, wherever the record is counted.
+    it('puts the battles on the days of the player', async () => {
+      await storage.attempts.save(gameFight('win', '2026-11-01T22:30:00.000Z', '2026-11-02T00:30:00.000Z'));
+      await storage.attempts.flush();
+
+      expect(await storage.attempts.game('UTC')).toMatchObject({ days: ['2026-11-01'] });
+      expect(await storage.attempts.game('Europe/Kyiv')).toMatchObject({
+        days: ['2026-11-02'],
+        week: { '2026-11-02': { 'push-ups': 32, squats: 50 } },
+      });
+    });
+
     it('has an empty record before the first battle', async () => {
-      expect(await storage.attempts.game()).toEqual({
+      expect(await storage.attempts.game('UTC')).toEqual({
         fights: { wins: 0, draws: 0, losses: 0 },
-        fightStreak: 0,
         campaign: { wins: 0, draws: 0, losses: 0 },
         passed: [],
         energy: { fight: null, campaign: null },
-        best: {},
         exercises: {},
+        days: [],
+        week: {},
         duel: {},
         duelAt: null,
       });
@@ -325,6 +356,7 @@ describe.each([
       id: guest?.id,
       kind: 'account',
       createdAt: guest?.createdAt,
+      nickname: null,
       name: 'Олена',
       email: 'olena@example.com',
     });
@@ -418,6 +450,16 @@ describe.each([
 
     expect(await browser.storage.account.keptGuest()).toBeNull();
     expect(await browser.storage.settings.get('fight')).toEqual(fightConfig());
+  });
+
+  // §24.11: an account without a name for its cossack takes the one the guest gave.
+  it('takes the name the guest gave the cossack', async () => {
+    await accountElsewhere();
+    await browser.storage.account.rename('Іван Сірко');
+
+    browser.signIn(OLENA);
+
+    expect(await browser.storage.account.current()).toMatchObject({ kind: 'account', nickname: 'Іван Сірко', name: 'Олена' });
   });
 
   // §15.5: deleting the account brings back the guest the browser kept beside it.

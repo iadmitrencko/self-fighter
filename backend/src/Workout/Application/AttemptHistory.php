@@ -11,14 +11,17 @@ use App\Workout\Domain\AttemptId;
 use App\Workout\Domain\AttemptRepository;
 use App\Workout\Domain\GamePool;
 use App\Workout\Domain\Outcome;
+use Psr\Clock\ClockInterface;
 
 /**
  * The history (§14) and its statistics.
  */
 final readonly class AttemptHistory
 {
-    public function __construct(private AttemptRepository $attempts)
-    {
+    public function __construct(
+        private AttemptRepository $attempts,
+        private ClockInterface $clock,
+    ) {
     }
 
     public function find(UserId $owner, AttemptId $id): ?Attempt
@@ -52,9 +55,11 @@ final readonly class AttemptHistory
         );
     }
 
-    // §24: counted from the attempts as well, so the game always agrees with the history.
-    public function game(UserId $owner): GameRecord
+    // §24: counted from the attempts as well, so the game always agrees with the history. Its days go
+    // by the calendar of the player (§24.12).
+    public function game(UserId $owner, \DateTimeZone $zone): GameRecord
     {
+        $today = $this->clock->now()->setTimezone($zone)->setTime(0, 0);
         $energy = [];
 
         foreach (GamePool::cases() as $pool) {
@@ -63,14 +68,54 @@ final readonly class AttemptHistory
 
         return new GameRecord(
             Tally::of($this->attempts->countByOutcome($owner, new AttemptFilter(pool: GamePool::Fight))),
-            $this->attempts->fightStreak($owner),
             Tally::of($this->attempts->countByOutcome($owner, new AttemptFilter(pool: GamePool::Campaign))),
             $this->attempts->passedLevels($owner),
             $energy,
-            $this->attempts->bestSets($owner),
             $this->attempts->exerciseTotals($owner),
+            $this->days($owner, $today),
+            $this->week($owner, $today),
             $this->attempts->duelDone($owner),
             $this->attempts->duelAt($owner),
         );
+    }
+
+    /**
+     * §24.12: the days with a battle a year back, by the calendar of the player.
+     *
+     * @return list<string>
+     */
+    private function days(UserId $owner, \DateTimeImmutable $today): array
+    {
+        $days = [];
+
+        foreach ($this->attempts->finishedSince($owner, $today->modify('-1 year')) as $finishedAt) {
+            $days[] = $finishedAt->setTimezone($today->getTimezone())->format('Y-m-d');
+        }
+        $days = array_values(array_unique($days));
+        sort($days);
+
+        return $days;
+    }
+
+    /**
+     * §24.10: the repetitions of each exercise on each of the last seven days of the player.
+     *
+     * @return array<string, array<string, int>>
+     */
+    private function week(UserId $owner, \DateTimeImmutable $today): array
+    {
+        $week = [];
+
+        foreach ($this->attempts->repsSince($owner, $today->modify('-6 days')) as ['finishedAt' => $finishedAt, 'exercise' => $exercise, 'reps' => $reps]) {
+            $day = $finishedAt->setTimezone($today->getTimezone())->format('Y-m-d');
+            $week[$day][$exercise] = ($week[$day][$exercise] ?? 0) + $reps;
+        }
+        ksort($week);
+
+        foreach ($week as &$exercises) {
+            ksort($exercises);
+        }
+
+        return $week;
     }
 }

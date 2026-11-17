@@ -1,10 +1,10 @@
 import { useId } from 'react';
 import { Link } from 'react-router';
 import { rankGroups, type RankGroup, type Standing } from '../../domain/kozak/ranks';
-import { lookTexts, rankNames, ranksTexts } from '../../i18n/kozak';
+import { gloryRewards, lookTexts, rankNames, ranksTexts } from '../../i18n/kozak';
 import { Title } from '../components/Screen';
 import { kozakPaths } from './paths';
-import { Bar, GloryRewards, KozakIcon, KozakScreen, WithCossack } from './parts';
+import { Bar, KozakIcon, KozakScreen, WithCossack } from './parts';
 
 const GROUPS = rankGroups();
 
@@ -63,6 +63,20 @@ export function RanksScreen() {
         )}
       </WithCossack>
     </KozakScreen>
+  );
+}
+
+// §24.3: what brings glory.
+function GloryRewards() {
+  return (
+    <dl className="k-how">
+      {gloryRewards.map(([what, amount]) => (
+        <div key={what} className="k-how__item">
+          <dt>{what}</dt>
+          <dd>{amount}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

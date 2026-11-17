@@ -93,23 +93,33 @@ final readonly class AttemptController
     }
 
     #[Route('/api/v1/game', name: 'api_game', methods: ['GET'])]
-    public function game(UserId $user): JsonResponse
+    public function game(Request $request, UserId $user): JsonResponse
     {
-        $record = $this->history->game($user);
+        $record = $this->history->game($user, self::zone($request->query->getString('tz')));
         $tally = static fn (Tally $tally): array => ['wins' => $tally->wins, 'draws' => $tally->draws, 'losses' => $tally->losses];
 
         return Json::response([
             'fights' => $tally($record->fights),
-            'fightStreak' => $record->fightStreak,
             'campaign' => $tally($record->campaign),
             'passed' => $record->passed,
             'energy' => array_map(static fn (?\DateTimeImmutable $time): ?string => null === $time ? null : Instant::format($time), $record->energy),
             // Objects even when empty, as the browser expects them.
-            'best' => (object) $record->best,
             'exercises' => (object) $record->exercises,
+            'days' => $record->days,
+            'week' => (object) $record->week,
             'duel' => (object) $record->duel,
             'duelAt' => null === $record->duelAt ? null : Instant::format($record->duelAt),
         ]);
+    }
+
+    // §24.12: the days go by the calendar of the player; a zone PHP does not know counts as UTC.
+    private static function zone(string $name): \DateTimeZone
+    {
+        try {
+            return new \DateTimeZone('' === $name ? 'UTC' : $name);
+        } catch (\Exception) {
+            return new \DateTimeZone('UTC');
+        }
     }
 
     /**

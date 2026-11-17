@@ -21,13 +21,11 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
 
   await expect(page.getByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeVisible();
   await expectAccessible(page);
-  await page.getByRole('button', { name: 'Як здобути славу' }).click();
-  await expect(page.getByRole('region', { name: 'Як здобути славу' })).toBeVisible();
-  await expectAccessible(page);
-  await page.keyboard.press('Escape');
 
-  await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Звання' }).click();
+  // §24.2: the next rank leads to all the ranks and what brings glory.
+  await page.getByRole('link', { name: 'наступне: Заставний' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Звання', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Як здобути славу' })).toBeVisible();
   await expectAccessible(page);
 
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Похід' }).click();
@@ -72,17 +70,19 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   await expect(page.getByRole('heading', { level: 1, name: 'Налаштування' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Видалити всі дані' })).toBeVisible();
   await expectAccessible(page);
+  // §24.11: the player names the cossack, a guest too.
+  await page.getByRole('textbox', { name: 'Ім’я або псевдонім' }).fill('Іван Сірко');
+  await page.getByRole('button', { name: 'Зберегти' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Ім’я козака збережено.' })).toBeVisible();
 
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Козак' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeVisible();
+  // Chromium puts a space after the block of the name, before its hidden comma; a screen reader keeps quiet about it.
+  await expect(page.getByRole('heading', { level: 1, name: /^Іван Сірко ?, Звання: Джура$/ })).toBeVisible();
   await expect(page.getByRole('progressbar', { name: 'Ще 8 слави до звання «Заставний»' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Бойовий рахунок' }).getByRole('listitem')).toHaveText(['1 перемога', '0 нічиїх', '0 поразок']);
-  // §24.8: the level brought the first best set of the pull-ups.
-  await expect(page.getByRole('region', { name: 'Похід' }).getByRole('definition')).toHaveText([/ще немає/, /ще немає/, '1 за підхід']);
-  // §24.10: and its three pull-ups.
-  await expect(
-    page.getByRole('region', { name: 'Фізична статистика' }).getByRole('listitem').filter({ hasText: 'Підтягування' }).getByRole('definition'),
-  ).toHaveText(['1', '3']);
+  // §24.10: the level brought three pull-ups, one in each set, today; §24.12: and the first day of a run.
+  await expect(page.getByRole('table', { name: 'Фізична статистика' }).getByRole('row', { name: /^Підтягування/ }).getByRole('cell')).toHaveText(['1', '3', '3']);
+  await expect(page.getByText('1 день поспіль')).toBeVisible();
   await expectAccessible(page);
 });
 

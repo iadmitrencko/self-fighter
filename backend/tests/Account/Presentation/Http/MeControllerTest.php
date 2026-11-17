@@ -8,6 +8,7 @@ use App\Shared\Domain\UserId;
 use App\Tests\Shared\Presentation\Http\ApiTestCase;
 use App\Tests\Workout\Documents;
 use App\Workout\Domain\ExerciseId;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\Cookie as ResponseCookie;
@@ -78,6 +79,54 @@ final class MeControllerTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         self::assertSame(['user' => null, 'guest' => null], $this->responseData());
         self::assertTrue($this->issuedDeviceCookie()->isCleared());
+    }
+
+    // §24.11: a guest names the cossack too; the name is cleaned, and null takes it away.
+    public function testGuestNamesTheCossack(): void
+    {
+        $this->signUp();
+
+        $this->send('PATCH', '/api/v1/me', ['nickname' => "  Іван \n Сірко "]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('Іван Сірко', $this->nickname());
+        $this->send('GET', '/api/v1/me');
+        self::assertSame('Іван Сірко', $this->nickname());
+
+        $this->send('PATCH', '/api/v1/me', ['nickname' => null]);
+
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->nickname());
+    }
+
+    #[DataProvider('noNames')]
+    public function testRefusesWhatIsNoName(mixed $body): void
+    {
+        $this->signUp();
+
+        $this->send('PATCH', '/api/v1/me', $body);
+
+        $this->assertError(422, 'invalid-name');
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function noNames(): iterable
+    {
+        yield 'too long' => [['nickname' => str_repeat('я', 41)]];
+        yield 'a number' => [['nickname' => 7]];
+        yield 'no name' => [['name' => 'Іван']];
+        yield 'one more field' => [['nickname' => 'Іван', 'name' => 'Іван']];
+        yield 'a list' => [['Іван']];
+    }
+
+    public function testNamingTheCossackNeedsUser(): void
+    {
+        $this->send('PATCH', '/api/v1/me', ['nickname' => 'Іван']);
+
+        $this->assertError(401, 'unauthorized');
+        self::assertSame(0, $this->rowCount('user'));
     }
 
     public function testDataNeedsUser(): void
@@ -170,5 +219,21 @@ final class MeControllerTest extends ApiTestCase
         }
 
         self::fail('The response does not set the device cookie.');
+    }
+
+    /**
+     * The name of the cossack in the last answer about the user of the browser.
+     *
+     * @phpstan-impure
+     */
+    private function nickname(): ?string
+    {
+        $user = $this->responseData()['user'] ?? null;
+        self::assertIsArray($user);
+        self::assertArrayHasKey('nickname', $user);
+        $nickname = $user['nickname'];
+        self::assertTrue(null === $nickname || \is_string($nickname));
+
+        return $nickname;
     }
 }

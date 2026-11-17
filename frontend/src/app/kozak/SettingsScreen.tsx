@@ -2,7 +2,7 @@ import { useCallback, useId, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router';
 import { settingsTexts } from '../../i18n/kozak';
 import { accountTexts, commonTexts, signInTexts } from '../../i18n/uk';
-import type { AccountUser, KeptGuest } from '../../storage/contract';
+import { NICKNAME_MAX, type AccountUser, type CurrentUser, type KeptGuest } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
 import { ConfirmDialog } from '../components/Dialog';
 import { Title } from '../components/Screen';
@@ -16,9 +16,9 @@ import { errorCode, useLoad } from '../useLoad';
 import { KozakScreen } from './parts';
 
 /**
- * §15.5, §23, §24.1: the data of the player as a section of the game. Every user, a guest too, can
- * delete the data; a guest can sign in, an account can sign out and take in the guest this
- * browser kept beside it.
+ * §15.5, §23, §24.1, §24.11: the data of the player as a section of the game. Every player, a guest
+ * too, names the cossack and can delete the data; a guest can sign in, an account can sign out and
+ * take in the guest this browser kept beside it.
  */
 export function SettingsScreen() {
   const { storage } = useGame();
@@ -68,6 +68,13 @@ export function SettingsScreen() {
     signOut.start();
   };
 
+  const rename = (nickname: string | null) =>
+    act(async () => {
+      await storage.account.rename(nickname);
+
+      return nickname === null ? settingsTexts.nameCleared : settingsTexts.nameSaved;
+    });
+
   const join = () =>
     act(async () => {
       await storage.account.joinGuest();
@@ -101,6 +108,7 @@ export function SettingsScreen() {
       </p>
       {browser.status === 'ready' && (
         <div className="k-settings">
+          <CossackNameCard user={user} busy={busy} onSave={(nickname) => void rename(nickname)} />
           {account !== null && <AccountCard account={account} busy={busy || signOut.busy} onSignOut={startSignOut} />}
           {account === null && canSignIn && (
             <Setting title={accountTexts.signInTitle}>
@@ -148,6 +156,58 @@ function Setting({ title, active = false, children }: { title: string; active?: 
       </h2>
       {children}
     </section>
+  );
+}
+
+// §24.11: the name the player gives the cossack, a guest too; without it an account carries the
+// name Google gave. An empty field takes the name away.
+function CossackNameCard({
+  user,
+  busy,
+  onSave,
+}: {
+  user: CurrentUser | null;
+  busy: boolean;
+  onSave: (nickname: string | null) => void;
+}) {
+  const inputId = useId();
+  const hintId = useId();
+  const [value, setValue] = useState(user?.nickname ?? '');
+  const google = user?.kind === 'account' ? user.name : null;
+
+  return (
+    <Setting title={settingsTexts.nameTitle}>
+      <form
+        className="k-name"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave(value.trim() === '' ? null : value);
+        }}
+      >
+        <div className="field">
+          <label className="field__label" htmlFor={inputId}>
+            {settingsTexts.nameLabel}
+          </label>
+          <input
+            id={inputId}
+            className="input"
+            value={value}
+            maxLength={NICKNAME_MAX}
+            autoComplete="nickname"
+            spellCheck={false}
+            placeholder={settingsTexts.namePlaceholder}
+            aria-describedby={hintId}
+            onChange={(event) => setValue(event.target.value)}
+          />
+          <p id={hintId} className="hint">
+            {google === null ? settingsTexts.nameText : `${settingsTexts.nameText} ${settingsTexts.nameFallback(google)}`}
+          </p>
+        </div>
+        <button type="submit" className="k-button k-button--secondary" disabled={busy}>
+          {settingsTexts.nameSave}
+        </button>
+      </form>
+    </Setting>
   );
 }
 

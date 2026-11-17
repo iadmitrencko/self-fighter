@@ -8,6 +8,7 @@
         <field name="createdAt" type="datetime_immutable"/>
         <field name="email" length="254" nullable="true"/>
         <field name="name" length="100" nullable="true"/>
+        <field name="nickname" length="40" nullable="true"/>
     </entity>
 
 </doctrine-mapping>

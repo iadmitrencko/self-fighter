@@ -80,65 +80,37 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
         return array_values(array_filter($levels, 'is_string'));
     }
 
-    // The sets live in the document of the attempt (backend/schema/attempt.schema.json). A level
-    // names the exercise of its campaign once, a battle of the duel names it in every set.
-    public function bestSets(UserId $owner): array
-    {
-        $rows = $this->entityManager->getConnection()->fetchAllKeyValue(
-            <<<'SQL'
-                SELECT COALESCE(s.set_exercise, a.document->>'$.config.exercise.id') AS exercise, MAX(s.target) AS best
-                FROM attempt a,
-                    JSON_TABLE(a.document, '$.result.sets[*]' COLUMNS (
-                        target INT PATH '$.target',
-                        done BOOLEAN PATH '$.done',
-                        set_exercise VARCHAR(80) PATH '$.exercise.id'
-                    )) s
-                WHERE a.user_id = :owner AND a.mode IN (:campaign, :duel) AND s.done
-                GROUP BY exercise
-                ORDER BY exercise
-                SQL,
-            ['owner' => $owner, 'campaign' => Mode::Campaign->value, 'duel' => Mode::Duel->value],
-            ['owner' => UserIdType::NAME],
-        );
-        $best = [];
+    /*
+     * The sets done since a moment, with their battle and exercise. The sets live in the document of
+     * the attempt (backend/schema/attempt.schema.json), and a battle keeps whether each set was done.
+     * A fight names the exercise of its sets once for each exercise, a level once for all its sets, a
+     * battle of the duel in every set.
+     */
+    private const string SETS_DONE = <<<'SQL'
+        SELECT a.id AS id, a.finished_at AS finished_at, s.exercise AS exercise, s.reps AS reps
+        FROM attempt a,
+            JSON_TABLE(a.document, '$.result.exercises[*]' COLUMNS (
+                exercise VARCHAR(80) PATH '$.exercise.id',
+                NESTED PATH '$.sets[*]' COLUMNS (reps INT PATH '$.target', done BOOLEAN PATH '$.done')
+            )) s
+        WHERE a.user_id = :owner AND a.mode = :fight AND a.finished_at >= :since AND s.done
+        UNION ALL
+        SELECT a.id, a.finished_at, COALESCE(s.exercise, a.document->>'$.config.exercise.id'), s.reps
+        FROM attempt a,
+            JSON_TABLE(a.document, '$.result.sets[*]' COLUMNS (
+                reps INT PATH '$.target',
+                done BOOLEAN PATH '$.done',
+                exercise VARCHAR(80) PATH '$.exercise.id'
+            )) s
+        WHERE a.user_id = :owner AND a.mode IN (:campaign, :duel) AND a.finished_at >= :since AND s.done
+        SQL;
 
-        foreach ($rows as $exercise => $reps) {
-            $best[(string) $exercise] = (int) $reps;
-        }
-
-        return $best;
-    }
-
-    // A battle keeps whether each set was done. A fight names the exercise of its sets once for each
-    // exercise, a level once for all its sets, a battle of the duel in every set.
     public function exerciseTotals(UserId $owner): array
     {
-        $rows = $this->entityManager->getConnection()->fetchAllAssociative(
-            <<<'SQL'
-                SELECT done.exercise AS exercise, MAX(done.reps) AS best, SUM(done.reps) AS total
-                FROM (
-                    SELECT s.exercise AS exercise, s.reps AS reps
-                    FROM attempt a,
-                        JSON_TABLE(a.document, '$.result.exercises[*]' COLUMNS (
-                            exercise VARCHAR(80) PATH '$.exercise.id',
-                            NESTED PATH '$.sets[*]' COLUMNS (reps INT PATH '$.target', done BOOLEAN PATH '$.done')
-                        )) s
-                    WHERE a.user_id = :owner AND a.mode = :fight AND s.done
-                    UNION ALL
-                    SELECT COALESCE(s.exercise, a.document->>'$.config.exercise.id'), s.reps
-                    FROM attempt a,
-                        JSON_TABLE(a.document, '$.result.sets[*]' COLUMNS (
-                            reps INT PATH '$.target',
-                            done BOOLEAN PATH '$.done',
-                            exercise VARCHAR(80) PATH '$.exercise.id'
-                        )) s
-                    WHERE a.user_id = :owner AND a.mode IN (:campaign, :duel) AND s.done
-                ) done
-                GROUP BY done.exercise
-                ORDER BY done.exercise
-                SQL,
-            ['owner' => $owner, 'fight' => Mode::Fight->value, 'campaign' => Mode::Campaign->value, 'duel' => Mode::Duel->value],
-            ['owner' => UserIdType::NAME],
+        $rows = $this->setsDone(
+            'SELECT done.exercise AS exercise, MAX(done.reps) AS best, SUM(done.reps) AS total FROM (%s) done GROUP BY done.exercise ORDER BY done.exercise',
+            $owner,
+            new \DateTimeImmutable('@0'),
         );
         $totals = [];
 
@@ -149,26 +121,56 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
         return $totals;
     }
 
-    // The fights won after the latest fight that was not, in the order of the history.
-    public function fightStreak(UserId $owner): int
+    public function repsSince(UserId $owner, \DateTimeImmutable $since): array
     {
-        $streak = $this->entityManager->getConnection()->fetchOne(
-            <<<'SQL'
-                SELECT COUNT(*)
-                FROM attempt a
-                WHERE a.user_id = :owner AND a.pool = :pool AND a.outcome = :win
-                    AND NOT EXISTS (
-                        SELECT 1
-                        FROM attempt b
-                        WHERE b.user_id = a.user_id AND b.pool = :pool AND b.outcome <> :win
-                            AND (b.finished_at > a.finished_at OR (b.finished_at = a.finished_at AND b.id > a.id))
-                    )
-                SQL,
-            ['owner' => $owner, 'pool' => GamePool::Fight->value, 'win' => Outcome::Win->value],
-            ['owner' => UserIdType::NAME],
+        $rows = $this->setsDone(
+            'SELECT done.finished_at AS finished_at, done.exercise AS exercise, SUM(done.reps) AS reps FROM (%s) done GROUP BY done.id, done.finished_at, done.exercise',
+            $owner,
+            $since,
         );
 
-        return is_numeric($streak) ? (int) $streak : 0;
+        return array_map(
+            static fn (array $row): array => [
+                'finishedAt' => self::instant($row['finished_at']),
+                'exercise' => (string) $row['exercise'],
+                'reps' => (int) $row['reps'],
+            ],
+            $rows,
+        );
+    }
+
+    public function finishedSince(UserId $owner, \DateTimeImmutable $since): array
+    {
+        $times = $this->entityManager->getConnection()->fetchFirstColumn(
+            'SELECT finished_at FROM attempt WHERE user_id = :owner AND finished_at >= :since',
+            ['owner' => $owner, 'since' => self::utc($since)],
+            ['owner' => UserIdType::NAME, 'since' => Types::DATETIME_IMMUTABLE],
+        );
+
+        return array_map(self::instant(...), $times);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function setsDone(string $query, UserId $owner, \DateTimeImmutable $since): array
+    {
+        return $this->entityManager->getConnection()->fetchAllAssociative(
+            \sprintf($query, self::SETS_DONE),
+            ['owner' => $owner, 'since' => self::utc($since), 'fight' => Mode::Fight->value, 'campaign' => Mode::Campaign->value, 'duel' => Mode::Duel->value],
+            ['owner' => UserIdType::NAME, 'since' => Types::DATETIME_IMMUTABLE],
+        );
+    }
+
+    // The database keeps times in UTC without their zone.
+    private static function utc(\DateTimeImmutable $time): \DateTimeImmutable
+    {
+        return $time->setTimezone(new \DateTimeZone('UTC'));
+    }
+
+    private static function instant(mixed $value): \DateTimeImmutable
+    {
+        return new \DateTimeImmutable(\is_string($value) ? $value : '@0', new \DateTimeZone('UTC'));
     }
 
     // The place of a set in its round is where its battle started plus its place in the battle.

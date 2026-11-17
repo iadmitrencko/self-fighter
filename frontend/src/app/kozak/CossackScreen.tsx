@@ -1,71 +1,85 @@
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useId, type CSSProperties } from 'react';
 import { Link } from 'react-router';
 import type { ExerciseRef } from '../../domain/catalog/exercise';
-import type { Energy, EnergyPool } from '../../domain/kozak/energy';
-import { SICH } from '../../domain/kozak/journey';
+import { dayStreak, localDate } from '../../domain/kozak/calendar';
 import type { Standing } from '../../domain/kozak/ranks';
-import { bestSets, totalTally, type GameRecord } from '../../domain/kozak/record';
-import { formatCount } from '../../i18n/format';
-import {
-  campaignTexts,
-  cossackTexts,
-  energyStatus,
-  energyTexts,
-  formatClock,
-  formatWait,
-  lookTexts,
-  rankNames,
-} from '../../i18n/kozak';
+import { totalTally, weekDays, weekTotals, type DayReps, type GameRecord } from '../../domain/kozak/record';
+import { formatCount, formatDay, formatWeekday } from '../../i18n/format';
+import { cossackTexts, lookTexts, rankNames } from '../../i18n/kozak';
+import type { CurrentUser } from '../../storage/contract';
 import { Title } from '../components/Screen';
 import { useGame } from '../game';
 import { useLoad } from '../useLoad';
 import { CossackFigure } from './art/Cossack';
 import { Legend } from './Legend';
 import { kozakPaths } from './paths';
-import { Bar, EnergyCells, GloryRewards, KozakIcon, KozakScreen, WithCossack, type KozakIconName } from './parts';
+import { Bar, KozakIcon, KozakScreen, WithCossack } from './parts';
 import { useNow } from './record';
 
 /**
- * §24.1–§24.4, §24.7, §24.8, §24.10, resesign/kozak.html: the cossack of the player at full height
- * with his rank, glory and record of battles; a card for each pool of energy with the way to its
- * battles; and what he has done of every exercise. The one who defeated the King of robbers
- * carries the title and the trophy of the legend as well (§24.9).
+ * §24.1–§24.3, §24.7, §24.10–§24.12: the cossack of the player at full height with his name, rank,
+ * the way to the next rank, the days in a row with a battle and his record of battles; the ways to
+ * a fight and to the journey; and what he has done of every exercise, in all and in the last seven
+ * days. The header of the game shows the energy, so this screen leaves it out. The one who defeated
+ * the King of robbers carries the title and the trophy of the legend as well (§24.9).
  */
 export function CossackScreen() {
-  const now = useNow();
-  const { storage, exercises: readyMade } = useGame();
+  const { storage, exercises: readyMade, timeZone } = useGame();
+  const today = localDate(useNow(), timeZone);
   const listCustom = useCallback(() => storage.exercises.list(), [storage]);
   const [custom] = useLoad(listCustom);
+  const loadUser = useCallback(() => storage.account.current(), [storage]);
+  const [user] = useLoad(loadUser);
   // Until the exercises of the player arrive, the ready-made ones show alone.
   const exercises: readonly ExerciseRef[] = custom.status === 'ready' ? [...readyMade, ...custom.value] : readyMade;
+  const name = user.status === 'ready' ? nameOf(user.value) : null;
 
   return (
     <KozakScreen title={cossackTexts.title} className="k-cossack">
       <WithCossack>
-        {({ glory, standing, record, energy, progress }) => (
+        {({ glory, standing, record, progress }) => (
           <>
             <section className="k-hero">
               <figure className="k-hero__portrait">
                 <CossackFigure look={standing.look} label={lookTexts[standing.look].figure} />
               </figure>
               <div className="k-hero__body">
-                <Title className="k-hero__title">
-                  <span className="k-hero__label">{cossackTexts.rank}</span>{' '}
-                  <span className="k-hero__rank">{rankNames[standing.rank.id]}</span>
-                </Title>
+                <div className="k-hero__top">
+                  <Title className="k-hero__title">
+                    {name !== null && (
+                      <>
+                        {/* The comma gives a screen reader a pause between the name and the rank. */}
+                        <span className="k-hero__name">
+                          {name}
+                          <span className="visually-hidden">,</span>
+                        </span>{' '}
+                      </>
+                    )}
+                    <span className="k-hero__rank-line">
+                      <span className="k-hero__label">{cossackTexts.rank}</span>{' '}
+                      <span className="k-hero__rank">{rankNames[standing.rank.id]}</span>
+                    </span>
+                  </Title>
+                  <Streak days={record.days} today={today} />
+                </div>
                 <Glory glory={glory} standing={standing} />
                 <Score record={record} />
+                {/* §24.1: «Грати» of the site leads here. With no energy the hall of fights and the
+                    level close the start themselves and say when a unit comes back. */}
+                <div className="k-hero__actions">
+                  <Link className="k-button k-button--primary k-button--large" to={kozakPaths.fight}>
+                    {cossackTexts.toFight}
+                  </Link>
+                  <Link className="k-button k-button--secondary k-button--large" to={kozakPaths.journey}>
+                    {cossackTexts.toJourney}
+                  </Link>
+                </div>
               </div>
             </section>
-            <div className="k-pools">
-              <PoolCard pool="fight" energy={energy('fight', now)} now={now}>
-                <FightStats record={record} />
-              </PoolCard>
-              <PoolCard pool="campaign" energy={energy('campaign', now)} now={now}>
-                <BestSets record={record} />
-              </PoolCard>
+            <div className="k-stats">
+              <Physical record={record} today={today} exercises={exercises} customFailed={custom.status === 'failed'} />
+              <Week days={weekDays(record, today)} today={today} />
             </div>
-            <Physical record={record} exercises={exercises} customFailed={custom.status === 'failed'} />
             {progress.done && <Legend at={record.duelAt} />}
           </>
         )}
@@ -74,8 +88,42 @@ export function CossackScreen() {
   );
 }
 
-// «★ 3 / 10 слави», the next rank and «?» beside it, and the bar of the way there. As on the page
-// of the ranks, the bar shows the glory out of what the next rank needs.
+// §24.11: the name the player gave the cossack, or else the one Google gave an account.
+function nameOf(user: CurrentUser | null): string | null {
+  if (user === null) {
+    return null;
+  }
+
+  return user.nickname ?? (user.kind === 'account' ? user.name : null);
+}
+
+// §24.12: the days in a row with a battle. A run without a battle today yet asks to go on with it.
+function Streak({ days, today }: { days: readonly string[]; today: string }) {
+  const streak = dayStreak(days, today);
+
+  if (streak.days === 0) {
+    return null;
+  }
+
+  return (
+    <p className={streak.today ? 'k-streak' : 'k-streak k-streak--waiting'}>
+      <KozakIcon name="flame" className="k-streak__icon" />
+      <span className="k-streak__text">
+        {cossackTexts.streak(streak.days)}
+        {!streak.today && (
+          <>
+            <span className="visually-hidden">, </span>
+            <span className="k-streak__hint">{cossackTexts.streakToday}</span>
+          </>
+        )}
+      </span>
+    </p>
+  );
+}
+
+// «★ 3 з 10 слави», the next rank and the bar of the way there. As on the page of the ranks, the
+// bar shows the glory out of what the next rank needs. The next rank leads to that page, where all
+// the ranks stand with what brings glory.
 function Glory({ glory, standing: { next } }: { glory: number; standing: Standing }) {
   return (
     <div className="k-glory">
@@ -87,24 +135,20 @@ function Glory({ glory, standing: { next } }: { glory: number; standing: Standin
               <b className="k-glory__number">{formatCount(glory)}</b> {cossackTexts.gloryWord(glory)}
             </span>
           ) : (
-            <>
-              <span aria-hidden="true">
-                <b className="k-glory__number">{formatCount(glory)}</b> / {formatCount(next.glory)} {cossackTexts.gloryWord(next.glory)}
-              </span>
-              <span className="visually-hidden">{cossackTexts.gloryOf(glory, next.glory)}</span>
-            </>
+            <span>
+              <b className="k-glory__number">{formatCount(glory)}</b> {cossackTexts.of} {formatCount(next.glory)}{' '}
+              {cossackTexts.gloryWord(next.glory)}
+            </span>
           )}
         </p>
-        <p className="k-glory__next">
-          {next === null ? (
-            cossackTexts.top
-          ) : (
-            <>
-              {cossackTexts.next} <strong>{rankNames[next.id]}</strong>
-            </>
-          )}
-        </p>
-        <GloryHelp />
+        {next === null ? (
+          <p className="k-glory__next">{cossackTexts.top}</p>
+        ) : (
+          <Link className="k-glory__next k-glory__link" to={kozakPaths.ranks}>
+            {cossackTexts.next} <strong>{rankNames[next.id]}</strong>
+            <KozakIcon name="forward" className="k-glory__arrow" />
+          </Link>
+        )}
       </div>
       {next === null ? (
         <Bar value={glory} max={glory} label={cossackTexts.top} />
@@ -120,18 +164,18 @@ function Score({ record }: { record: GameRecord }) {
   const titleId = useId();
   const { wins, draws, losses } = totalTally(record);
   const counts = [
-    ['win', wins, cossackTexts.wins(wins)],
-    ['draw', draws, cossackTexts.draws(draws)],
-    ['loss', losses, cossackTexts.losses(losses)],
+    { outcome: 'win', count: wins, word: cossackTexts.wins(wins) },
+    { outcome: 'draw', count: draws, word: cossackTexts.draws(draws) },
+    { outcome: 'loss', count: losses, word: cossackTexts.losses(losses) },
   ] as const;
 
   return (
     <section className="k-score" aria-labelledby={titleId}>
-      <h2 id={titleId} className="k-score__title">
+      <h2 id={titleId} className="visually-hidden">
         {cossackTexts.record}
       </h2>
       <ul className="k-score__counts" role="list">
-        {counts.map(([outcome, count, word]) => (
+        {counts.map(({ outcome, count, word }) => (
           <li key={outcome} className={`k-score__count k-score__count--${outcome}`}>
             <b className="k-score__number">{formatCount(count)}</b> <span className="k-score__word">{word}</span>
           </li>
@@ -141,107 +185,68 @@ function Score({ record }: { record: GameRecord }) {
   );
 }
 
-const POOLS: Readonly<Record<EnergyPool, { icon: KozakIconName; to: string; button: string }>> = {
-  fight: { icon: 'fight', to: kozakPaths.fight, button: 'k-button--primary' },
-  campaign: { icon: 'journey', to: kozakPaths.journey, button: 'k-button--secondary' },
-};
-
-// §24.4: a pool of energy, when its next unit comes back and the way to its battles, closed while
-// the pool is empty. The two cards share a row, so their buttons stand on one line at the bottom.
-function PoolCard({ pool, energy, now, children }: { pool: EnergyPool; energy: Energy; now: Date; children: ReactNode }) {
+/**
+ * §24.10: the largest set, the repetitions of the last seven days and every repetition of each
+ * exercise of the player, the ready-made ones and their own, whatever battle did them, a row for
+ * each. A new exercise of the player shows at once. A narrow card puts the exercise over its
+ * numbers, so the roles keep the table a table for a screen reader whatever its layout.
+ */
+function Physical({
+  record,
+  today,
+  exercises,
+  customFailed,
+}: {
+  record: GameRecord;
+  today: string;
+  exercises: readonly ExerciseRef[];
+  customFailed: boolean;
+}) {
   const titleId = useId();
-  const { icon, to, button } = POOLS[pool];
-  const { title, action } = cossackTexts.pools[pool];
-  const wait = energy.nextAt === null ? null : Date.parse(energy.nextAt) - now.getTime();
-  const empty = energy.value === 0;
+  const week = weekTotals(record, today);
 
   return (
-    <section className={empty ? 'k-card k-pool k-pool--empty' : 'k-card k-pool'} aria-labelledby={titleId}>
-      <div className="k-pool__head">
-        <h2 id={titleId} className="k-section-title">
-          <KozakIcon name={icon} className="k-section-title__icon" />
-          {title}
-        </h2>
-        <p className="k-pool__energy">
-          <KozakIcon name="bolt" className="k-pool__bolt" />
-          <span aria-hidden="true">{energyStatus.value(energy.value, energy.max)}</span>
-          <span className="visually-hidden">{energyStatus.named(energyTexts[pool].name, energy.value, energy.max)}</span>
-        </p>
-      </div>
-      <EnergyCells energy={energy} />
-      {wait !== null && (
-        <p className="k-pool__wait">
-          <span aria-hidden="true">{energyStatus.countdown(formatClock(wait))}</span>
-          <span className="visually-hidden">{energyStatus.countdown(formatWait(wait))}</span>
-        </p>
-      )}
-      {children}
-      {empty ? (
-        <button type="button" className="k-button k-button--locked k-button--large k-pool__action" disabled>
-          <KozakIcon name="lock" className="k-button__icon" />
-          {action}
-        </button>
-      ) : (
-        <Link className={`k-button ${button} k-button--large k-pool__action`} to={to}>
-          {action}
-        </Link>
-      )}
+    <section className="k-card k-physical" aria-labelledby={titleId}>
+      <h2 id={titleId} className="k-section-title">
+        <KozakIcon name="strength" className="k-section-title__icon" />
+        {cossackTexts.physical}
+      </h2>
+      {customFailed && <p className="notice notice--warning">{cossackTexts.customFailed}</p>}
+      <table className="k-physical__table" role="table" aria-labelledby={titleId}>
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">
+              {cossackTexts.physicalExercise}
+            </th>
+            <th scope="col" role="columnheader">
+              {cossackTexts.physicalBest}
+            </th>
+            <th scope="col" role="columnheader">
+              {cossackTexts.physicalWeek}
+            </th>
+            <th scope="col" role="columnheader">
+              {cossackTexts.physicalTotal}
+            </th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          {exercises.map(({ id, name }) => {
+            const totals = record.exercises[id];
+
+            return (
+              <tr key={id} role="row">
+                <th scope="row" role="rowheader">
+                  {name}
+                </th>
+                <td role="cell">{totals === undefined ? <None /> : formatCount(totals.best)}</td>
+                <td role="cell">{formatCount(week[id] ?? 0)}</td>
+                <td role="cell">{formatCount(totals?.total ?? 0)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </section>
-  );
-}
-
-// Three facts of a card in a row, each a word over its number.
-function Facts({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="k-facts">
-      <h3 className="k-facts__title">{title}</h3>
-      <dl className="k-facts__list">{children}</dl>
-    </div>
-  );
-}
-
-function Fact({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="k-facts__item">
-      <dt className="k-facts__label">{label}</dt>
-      <dd className="k-facts__value">{children}</dd>
-    </div>
-  );
-}
-
-// §24.7: the fights of the game, those won and the run of wins going on now.
-function FightStats({ record: { fights, fightStreak } }: { record: GameRecord }) {
-  return (
-    <Facts title={cossackTexts.fights}>
-      <Fact label={cossackTexts.fought}>
-        <strong className="k-facts__number">{formatCount(fights.wins + fights.draws + fights.losses)}</strong>
-      </Fact>
-      <Fact label={cossackTexts.fightWins}>
-        <strong className="k-facts__number">{formatCount(fights.wins)}</strong>
-      </Fact>
-      <Fact label={cossackTexts.streak}>
-        <strong className="k-facts__number">{formatCount(fightStreak)}</strong>
-      </Fact>
-    </Facts>
-  );
-}
-
-// §24.8: the best set of every exercise of the journey, in the order of its campaigns.
-function BestSets({ record }: { record: GameRecord }) {
-  return (
-    <Facts title={cossackTexts.best}>
-      {bestSets(SICH, record).map(({ campaign, reps }) => (
-        <Fact key={campaign} label={campaignTexts[campaign].exercise}>
-          {reps === null ? (
-            <None />
-          ) : (
-            <>
-              <strong className="k-facts__number">{reps}</strong> <span className="k-facts__unit">{cossackTexts.bestUnit}</span>
-            </>
-          )}
-        </Fact>
-      ))}
-    </Facts>
   );
 }
 
@@ -249,108 +254,79 @@ function BestSets({ record }: { record: GameRecord }) {
 function None() {
   return (
     <>
-      <span className="k-facts__number" aria-hidden="true">
-        —
-      </span>
-      <span className="visually-hidden">{cossackTexts.bestNone}</span>
+      <span aria-hidden="true">—</span>
+      <span className="visually-hidden">{cossackTexts.physicalNone}</span>
     </>
   );
 }
 
 /**
- * §24.10: the largest set and every repetition of each exercise of the player, the ready-made ones
- * and their own, whatever battle or workout did them. A new exercise of the player shows at once.
+ * §24.10: every repetition of each of the last seven days, a column for a day and today the last.
+ * One series needs no legend: the title names it. The peak carries its number, the axis the scale,
+ * and every column tells its day and number on hover, on focus and to a screen reader.
  */
-function Physical({ record, exercises, customFailed }: { record: GameRecord; exercises: readonly ExerciseRef[]; customFailed: boolean }) {
+function Week({ days, today }: { days: readonly DayReps[]; today: string }) {
   const titleId = useId();
+  const total = days.reduce((sum, { reps }) => sum + reps, 0);
+  const most = Math.max(...days.map(({ reps }) => reps));
+  const top = axisTop(most);
+  const peak = days.findLast(({ reps }) => reps === most)?.date;
 
   return (
-    <section className="k-card k-physical" aria-labelledby={titleId}>
-      <div className="k-physical__head">
+    <section className="k-card k-week" aria-labelledby={titleId}>
+      <div className="k-week__head">
         <h2 id={titleId} className="k-section-title">
-          <KozakIcon name="strength" className="k-section-title__icon" />
-          {cossackTexts.physical}
+          <KozakIcon name="chart" className="k-section-title__icon" />
+          {cossackTexts.week}
         </h2>
-        <p className="k-physical__lead">{cossackTexts.physicalLead}</p>
+        <p className="k-week__total">
+          <b>{formatCount(total)}</b> {cossackTexts.reps(total)}
+        </p>
       </div>
-      {customFailed && <p className="notice notice--warning">{cossackTexts.customFailed}</p>}
-      <ul className="k-physical__list" role="list">
-        {exercises.map(({ id, name }) => {
-          const totals = record.exercises[id];
-
-          return (
-            <li key={id} className="k-physical__item">
-              <h3 className="k-physical__exercise">{name}</h3>
-              <dl className="k-physical__stats">
-                <div className="k-physical__stat">
-                  <dt className="k-physical__label">{cossackTexts.physicalBest}</dt>
-                  <dd className="k-physical__value">{totals === undefined ? <None /> : formatCount(totals.best)}</dd>
-                </div>
-                <div className="k-physical__stat">
-                  <dt className="k-physical__label">{cossackTexts.physicalTotal}</dt>
-                  <dd className="k-physical__value">{formatCount(totals?.total ?? 0)}</dd>
-                </div>
-              </dl>
-            </li>
-          );
-        })}
-      </ul>
+      {total === 0 ? (
+        <p className="k-card__text">{cossackTexts.weekEmpty}</p>
+      ) : (
+        <div className="k-week__chart">
+          <div className="k-week__axis" aria-hidden="true">
+            {[top, top / 2, 0].map((tick) => (
+              <span key={tick} className="k-week__tick">
+                {formatCount(tick)}
+              </span>
+            ))}
+          </div>
+          <ol className="k-week__days" role="list">
+            {days.map(({ date, reps }) => (
+              <li
+                key={date}
+                className={date === today ? 'k-week__day k-week__day--today' : 'k-week__day'}
+                // A column tells its number on focus too, not only under the pointer.
+                tabIndex={0}
+                aria-label={`${formatDay(date)}: ${cossackTexts.dayReps(reps)}`}
+              >
+                <span className="k-week__plot" aria-hidden="true">
+                  <span className="k-week__bar" style={{ '--share': `${(reps / top) * 100}%` } as CSSProperties}>
+                    {date === peak && <span className="k-week__value">{formatCount(reps)}</span>}
+                  </span>
+                </span>
+                <span className="k-week__label" aria-hidden="true">
+                  {formatWeekday(date)}
+                </span>
+                <span className="k-week__tip" aria-hidden="true">
+                  <b>{cossackTexts.dayReps(reps)}</b> <span>{formatDay(date)}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </section>
   );
 }
 
-// «?» beside the glory: what brings it, in a small panel that closes on Escape or a tap elsewhere.
-function GloryHelp() {
-  const [open, setOpen] = useState(false);
-  const panelId = useId();
-  const box = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
+// The top of the axis: a round number at or over the most, whose half is a whole number as well.
+function axisTop(most: number): number {
+  const scale = 10 ** Math.floor(Math.log10(Math.max(most, 1)));
+  const steps = scale === 1 ? [2, 4, 6, 8, 10] : [1, 2, 4, 6, 8, 10];
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    // On a phone the panel may open below the edge of the screen.
-    panel.current?.scrollIntoView({ block: 'nearest' });
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-        button.current?.focus();
-      }
-    };
-    const onPointer = (event: PointerEvent) => {
-      if (!(event.target instanceof Node && box.current?.contains(event.target) === true)) {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('pointerdown', onPointer);
-
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('pointerdown', onPointer);
-    };
-  }, [open]);
-
-  return (
-    <div ref={box} className="k-help">
-      <button
-        ref={button}
-        type="button"
-        className="k-help__button"
-        aria-label={cossackTexts.help}
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((value) => !value)}
-      >
-        ?
-      </button>
-      <div ref={panel} id={panelId} className="k-help__panel" role="region" aria-label={cossackTexts.help} hidden={!open}>
-        <p className="k-help__title">{cossackTexts.help}</p>
-        <GloryRewards />
-      </div>
-    </div>
-  );
+  return steps.map((step) => step * scale).find((top) => top >= most) ?? 10 * scale;
 }

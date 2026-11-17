@@ -187,20 +187,20 @@ final class AttemptControllerTest extends ApiTestCase
         $this->send('GET', '/api/v1/game');
         self::assertSame([
             'fights' => ['wins' => 1, 'draws' => 0, 'losses' => 1],
-            // The latest fight, at 10:40, is lost.
-            'fightStreak' => 0,
             'campaign' => ['wins' => 3, 'draws' => 0, 'losses' => 1],
             'passed' => ['forest-ravens/1/1', 'forest-ravens/1/2'],
             // §24.4: the server counts the energy itself, whatever the browser wrote: two fights
             // and four levels, all from 10:00, two hours each.
             'energy' => ['fight' => '2026-11-02T14:00:00.000Z', 'campaign' => '2026-11-02T18:00:00.000Z'],
-            'best' => ['pull-ups' => 1],
             // §24.10: every battle adds its repetitions: the two fights and the sets of the levels.
             'exercises' => [
                 'pull-ups' => ['best' => 1, 'total' => 11],
                 'push-ups' => ['best' => 12, 'total' => 44],
                 'squats' => ['best' => 20, 'total' => 50],
             ],
+            // §24.12: every battle finished today, and §24.10: so did all the repetitions.
+            'days' => ['2026-11-02'],
+            'week' => ['2026-11-02' => ['pull-ups' => 11, 'push-ups' => 44, 'squats' => 50]],
             'duel' => [],
             'duelAt' => null,
         ], $this->responseData());
@@ -235,8 +235,6 @@ final class AttemptControllerTest extends ApiTestCase
 
         self::assertSame(['final-battle/1/4' => [0, 1, 2, 3, 4]], $record['duel'] ?? null);
         self::assertSame('2026-11-02T10:40:00.000Z', $record['duelAt'] ?? null);
-        // The best sets count the duel as well: its undone set of seven pull-ups does not.
-        self::assertSame(['pull-ups' => 5, 'push-ups' => 20, 'squats' => 30], $record['best'] ?? null);
         self::assertSame(['wins' => 1, 'draws' => 0, 'losses' => 1], $record['campaign'] ?? null);
         self::assertSame([], $record['passed'] ?? null);
 
@@ -249,12 +247,12 @@ final class AttemptControllerTest extends ApiTestCase
         $this->signUp();
         $empty = [
             'fights' => ['wins' => 0, 'draws' => 0, 'losses' => 0],
-            'fightStreak' => 0,
             'campaign' => ['wins' => 0, 'draws' => 0, 'losses' => 0],
             'passed' => [],
             'energy' => ['fight' => null, 'campaign' => null],
-            'best' => [],
             'exercises' => [],
+            'days' => [],
+            'week' => [],
             'duel' => [],
             'duelAt' => null,
         ];
@@ -262,7 +260,40 @@ final class AttemptControllerTest extends ApiTestCase
         $this->send('GET', '/api/v1/game');
 
         self::assertSame($empty, $this->responseData());
-        self::assertStringContainsString('"best":{},"exercises":{},"duel":{}', (string) $this->browser->getResponse()->getContent());
+        self::assertStringContainsString('"exercises":{},"days":[],"week":{},"duel":{}', (string) $this->browser->getResponse()->getContent());
+    }
+
+    // §24.12, §24.10: the days with a battle and the repetitions of the last seven days go by the
+    // calendar of the player; a zone the server does not know counts as UTC.
+    public function testGameRecordKeepsTheDaysOfThePlayer(): void
+    {
+        $this->signUp();
+        $attempts = [
+            // Seven days ago: a day with a battle, yet out of the last seven days.
+            Documents::fight('win', '2026-10-26T13:10:00.000Z', overrides: ['startedAt' => '2026-10-26T13:00:00.000Z']),
+            // Late on November 1 by UTC, already November 2 in Kyiv.
+            Documents::fight('win', '2026-11-01T22:10:00.000Z', overrides: ['startedAt' => '2026-11-01T21:50:00.000Z']),
+            // A level today: pull-ups 1, 1 and 1.
+            Documents::level(),
+        ];
+
+        foreach ($attempts as $attempt) {
+            $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
+            self::assertResponseStatusCodeSame(201);
+        }
+
+        $this->send('GET', '/api/v1/game?tz=Europe/Kyiv');
+        self::assertSame(['2026-10-26', '2026-11-02'], $this->responseData()['days'] ?? null);
+        self::assertSame(['2026-11-02' => ['pull-ups' => 3, 'push-ups' => 22, 'squats' => 35]], $this->responseData()['week'] ?? null);
+
+        foreach (['/api/v1/game?tz=UTC', '/api/v1/game?tz=Moon/Base', '/api/v1/game'] as $uri) {
+            $this->send('GET', $uri);
+            self::assertSame(['2026-10-26', '2026-11-01', '2026-11-02'], $this->responseData()['days'] ?? null);
+            self::assertSame(
+                ['2026-11-01' => ['push-ups' => 22, 'squats' => 35], '2026-11-02' => ['pull-ups' => 3]],
+                $this->responseData()['week'] ?? null,
+            );
+        }
     }
 
     // §24.10: the sets done of every exercise in every battle, a custom exercise too; a set left undone adds nothing.
@@ -271,6 +302,7 @@ final class AttemptControllerTest extends ApiTestCase
         $this->signUp();
         $mine = $this->deviceCookie();
         $crunches = ['id' => '0195f2a4-6b1e-7c3d-8e9f-0a1b2c3d4e5f', 'name' => 'Скручування'];
+        $pushUps = ['id' => 'push-ups', 'name' => 'Відтискання'];
         $attempts = [
             // Push-ups 10 and 12, squats 15; the last set of squats, 20, is left undone.
             Documents::fight('loss', '2026-11-02T10:30:00.000Z', '2026-11-02T13:00:00.000Z'),
@@ -283,6 +315,8 @@ final class AttemptControllerTest extends ApiTestCase
             ]),
             // Pull-ups 1, 2 and 3 of a level won.
             Documents::level('forest-ravens/2/3', 'win', sets: [1, 2, 3]),
+            // Push-ups 3 and 2 of a level left before its last set, which adds nothing however large.
+            Documents::level('black-flag/2/1', 'loss', sets: [3, 2, 9], exercise: $pushUps),
             // The duel names the exercise of every set: its last one, 5 pull-ups, is left undone.
             Documents::duel('final-battle/1/4', 'loss'),
         ];
@@ -302,69 +336,9 @@ final class AttemptControllerTest extends ApiTestCase
         self::assertSame([
             $crunches['id'] => ['best' => 40, 'total' => 70],
             'pull-ups' => ['best' => 3, 'total' => 6],
-            'push-ups' => ['best' => 15, 'total' => 37],
+            'push-ups' => ['best' => 15, 'total' => 42],
             'squats' => ['best' => 25, 'total' => 40],
         ], $this->responseData()['exercises'] ?? null);
-    }
-
-    // §24.7: the run of won fights ends with a fight not won; the levels of the journey keep out of it.
-    public function testGameRecordCountsTheFightsWonInARow(): void
-    {
-        $this->signUp();
-        $battles = [
-            Documents::fight('win', '2026-11-02T10:10:00.000Z', '2026-11-02T12:00:00.000Z'),
-            Documents::fight('loss', '2026-11-02T10:20:00.000Z', '2026-11-02T14:00:00.000Z'),
-            Documents::fight('win', '2026-11-02T10:30:00.000Z', '2026-11-02T16:00:00.000Z'),
-            Documents::level('forest-ravens/1/1', 'loss'),
-            Documents::fight('win', '2026-11-02T10:50:00.000Z', '2026-11-02T18:00:00.000Z'),
-        ];
-        $streaks = [1, 0, 1, 1, 2];
-
-        foreach ($battles as $index => $battle) {
-            $this->send('PUT', '/api/v1/attempts/'.$battle['id'], $battle);
-            self::assertResponseStatusCodeSame(201);
-
-            $this->send('GET', '/api/v1/game');
-            self::assertSame($streaks[$index], $this->responseData()['fightStreak'] ?? null);
-        }
-
-        // A fight that arrives late takes its place by the time it finished: here the lost one
-        // before the last win, so the run is that win alone.
-        $late = Documents::fight('loss', '2026-11-02T10:45:00.000Z', '2026-11-02T20:00:00.000Z');
-        $this->send('PUT', '/api/v1/attempts/'.$late['id'], $late);
-        $this->send('GET', '/api/v1/game');
-
-        self::assertSame(1, $this->responseData()['fightStreak']);
-    }
-
-    // §24.8: the largest set done in a level of the journey, won or left, for every exercise.
-    public function testGameRecordKeepsTheBestSetOfEveryExercise(): void
-    {
-        $this->signUp();
-        $mine = $this->deviceCookie();
-        $pushUps = ['id' => 'push-ups', 'name' => 'Відтискання'];
-        $attempts = [
-            Documents::level('forest-ravens/2/3', 'win', sets: [1, 2, 3]),
-            // The retreat leaves the last set undone, the top of the ladder is done.
-            Documents::level('black-flag/1/6', 'loss', sets: [1, 2, 3, 2, 1], exercise: $pushUps),
-            // An undone set counts for nothing, however large.
-            Documents::level('black-flag/2/1', 'loss', sets: [3, 2, 9], exercise: $pushUps),
-            // A fight is put together freely and stays out of the records.
-            Documents::fight('win', '2026-11-02T10:30:00.000Z', '2026-11-02T13:00:00.000Z'),
-        ];
-
-        foreach ($attempts as $attempt) {
-            $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
-        }
-        // Another player does more, which changes nothing here.
-        $this->switchBrowser();
-        $this->signUp();
-        $this->send('PUT', '/api/v1/attempts/'.($other = Documents::level('forest-ravens/2/3', 'win', sets: [1, 2, 3, 4]))['id'], $other);
-
-        $this->switchBrowser($mine);
-        $this->send('GET', '/api/v1/game');
-
-        self::assertSame(['pull-ups' => 3, 'push-ups' => 3], $this->responseData()['best'] ?? null);
     }
 
     /**
