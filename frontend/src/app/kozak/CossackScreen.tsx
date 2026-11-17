@@ -55,10 +55,9 @@ export function CossackScreen() {
                         </span>{' '}
                       </>
                     )}
-                    <span className="k-hero__rank-line">
-                      <span className="k-hero__label">{cossackTexts.rank}</span>{' '}
-                      <span className="k-hero__rank">{rankNames[standing.rank.id]}</span>
-                    </span>
+                    {/* The rank speaks for itself on the screen; a screen reader still hears what it is. */}
+                    <span className="visually-hidden">{cossackTexts.rank}</span>{' '}
+                    <span className="k-hero__rank">{rankNames[standing.rank.id]}</span>
                   </Title>
                   <Streak days={record.days} today={today} />
                 </div>

@@ -80,6 +80,7 @@ export const gloryRewards = [
 
 export const cossackTexts = {
   title: 'Козак',
+  // Before the rank for a screen reader only: the screen shows the rank alone.
   rank: 'Звання:',
   gloryWord,
   // «★ 3 з 10 слави»: the glory out of what the next rank needs.
