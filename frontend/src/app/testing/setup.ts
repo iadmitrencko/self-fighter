@@ -1,9 +1,13 @@
 import { cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
-// Without Vitest globals Testing Library cannot clean up by itself, so screens would pile up.
+// Without Vitest globals Testing Library cannot clean up by itself, so screens would pile up. The
+// toasts stand beside the screens, in the body (app/toast.ts), so they go as well.
 afterEach(() => {
   cleanup();
+  for (const toasts of document.querySelectorAll('.toasts')) {
+    toasts.remove();
+  }
 });
 
 // What jsdom lacks for the screens: modal dialogs and scrolling.

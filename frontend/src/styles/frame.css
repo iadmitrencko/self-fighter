@@ -4,6 +4,12 @@
  * drawn in the lines and the parchment of the game (kozak.css).
  */
 
+/* The column keeps its place whether a page scrolls or not: a classic scroll bar would move it, the
+   logo included, by half its width between a long page and a short one. */
+html {
+  scrollbar-gutter: stable;
+}
+
 .container {
   width: 100%;
   max-width: calc(var(--page-width) + 2 * var(--page-gutter));
@@ -26,8 +32,9 @@
 
 /* Header */
 
-/* One height of the header on every page, the game too (kozak.css), so its divider stays in place
-   from page to page: a tap target between the paddings of the band. */
+/* One band on every page, the game too (kozak.css): the column of the container, the logo at its start
+   and one height, so neither the logo nor the divider moves from page to page. The height is a tap
+   target between the paddings of the band, and nothing in it grows the band. */
 :root {
   --header-height: calc(var(--tap-target) + 2 * var(--space-s));
 }
@@ -41,7 +48,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-m);
-  min-height: var(--header-height);
+  height: var(--header-height);
 }
 
 /* The one way into the game: the name of the site keeps its room beside it on a phone. */

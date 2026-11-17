@@ -11,7 +11,7 @@ import { useGame } from '../game';
 import { signInPath } from '../signIn';
 import { useLoad } from '../useLoad';
 import { kozakPaths } from './paths';
-import { KozakIcon } from './parts';
+import { KozakIcon, type KozakIconName } from './parts';
 import { useCossack, useNow, type Cossack } from './record';
 
 /**
@@ -46,30 +46,37 @@ function Status() {
   );
 }
 
-// §24.2: the rank and the glory towards the next one over a thin bar; it leads to all the ranks.
+// §24.2: the rank and the glory towards the next one over a thin bar; it leads to all the ranks. The
+// star of the glory tells it from the energy, as on the screens of the cossack and of the ranks.
 function RankBadge({ cossack: { glory, standing } }: { cossack: Cossack }) {
   const name = rankNames[standing.rank.id];
   const target = standing.next?.glory ?? null;
   const share = target === null ? 1 : Math.min(1, glory / target);
 
   return (
-    <Link className="game-rank" to={kozakPaths.ranks}>
-      <KozakIcon name="glory" className="game-rank__icon" />
-      <span className="game-rank__name" aria-hidden="true">
+    <Link className="game-pill game-rank" to={kozakPaths.ranks}>
+      <KozakIcon name="glory" className="game-pill__icon game-rank__icon" />
+      <span className="game-pill__name game-rank__name" aria-hidden="true">
         {name}
       </span>
-      <span className="game-rank__glory" aria-hidden="true">
-        · {target === null ? formatCount(glory) : `${formatCount(glory)}/${formatCount(target)}`}
-      </span>
+      <b className="game-pill__value" aria-hidden="true">
+        {target === null ? formatCount(glory) : `${formatCount(glory)}/${formatCount(target)}`}
+      </b>
       <span className="visually-hidden">{statusTexts.rank(name, glory, target)}</span>
       <span className="game-rank__bar" aria-hidden="true" style={{ '--share': `${share * 100}%` } as CSSProperties} />
     </Link>
   );
 }
 
-const POOL_PATHS: Readonly<Record<EnergyPool, string>> = { fight: kozakPaths.fight, campaign: kozakPaths.journey };
+// The battles of a pool and the icon of their section, the same as in the column and the bar of the
+// sections, so the two pills differ at a glance.
+const POOLS: Readonly<Record<EnergyPool, { to: string; icon: KozakIconName }>> = {
+  fight: { to: kozakPaths.fight, icon: 'fight' },
+  campaign: { to: kozakPaths.journey, icon: 'journey' },
+};
 
-// §24.4: a pool of energy, when its next unit comes back, and the way to its battles.
+// §24.4: a pool of energy, when its next unit comes back, and the way to its battles. A small bolt
+// beside the number tells the energy where the pill has room for the name as well.
 function EnergyPill({ pool, cossack, now }: { pool: EnergyPool; cossack: Cossack; now: Date }) {
   const tipId = useId();
   const energy = cossack.energy(pool, now);
@@ -78,12 +85,13 @@ function EnergyPill({ pool, cossack, now }: { pool: EnergyPool; cossack: Cossack
 
   return (
     <span className={energy.value === 0 ? 'game-energy game-energy--empty' : 'game-energy'}>
-      <Link className="game-energy__link" to={POOL_PATHS[pool]} aria-describedby={tipId}>
-        <KozakIcon name="bolt" className="game-energy__icon" />
-        <span className="game-energy__name" aria-hidden="true">
+      <Link className="game-pill game-energy__link" to={POOLS[pool].to} aria-describedby={tipId}>
+        <KozakIcon name={POOLS[pool].icon} className="game-pill__icon" />
+        <span className="game-pill__name" aria-hidden="true">
           {cossackTexts.pools[pool].title}
         </span>
-        <b className="game-energy__value" aria-hidden="true">
+        <b className="game-pill__value" aria-hidden="true">
+          <KozakIcon name="bolt" className="game-energy__bolt" />
           {energy.value}/{energy.max}
         </b>
         <span className="visually-hidden">{energyStatus.named(name, energy.value, energy.max)}</span>
@@ -100,6 +108,9 @@ function EnergyPill({ pool, cossack, now }: { pool: EnergyPool; cossack: Cossack
  * The menu of the player: whose account is open, the settings, signing in or out. A wide screen shows
  * it in the header beside the energy; on a phone it is «Ще» in the bar of the sections, which keeps
  * the history there as well. The site is a tap on the logo away, as from every page.
+ *
+ * Signing in keeps the glory and the progress of a guest, so for a guest it comes first, says why,
+ * and a gold dot on the avatar or on «Ще» tells that it has not been done yet.
  */
 export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
   const { storage } = useGame();
@@ -111,6 +122,7 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
   const [open, setOpen] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const panelId = useId();
+  const signInId = useId();
   const box = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   // The settings say that the account has left and offer to sign in again.
@@ -122,6 +134,9 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
     },
   });
   const account = user.status === 'ready' && user.value?.kind === 'account' ? user.value : null;
+  // Only once the browser knows who plays, so an account never sees the dot while it loads.
+  const unsigned = canSignIn && user.status === 'ready' && account === null;
+  const dot = unsigned ? <span className="player-menu__dot" aria-hidden="true" /> : null;
   const initial = (account?.name ?? account?.email ?? '').trim().charAt(0).toUpperCase();
   const close = () => setOpen(false);
   const current = (path: string) => (pathname === path ? 'page' : undefined);
@@ -170,12 +185,16 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
           <>
             <span className="player-menu__avatar" aria-hidden="true">
               {initial === '' ? <KozakIcon name="cossack" className="player-menu__face" /> : initial}
+              {dot}
             </span>
             <KozakIcon name="chevron" className="player-menu__chevron" />
           </>
         ) : (
           <>
-            <KozakIcon name="more" className="kozak-nav__icon" />
+            <span className="player-menu__mark">
+              <KozakIcon name="more" className="kozak-nav__icon" />
+              {dot}
+            </span>
             <span>{kozakTexts.nav.more}</span>
           </>
         )}
@@ -196,6 +215,25 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
               </p>
             )}
             <ul className="player-menu__list" role="list">
+              {unsigned && (
+                <li className="player-menu__start">
+                  {/* The reason describes the link instead of adding to its name. */}
+                  <a
+                    className="player-menu__item player-menu__item--lead"
+                    href={signInPath(pathname)}
+                    aria-labelledby={`${signInId}-name`}
+                    aria-describedby={`${signInId}-why`}
+                  >
+                    <GoogleLogo />
+                    <span className="player-menu__text">
+                      <span id={`${signInId}-name`}>{signInTexts.button}</span>
+                      <span id={`${signInId}-why`} className="player-menu__hint">
+                        {statusTexts.signInWhy}
+                      </span>
+                    </span>
+                  </a>
+                </li>
+              )}
               {/* The bar of a phone has no room for the history; a wide screen keeps it in the column of the sections. */}
               {place === 'tabs' && (
                 <li>
@@ -211,11 +249,12 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
                   {kozakTexts.nav.settings}
                 </Link>
               </li>
-              {account !== null ? (
+              {account !== null && (
                 <li className="player-menu__end">
+                  {/* Quieter than the rest, so it is not tapped by chance. */}
                   <button
                     type="button"
-                    className="player-menu__item"
+                    className="player-menu__item player-menu__item--quiet"
                     disabled={signOut.busy}
                     onClick={() => {
                       close();
@@ -227,15 +266,6 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
                     {accountTexts.signOut}
                   </button>
                 </li>
-              ) : (
-                canSignIn && (
-                  <li className="player-menu__end">
-                    <a className="player-menu__item" href={signInPath(pathname)}>
-                      <GoogleLogo />
-                      {signInTexts.button}
-                    </a>
-                  </li>
-                )
               )}
             </ul>
           </>

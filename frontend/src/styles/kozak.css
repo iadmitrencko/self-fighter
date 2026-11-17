@@ -112,6 +112,8 @@
   --k-surface-2: #17191c;
   --k-surface-raised: #282c30;
   --k-surface-locked: #1a1c1f;
+  /* A toast of what went well: the raised surface tinted with the green of what is done. */
+  --k-surface-done: color-mix(in srgb, var(--k-pine) 30%, var(--k-surface-raised));
 
   /* Nature: the maps and the scenes */
   --k-forest: #1f3a2e;

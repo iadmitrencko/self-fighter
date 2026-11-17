@@ -66,7 +66,13 @@ test('the history of an account opens on another device', async ({ page, browser
 
   await signIn(page, account);
 
-  await expect(page.getByText('Вхід виконано: тренування, вправи й налаштування тепер доступні на будь-якому пристрої.')).toBeVisible();
+  // A sign-in that went well says so in a toast over the screen, which its cross closes at once.
+  const toast = page.getByRole('status').filter({ hasText: 'Вхід виконано' });
+  await expect(toast).toContainText('Тренування, вправи й налаштування синхронізуються між пристроями.');
+  await expect(toast).toHaveCSS('opacity', '1');
+  await expectAccessible(page);
+  await toast.getByRole('button', { name: 'Закрити' }).click();
+  await expect(toast).toHaveCount(0);
   await expect(page.getByText(account.email)).toBeVisible();
   expect(await historyItems(page)).toBe(1);
 

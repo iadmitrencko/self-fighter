@@ -143,6 +143,8 @@ export const statusTexts = {
     target === null ? `Звання «${rank}», ${gloryAmount(glory)}` : `Звання «${rank}», ${glory} з ${target} ${gloryWord(target)}`,
   // The menu of the player: the account and its settings.
   menu: 'Меню гравця',
+  // Under «Увійти через Google» in that menu: what a guest gains by signing in.
+  signInWhy: 'Щоб не втратити славу й прогрес',
 };
 
 // §14, §24.1: the one history of every attempt, a section of the game.
@@ -170,8 +172,8 @@ export const settingsTexts = {
 };
 
 export const energyTexts: Record<EnergyPool, { name: string; every: string }> = {
-  fight: { name: 'Енергія боїв', every: '+1 кожні 2 год' },
-  campaign: { name: 'Енергія походу', every: '+1 кожні 2 год' },
+  fight: { name: 'Енергія боїв', every: '+1 кожні 2 години' },
+  campaign: { name: 'Енергія походу', every: '+1 кожні 2 години' },
 };
 
 export const energyStatus = {

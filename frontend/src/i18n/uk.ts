@@ -49,6 +49,11 @@ function guestData(attempts: number, exercises: number): string {
     .join(' та ');
 }
 
+// A short message that floats over the screen and goes away by itself (app/toast.ts).
+export const toastTexts = {
+  close: 'Закрити',
+};
+
 export const commonTexts = {
   loading: 'Завантаження…',
   retry: 'Спробувати ще раз',
@@ -112,7 +117,9 @@ export const signInTexts = {
   promptResult:
     'Перше тренування вже в історії. Щоб вона не залежала від цього браузера, увійди через Google.',
   dismiss: 'Закрити пропозицію увійти',
-  done: 'Вхід виконано: тренування, вправи й налаштування тепер доступні на будь-якому пристрої.',
+  // The toast of a sign-in that went well: its title, and what it gives under it.
+  doneTitle: 'Вхід виконано',
+  doneText: 'Тренування, вправи й налаштування синхронізуються між пристроями.',
   cancelled: 'Вхід скасовано. Без входу гра працює так само.',
   failed: 'Не вдалося увійти через Google. Спробуй ще раз трохи згодом.',
   close: 'Закрити',

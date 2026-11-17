@@ -12,6 +12,7 @@ import {
   withoutSignInOutcome,
   type SignInOutcome as Outcome,
 } from '../signIn';
+import { showToast } from '../toast';
 import { errorCode, useLoad } from '../useLoad';
 import { ConfirmDialog } from './Dialog';
 import { Icon } from './Icon';
@@ -90,7 +91,8 @@ export function SignInPrompt({ text }: { text: string }) {
 /**
  * §23.2–§23.3: Google sends the browser back to the screen it left, on the site or in the game, and
  * the address tells how the sign-in went. A guest of this browser with data waits for the person to
- * decide whether to join it.
+ * decide whether to join it. A sign-in that went well says so in a toast that goes away by itself;
+ * one that was cancelled or failed stays above the screen until it is closed.
  */
 export function SignInOutcome() {
   const { storage } = useGame();
@@ -109,6 +111,19 @@ export function SignInOutcome() {
   const [joined, setJoined] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<StorageErrorCode | null>(null);
+  // The data of the browser waits for the person to decide whether to join it.
+  const asking = outcome === 'done' && guest.status === 'ready' && isWorthJoining(guest.value) && !joined && failure === null;
+  // Once the data of the browser is joined or there is nothing to join. Leaving it apart is an answer
+  // of its own, so no toast follows it.
+  const succeeded = outcome === 'done' && guest.status !== 'loading' && !asking && failure === null && !closed;
+  const toasted = useRef(false);
+
+  useEffect(() => {
+    if (succeeded && !toasted.current) {
+      toasted.current = true;
+      showToast(signInTexts.doneTitle, joined ? signInTexts.joined : signInTexts.doneText);
+    }
+  }, [succeeded, joined]);
 
   useEffect(() => {
     if (outcome !== null && !forgotten.current) {
@@ -138,7 +153,7 @@ export function SignInOutcome() {
     return null;
   }
 
-  if (outcome === 'done' && guest.status === 'ready' && isWorthJoining(guest.value) && !joined && failure === null) {
+  if (asking) {
     const { attempts, exercises } = guest.value;
 
     return (
@@ -155,17 +170,17 @@ export function SignInOutcome() {
     );
   }
 
-  const { tone, text } =
-    failure !== null
-      ? { tone: 'error', text: storageMessages[failure] }
-      : joined
-        ? { tone: 'done', text: signInTexts.joined }
-        : OUTCOME_NOTICES[outcome];
+  // A sign-in that went well has its toast; one cancelled or failed stays here until it is closed.
+  const notice = failure !== null ? { tone: 'error', text: storageMessages[failure] } : outcome === 'done' ? null : OUTCOME_NOTICES[outcome];
+
+  if (notice === null) {
+    return null;
+  }
 
   return (
     <div className="app-notice">
-      <div className={`notice notice--${tone}`} role={tone === 'error' ? 'alert' : 'status'}>
-        <p>{text}</p>
+      <div className={`notice notice--${notice.tone}`} role={notice.tone === 'error' ? 'alert' : 'status'}>
+        <p>{notice.text}</p>
         <button type="button" className="button button--outline" onClick={() => setClosed(true)}>
           {signInTexts.close}
         </button>
@@ -174,8 +189,7 @@ export function SignInOutcome() {
   );
 }
 
-const OUTCOME_NOTICES: Record<Outcome, { tone: 'done' | 'warning' | 'error'; text: string }> = {
-  done: { tone: 'done', text: signInTexts.done },
+const OUTCOME_NOTICES: Record<Exclude<Outcome, 'done'>, { tone: 'warning' | 'error'; text: string }> = {
   cancelled: { tone: 'warning', text: signInTexts.cancelled },
   failed: { tone: 'error', text: signInTexts.failed },
 };

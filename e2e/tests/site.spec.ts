@@ -54,11 +54,16 @@ test('the game has a header of its own, the footer is everywhere and screens lea
   // The cossack is a section of the game, and the logo leads home as on every page.
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Козак' }).click();
   await expect(page).toHaveURL('/game');
-  // The header of the game is the band of the site, so its divider stays in place from page to page.
-  const divider = () => banner.evaluate((header) => header.getBoundingClientRect().bottom);
-  const inGame = await divider();
-  await banner.getByRole('link', { name: 'Self-Fighter' }).click();
+  // The header of the game is the band of the site, so its logo and its divider stay in place from page
+  // to page, a phone included.
+  const logo = banner.getByRole('link', { name: 'Self-Fighter' });
+  const band = async () => ({
+    logo: await logo.boundingBox(),
+    divider: await banner.evaluate((header) => header.getBoundingClientRect().bottom),
+  });
+  const inGame = await band();
+  await logo.click();
   await expect(page).toHaveURL('/');
   await expect(banner.getByRole('link', { name: 'Грати' })).toBeVisible();
-  expect(await divider()).toBe(inGame);
+  expect(await band()).toEqual(inGame);
 });

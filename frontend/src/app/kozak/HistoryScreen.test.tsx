@@ -212,7 +212,9 @@ describe('the offer to sign in in the history', () => {
 
     await user.click(within(dialog).getByRole('button', { name: 'Перенести' }));
 
-    expect(await screen.findByText('Дані браузера перенесено в обліковий запис.')).toBeTruthy();
+    // The sign-in that went well says what came of the data in its toast.
+    const toast = (await screen.findByText('Дані браузера перенесено в обліковий запис.')).closest('.toast') as HTMLElement;
+    expect(within(toast).getByText('Вхід виконано')).toBeTruthy();
     // The history under the dialog shows the joined attempts at once.
     await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(2));
   });

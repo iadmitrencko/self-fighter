@@ -99,8 +99,22 @@ describe('coming back from Google', () => {
     expect(await storage.account.keptGuest()).toMatchObject({ attempts: 1 });
   });
 
+  // A sign-in that went well says so in a toast that goes away by itself, instead of a notice.
+  it('tells a sign-in that went well in a toast', async () => {
+    const { user } = renderKozak('/?sign-in=done');
+
+    const toast = (await screen.findByText('Вхід виконано')).closest('.toast') as HTMLElement;
+    expect(toast.getAttribute('role')).toBe('status');
+    expect(within(toast).getByText('Тренування, вправи й налаштування синхронізуються між пристроями.')).toBeTruthy();
+    expect(document.querySelector('.notice')).toBeNull();
+
+    await user.click(within(toast).getByRole('button', { name: 'Закрити' }));
+
+    expect(screen.queryByText('Вхід виконано')).toBeNull();
+  });
+
+  // A sign-in cancelled or failed waits until it is read: a notice above the screen.
   it.each([
-    ['done', 'Вхід виконано: тренування, вправи й налаштування тепер доступні на будь-якому пристрої.'],
     ['cancelled', 'Вхід скасовано. Без входу гра працює так само.'],
     ['failed', 'Не вдалося увійти через Google. Спробуй ще раз трохи згодом.'],
   ])('tells how the sign-in went: %s', async (outcome, text) => {
