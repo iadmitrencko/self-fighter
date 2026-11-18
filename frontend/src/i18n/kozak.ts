@@ -83,10 +83,10 @@ export const cossackTexts = {
   // Before the rank for a screen reader only: the screen shows the rank alone.
   rank: 'Звання:',
   gloryWord,
-  // «★ 3 з 10 слави»: the glory out of what the next rank needs.
+  // «★ 3 з 10 слави до звання «Заставний»»: the glory out of what the next rank needs, and the rank.
   of: 'з',
-  // Beside the glory, the way to the page of the ranks: «наступне: Заставний».
-  next: 'наступне:',
+  toRank: 'до звання',
+  quoted: (rank: string) => `«${rank}»`,
   toNext: (left: number, rank: string) => `Ще ${gloryAmount(left)} до звання «${rank}»`,
   top: 'Найвище звання здобуто',
   // §24.7: every battle of the game, a large number over its word: «24 перемоги».
@@ -106,11 +106,18 @@ export const cossackTexts = {
   physicalBest: 'Рекорд за підхід',
   physicalWeek: 'За 7 днів',
   physicalTotal: 'Усього повторень',
+  // Before the first set done, one card instead of a table of zeros and an empty chart.
+  physicalEmpty: 'Після першого бою чи рівня походу тут з’являться рекорди й повторення кожної вправи, а графік покаже останні 7 днів.',
   // §24.10: the repetitions of every day of the last seven, «840 повторень» over the chart.
   week: 'Останні 7 днів',
+  // An exercise of the table switches the chart to itself alone: «Відтискання за 7 днів».
+  weekFor: 'за 7 днів',
+  weekPick: 'Показати лише цю вправу на графіку за 7 днів',
+  weekAll: 'Усі вправи',
   reps: (count: number) => plural(count, { one: 'повторення', few: 'повторення', many: 'повторень' }),
   dayReps: (count: number) => plural(count, { one: '{n} повторення', few: '{n} повторення', many: '{n} повторень' }),
-  weekEmpty: 'За ці дні ще жодного повторення. Бій чи рівень походу з’являться тут.',
+  weekEmpty: 'За ці дні повторень не було. Наступний бій чи рівень походу з’явиться тут.',
+  weekNone: 'За ці дні цієї вправи не було.',
   physicalNone: 'ще немає',
   customFailed: 'Не вдалося завантажити твої вправи, тут лише готові.',
 };

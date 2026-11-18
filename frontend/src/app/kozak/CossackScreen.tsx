@@ -1,4 +1,4 @@
-import { useCallback, useId, type CSSProperties } from 'react';
+import { useCallback, useId, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { Link } from 'react-router';
 import type { ExerciseRef } from '../../domain/catalog/exercise';
 import { dayStreak, localDate } from '../../domain/kozak/calendar';
@@ -75,10 +75,7 @@ export function CossackScreen() {
                 </div>
               </div>
             </section>
-            <div className="k-stats">
-              <Physical record={record} today={today} exercises={exercises} customFailed={custom.status === 'failed'} />
-              <Week days={weekDays(record, today)} today={today} />
-            </div>
+            <Stats record={record} today={today} exercises={exercises} customFailed={custom.status === 'failed'} />
             {progress.done && <Legend at={record.duelAt} />}
           </>
         )}
@@ -120,41 +117,55 @@ function Streak({ days, today }: { days: readonly string[]; today: string }) {
   );
 }
 
-// «★ 3 з 10 слави», the next rank and the bar of the way there. As on the page of the ranks, the
-// bar shows the glory out of what the next rank needs. The next rank leads to that page, where all
-// the ranks stand with what brings glory.
+// «★ 3 з 10 слави до звання «Заставний»» over the bar of the way there: one sentence says what the
+// glory is for, as on the page of the ranks. It leads to that page, where all the ranks stand with
+// what brings glory.
 function Glory({ glory, standing: { next } }: { glory: number; standing: Standing }) {
+  const lead = (
+    <span className="k-glory__lead">
+      <KozakIcon name="glory" className="k-glory__icon" />
+      <b className="k-glory__number">{formatCount(glory)}</b>
+    </span>
+  );
+
   return (
     <div className="k-glory">
-      <div className="k-glory__top">
+      {next === null ? (
         <p className="k-glory__value">
-          <KozakIcon name="glory" className="k-glory__icon" />
-          {next === null ? (
-            <span>
-              <b className="k-glory__number">{formatCount(glory)}</b> {cossackTexts.gloryWord(glory)}
-            </span>
-          ) : (
-            <span>
-              <b className="k-glory__number">{formatCount(glory)}</b> {cossackTexts.of} {formatCount(next.glory)}{' '}
-              {cossackTexts.gloryWord(next.glory)}
-            </span>
-          )}
+          {lead} {cossackTexts.gloryWord(glory)} <span className="k-glory__top">{cossackTexts.top}</span>
         </p>
-        {next === null ? (
-          <p className="k-glory__next">{cossackTexts.top}</p>
-        ) : (
-          <Link className="k-glory__next k-glory__link" to={kozakPaths.ranks}>
-            {cossackTexts.next} <strong>{rankNames[next.id]}</strong>
-            <KozakIcon name="forward" className="k-glory__arrow" />
-          </Link>
-        )}
-      </div>
+      ) : (
+        <Link className="k-glory__value k-glory__link" to={kozakPaths.ranks}>
+          {lead} {cossackTexts.of} {formatCount(next.glory)} {cossackTexts.gloryWord(next.glory)}{' '}
+          {/* «звання» keeps to the rank, which may break between its words on a narrow phone. */}
+          {cossackTexts.toRank}
+          {'\u00a0'}
+          <strong>
+            <WithArrow text={cossackTexts.quoted(rankNames[next.id])} />
+          </strong>
+        </Link>
+      )}
       {next === null ? (
         <Bar value={glory} max={glory} label={cossackTexts.top} />
       ) : (
         <Bar value={glory} max={next.glory} label={cossackTexts.toNext(next.glory - glory, rankNames[next.id])} />
       )}
     </div>
+  );
+}
+
+// The arrow of the way to the ranks keeps to the last word, so it never starts a line alone.
+function WithArrow({ text }: { text: string }) {
+  const last = text.lastIndexOf(' ') + 1;
+
+  return (
+    <>
+      {text.slice(0, last)}
+      <span className="k-glory__tail">
+        {text.slice(last)}
+        <KozakIcon name="forward" className="k-glory__arrow" />
+      </span>
+    </>
   );
 }
 
@@ -175,7 +186,7 @@ function Score({ record }: { record: GameRecord }) {
       </h2>
       <ul className="k-score__counts" role="list">
         {counts.map(({ outcome, count, word }) => (
-          <li key={outcome} className={`k-score__count k-score__count--${outcome}`}>
+          <li key={outcome} className="k-score__count">
             <b className="k-score__number">{formatCount(count)}</b> <span className="k-score__word">{word}</span>
           </li>
         ))}
@@ -184,24 +195,97 @@ function Score({ record }: { record: GameRecord }) {
   );
 }
 
+interface StatsProps {
+  record: GameRecord;
+  today: string;
+  exercises: readonly ExerciseRef[];
+  customFailed: boolean;
+}
+
+/**
+ * §24.10: what the cossack has done, the table of the exercises beside the chart of the last seven
+ * days. An exercise of the table switches the chart to itself alone, until it is pressed again or
+ * the chart goes back to every exercise. Before the first set done one card says what will stand
+ * here, instead of a table of zeros and an empty chart.
+ */
+function Stats({ record, today, exercises, customFailed }: StatsProps) {
+  const [chosen, setChosen] = useState<string | null>(null);
+  const chartId = useId();
+  const chart = useRef<HTMLElement>(null);
+
+  if (Object.keys(record.exercises).length === 0) {
+    return <StatsEmpty />;
+  }
+
+  // An exercise of the player deleted meanwhile gives the chart back to every exercise.
+  const exercise = exercises.find(({ id }) => id === chosen) ?? null;
+  const choose = (id: string) => {
+    setChosen(id === exercise?.id ? null : id);
+    // A narrow screen puts the chart under the table, so it comes into view to show the change.
+    chart.current?.scrollIntoView({ block: 'nearest', behavior: scrollBehavior() });
+  };
+
+  return (
+    <div className="k-stats">
+      <Physical
+        record={record}
+        today={today}
+        exercises={exercises}
+        customFailed={customFailed}
+        chosen={exercise?.id ?? null}
+        chartId={chartId}
+        onChoose={choose}
+      />
+      <Week
+        id={chartId}
+        sectionRef={chart}
+        days={weekDays(record, today, exercise?.id ?? null)}
+        today={today}
+        exercise={exercise}
+        onAll={() => setChosen(null)}
+      />
+    </div>
+  );
+}
+
+// A smooth scroll, unless the player asked the system for less motion.
+function scrollBehavior(): ScrollBehavior {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
+
+// Before the first set done: what the table and the chart will show.
+function StatsEmpty() {
+  const titleId = useId();
+
+  return (
+    <section className="k-card k-stats__empty" aria-labelledby={titleId}>
+      <h2 id={titleId} className="k-section-title">
+        <KozakIcon name="strength" className="k-section-title__icon" />
+        {cossackTexts.physical}
+      </h2>
+      <p className="k-card__text">{cossackTexts.physicalEmpty}</p>
+    </section>
+  );
+}
+
 /**
  * §24.10: the largest set, the repetitions of the last seven days and every repetition of each
  * exercise of the player, the ready-made ones and their own, whatever battle did them, a row for
  * each. A new exercise of the player shows at once. A narrow card puts the exercise over its
- * numbers, so the roles keep the table a table for a screen reader whatever its layout.
+ * numbers, so the roles keep the table a table for a screen reader whatever its layout. Each
+ * exercise is a switch of the chart beside the table.
  */
 function Physical({
   record,
   today,
   exercises,
   customFailed,
-}: {
-  record: GameRecord;
-  today: string;
-  exercises: readonly ExerciseRef[];
-  customFailed: boolean;
-}) {
+  chosen,
+  chartId,
+  onChoose,
+}: StatsProps & { chosen: string | null; chartId: string; onChoose: (exercise: string) => void }) {
   const titleId = useId();
+  const pickId = useId();
   const week = weekTotals(record, today);
 
   return (
@@ -231,13 +315,26 @@ function Physical({
         <tbody role="rowgroup">
           {exercises.map(({ id, name }) => {
             const totals = record.exercises[id];
+            const pressed = id === chosen;
 
             return (
-              <tr key={id} role="row">
+              <tr key={id} role="row" className={pressed ? 'k-physical__row k-physical__row--chosen' : 'k-physical__row'}>
                 <th scope="row" role="rowheader">
-                  {name}
+                  <button
+                    type="button"
+                    className="k-physical__pick"
+                    aria-pressed={pressed}
+                    aria-controls={chartId}
+                    aria-describedby={pickId}
+                    onClick={() => onChoose(id)}
+                  >
+                    <span className="k-physical__name">{name}</span>
+                    <KozakIcon name="chart" className="k-physical__chart" />
+                  </button>
                 </th>
-                <td role="cell">{totals === undefined ? <None /> : formatCount(totals.best)}</td>
+                <td role="cell" className="k-physical__best">
+                  {totals === undefined ? <None /> : formatCount(totals.best)}
+                </td>
                 <td role="cell">{formatCount(week[id] ?? 0)}</td>
                 <td role="cell">{formatCount(totals?.total ?? 0)}</td>
               </tr>
@@ -245,6 +342,9 @@ function Physical({
           })}
         </tbody>
       </table>
+      <p id={pickId} hidden>
+        {cossackTexts.weekPick}
+      </p>
     </section>
   );
 }
@@ -253,37 +353,75 @@ function Physical({
 function None() {
   return (
     <>
-      <span aria-hidden="true">—</span>
+      <span className="k-physical__none" aria-hidden="true">
+        —
+      </span>
       <span className="visually-hidden">{cossackTexts.physicalNone}</span>
     </>
   );
 }
 
 /**
- * §24.10: every repetition of each of the last seven days, a column for a day and today the last.
- * One series needs no legend: the title names it. The peak carries its number, the axis the scale,
- * and every column tells its day and number on hover, on focus and to a screen reader.
+ * §24.10: the repetitions of each of the last seven days, of every exercise or of the one chosen in
+ * the table, a column for a day and today the last. One series needs no legend: the title names it.
+ * The peak carries its number, the axis the scale, and every column tells its day and number on
+ * hover, on focus and to a screen reader.
  */
-function Week({ days, today }: { days: readonly DayReps[]; today: string }) {
+function Week({
+  id,
+  sectionRef,
+  days,
+  today,
+  exercise,
+  onAll,
+}: {
+  id: string;
+  sectionRef: RefObject<HTMLElement | null>;
+  days: readonly DayReps[];
+  today: string;
+  exercise: ExerciseRef | null;
+  onAll: () => void;
+}) {
   const titleId = useId();
+  const title = useRef<HTMLHeadingElement>(null);
   const total = days.reduce((sum, { reps }) => sum + reps, 0);
   const most = Math.max(...days.map(({ reps }) => reps));
   const top = axisTop(most);
   const peak = days.findLast(({ reps }) => reps === most)?.date;
+  const all = () => {
+    onAll();
+    // The button leaves with the choice, so the focus stays on the chart, at its title.
+    title.current?.focus();
+  };
 
   return (
-    <section className="k-card k-week" aria-labelledby={titleId}>
+    <section ref={sectionRef} id={id} className="k-card k-week" aria-labelledby={titleId}>
       <div className="k-week__head">
-        <h2 id={titleId} className="k-section-title">
+        <h2 ref={title} id={titleId} className="k-section-title k-week__title" tabIndex={-1}>
           <KozakIcon name="chart" className="k-section-title__icon" />
-          {cossackTexts.week}
+          {exercise === null ? (
+            cossackTexts.week
+          ) : (
+            // «за 7 днів» keeps together where a long exercise breaks the title.
+            <span>
+              {exercise.name} <span className="k-week__for">{cossackTexts.weekFor}</span>
+            </span>
+          )}
         </h2>
-        <p className="k-week__total">
-          <b>{formatCount(total)}</b> {cossackTexts.reps(total)}
-        </p>
+        <div className="k-week__summary">
+          <p className="k-week__total">
+            <b>{formatCount(total)}</b> {cossackTexts.reps(total)}
+          </p>
+          {exercise !== null && (
+            <button type="button" className="k-week__all" onClick={all}>
+              <KozakIcon name="close" className="k-week__all-icon" />
+              {cossackTexts.weekAll}
+            </button>
+          )}
+        </div>
       </div>
       {total === 0 ? (
-        <p className="k-card__text">{cossackTexts.weekEmpty}</p>
+        <p className="k-card__text">{exercise === null ? cossackTexts.weekEmpty : cossackTexts.weekNone}</p>
       ) : (
         <div className="k-week__chart">
           <div className="k-week__axis" aria-hidden="true">
@@ -322,10 +460,11 @@ function Week({ days, today }: { days: readonly DayReps[]; today: string }) {
   );
 }
 
-// The top of the axis: a round number at or over the most, whose half is a whole number as well.
+// The top of the axis: the nearest round number at or over the most, whose half is a whole number
+// as well, so the best day fills most of the height: 300 for 215, not 400.
 function axisTop(most: number): number {
   const scale = 10 ** Math.floor(Math.log10(Math.max(most, 1)));
-  const steps = scale === 1 ? [2, 4, 6, 8, 10] : [1, 2, 4, 6, 8, 10];
+  const steps = scale === 1 ? [2, 4, 6, 8, 10] : [1, 2, 3, 4, 5, 6, 8, 10];
 
   return steps.map((step) => step * scale).find((top) => top >= most) ?? 10 * scale;
 }

@@ -10,7 +10,7 @@ afterEach(() => {
   }
 });
 
-// What jsdom lacks for the screens: modal dialogs and scrolling.
+// What jsdom lacks for the screens: modal dialogs, scrolling and media queries.
 if (typeof HTMLDialogElement !== 'undefined' && !('showModal' in HTMLDialogElement.prototype)) {
   Object.assign(HTMLDialogElement.prototype, {
     showModal(this: HTMLDialogElement) {
@@ -27,3 +27,14 @@ if (typeof HTMLDialogElement !== 'undefined' && !('showModal' in HTMLDialogEleme
 
 window.scrollTo = () => undefined;
 Element.prototype.scrollIntoView = () => undefined;
+// No query matches: a test that needs one, say less motion, stubs it itself.
+window.matchMedia = (media) => ({
+  matches: false,
+  media,
+  onchange: null,
+  addListener: () => undefined,
+  removeListener: () => undefined,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
+  dispatchEvent: () => false,
+});

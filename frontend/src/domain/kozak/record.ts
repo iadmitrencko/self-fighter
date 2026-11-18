@@ -138,9 +138,14 @@ export interface DayReps {
   readonly reps: number;
 }
 
-// §24.10: every repetition of each of the last seven days up to today, the oldest first.
-export function weekDays({ week }: GameRecord, today: string): DayReps[] {
-  return lastDays(today, 7).map((date) => ({ date, reps: Object.values(week[date] ?? {}).reduce((sum, reps) => sum + reps, 0) }));
+// §24.10: the repetitions of each of the last seven days up to today, the oldest first: of every
+// exercise, or of the one given.
+export function weekDays({ week }: GameRecord, today: string, exercise: string | null = null): DayReps[] {
+  return lastDays(today, 7).map((date) => {
+    const day = week[date] ?? {};
+
+    return { date, reps: exercise === null ? Object.values(day).reduce((sum, reps) => sum + reps, 0) : (day[exercise] ?? 0) };
+  });
 }
 
 // §24.10: the repetitions of each exercise in the last seven days up to today.

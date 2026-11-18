@@ -1115,37 +1115,30 @@
   line-height: 1;
 }
 
-/* «★ 3 з 10 слави» and the next rank in one line while both fit, the next rank under the glory where
-   they do not. */
+/* §24.2: the glory towards the next rank over the bar of the way there. */
 .k-glory {
   display: flex;
   flex-direction: column;
   gap: var(--space-s);
 }
 
-.k-glory__top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.125rem var(--space-m);
-}
-
+/* One sentence that wraps as text does; the star stays with the number. */
 .k-glory__value {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
   color: var(--k-ash);
   font-size: var(--text-m);
-  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+}
+
+.k-glory__lead {
   white-space: nowrap;
 }
 
 .k-glory__icon {
   width: 1.25rem;
   height: 1.25rem;
-  flex: none;
+  margin-right: var(--space-xs);
   color: var(--k-gold);
+  vertical-align: -0.125rem;
 }
 
 .k-glory__number {
@@ -1155,22 +1148,29 @@
   line-height: 1;
 }
 
-.k-glory__next {
-  color: var(--k-ash);
-  font-size: var(--text-s);
-}
-
-.k-glory__next strong {
+.k-glory__value strong {
   color: var(--k-parchment);
 }
 
-/* The next rank leads to the page of the ranks, and the arrow says so where no pointer hovers. */
+.k-glory__tail {
+  white-space: nowrap;
+}
+
+.k-glory__top::before {
+  margin-inline: 0.375rem;
+  content: '·' / '';
+}
+
+/* The sentence leads to the page of the ranks, and the arrow says so where no pointer hovers. */
 .k-glory__link {
-  padding-block: var(--space-2xs);
+  align-self: flex-start;
   text-decoration: none;
 }
 
-.k-glory__link:hover,
+.k-glory__link:hover {
+  color: var(--k-parchment);
+}
+
 .k-glory__link:hover strong {
   color: var(--k-gold-light);
 }
@@ -1180,7 +1180,7 @@
   height: 0.875rem;
   margin-left: 0.25rem;
   color: var(--k-gold);
-  vertical-align: -0.125rem;
+  vertical-align: -0.0625rem;
 }
 
 /* The track shows the whole way to the next rank, so no glory yet is an empty track, not a dot. */
@@ -1195,7 +1195,7 @@
 }
 
 /* §24.7: the record of battles at the foot of the card over the ways to the battles, large numbers
-   over their words, in the colors the history gives the results. */
+   in the gold of the glory over their words, each in the middle of its tile. */
 .k-score {
   margin-top: auto;
 }
@@ -1212,29 +1212,23 @@
 .k-score__count {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.25rem;
   min-width: 0;
   padding: var(--space-s);
   border-radius: var(--k-r-tile);
   background: var(--k-tile);
+  text-align: center;
   container-type: inline-size;
 }
 
 .k-score__number {
-  color: var(--k-parchment-dim);
+  color: var(--k-gold-light);
   font-size: clamp(1.25rem, 36cqi, 2rem);
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-
-.k-score__count--win .k-score__number {
-  color: var(--k-gold-light);
-}
-
-.k-score__count--loss .k-score__number {
-  color: var(--k-ember-soft);
 }
 
 .k-score__word {
@@ -1286,10 +1280,23 @@
   gap: 1.25rem;
 }
 
+/* Before the first set done, one card says what the table and the chart will show. */
+.k-stats__empty {
+  padding: 1.25rem;
+}
+
+.k-stats__empty .k-card__text {
+  max-width: 40rem;
+}
+
 /* §24.10: a row for every exercise of the player with its best set, the repetitions of the last seven
    days and every repetition. A narrow card puts the exercise over its three numbers; a wide one
-   keeps the numbers in columns on the right and the exercise takes the rest. */
+   keeps the numbers in columns on the right and the exercise takes the rest. The rows reach a band
+   past the text on every side but the top, so the exercise on the chart has room around its words
+   while the text keeps its place in the card. */
 .k-physical {
+  --band: var(--space-s);
+
   container: k-physical / inline-size;
   gap: var(--space-m);
   padding: 1.25rem;
@@ -1301,21 +1308,23 @@
   display: block;
 }
 
+.k-physical__table {
+  margin: 0 calc(-1 * var(--band)) calc(-1 * var(--band));
+}
+
+/* The switch of the exercise covers the whole row of a narrow card. */
 .k-physical__table tr {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2xs) var(--space-s);
-  padding-block: var(--space-s);
+  padding: var(--space-s) var(--band);
   border-top: 1px solid var(--k-line);
 }
 
 .k-physical__table thead tr {
   padding-top: 0;
   border-top: 0;
-}
-
-.k-physical__table tbody tr:last-child {
-  padding-bottom: 0;
 }
 
 .k-physical__table th,
@@ -1361,10 +1370,80 @@
   white-space: nowrap;
 }
 
+/* The records in the gold of the battle record above; a record not set yet is a quiet dash. */
+.k-physical__table .k-physical__best {
+  color: var(--k-gold-light);
+}
+
+.k-physical__none {
+  color: var(--k-ash);
+}
+
+/* §24.10: the exercise is a switch of the chart beside the table. The small chart says so where no
+   pointer hovers, and the band in the gold of the bars marks the exercise on the chart. */
+.k-physical__pick {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.k-physical__pick::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.k-physical__pick:focus-visible {
+  outline: none;
+}
+
+.k-physical__pick:focus-visible::after {
+  outline: 2px solid var(--k-gold);
+  outline-offset: -2px;
+}
+
+.k-physical__name {
+  min-width: 0;
+}
+
+.k-physical__chart {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+  color: var(--k-ash);
+}
+
+.k-physical__row--chosen {
+  background: var(--k-gold-wash);
+}
+
+.k-physical__row--chosen .k-physical__pick,
+.k-physical__row--chosen .k-physical__chart {
+  color: var(--k-gold-light);
+}
+
+@media (hover: hover) {
+  .k-physical__row:not(.k-physical__row--chosen):has(.k-physical__pick:hover) {
+    background: var(--k-surface-raised);
+  }
+
+  .k-physical__pick:hover .k-physical__chart {
+    color: var(--k-gold);
+  }
+}
+
 @container k-physical (min-width: 28rem) {
   .k-physical__table {
     display: table;
-    width: 100%;
+    width: calc(100% + 2 * var(--band));
     border-collapse: collapse;
   }
 
@@ -1397,8 +1476,12 @@
 
   .k-physical__table :is(th, td):first-child {
     width: 100%;
-    padding-left: 0;
+    padding-left: var(--band);
     text-align: left;
+  }
+
+  .k-physical__table :is(th, td):last-child {
+    padding-right: var(--band);
   }
 
   .k-physical__table thead th:first-child {
@@ -1408,8 +1491,10 @@
     clip-path: none;
   }
 
-  .k-physical__table tbody tr:last-child > * {
-    padding-bottom: 0;
+  /* Not every browser places a box inside a row of a table, so here the switch covers the cell of
+     the exercise alone. */
+  .k-physical__table tbody th {
+    position: relative;
   }
 }
 
@@ -1438,6 +1523,53 @@
   color: var(--k-parchment);
   font-size: var(--text-l);
   font-weight: 800;
+}
+
+/* The title takes the focus when the chart goes back to every exercise: no control to ring. */
+.k-week__title:focus {
+  outline: none;
+}
+
+.k-week__for {
+  white-space: nowrap;
+}
+
+/* The sum of the days, and beside it the way back to every exercise from the one chosen in the table:
+   a chip as the filters of the history. */
+.k-week__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-m);
+}
+
+.k-week__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-r-pill);
+  background: var(--k-tile);
+  color: var(--k-parchment-dim);
+  font: inherit;
+  font-size: var(--text-s);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.k-week__all-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+}
+
+@media (hover: hover) {
+  .k-week__all:hover {
+    border-color: var(--k-line-strong);
+    color: var(--k-parchment);
+  }
 }
 
 .k-week__chart {
@@ -1515,6 +1647,13 @@
 
 .k-week__day:is(:hover, :focus) .k-week__bar {
   background: var(--k-gold-light);
+}
+
+/* Another exercise grows or shrinks the bars in place. */
+@media (prefers-reduced-motion: no-preference) {
+  .k-week__bar {
+    transition: height 0.2s ease-out;
+  }
 }
 
 .k-week__value {
@@ -1623,7 +1762,8 @@
   }
 
   .k-physical,
-  .k-week {
+  .k-week,
+  .k-stats__empty {
     padding: var(--space-l);
   }
 

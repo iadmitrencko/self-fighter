@@ -139,6 +139,24 @@ describe('the record of the game', () => {
     expect(weekTotals(record, '2026-11-05')).toEqual({ 'pull-ups': 3, 'push-ups': 11, squats: 25 });
   });
 
+  // §24.10: an exercise chosen in the table shows alone on the chart.
+  it('adds up the last seven days of one exercise', () => {
+    const record: GameRecord = {
+      ...EMPTY_RECORD,
+      week: {
+        '2026-10-29': { squats: 100 },
+        '2026-10-30': { 'push-ups': 10, squats: 20 },
+        '2026-11-02': { squats: 5 },
+        '2026-11-05': { 'pull-ups': 3, 'push-ups': 1 },
+      },
+    };
+
+    expect(weekDays(record, '2026-11-05', 'squats').map(({ reps }) => reps)).toEqual([20, 0, 0, 5, 0, 0, 0]);
+    expect(weekDays(record, '2026-11-05', 'push-ups').map(({ reps }) => reps)).toEqual([10, 0, 0, 0, 0, 0, 1]);
+    // An exercise with nothing in these days has an empty week.
+    expect(weekDays(record, '2026-11-05', 'plank').map(({ reps }) => reps)).toEqual([0, 0, 0, 0, 0, 0, 0]);
+  });
+
   // An attempt waits in the browser while the server knows the rest: together they count once.
   it('adds two records without counting a level twice', () => {
     const a: GameRecord = {

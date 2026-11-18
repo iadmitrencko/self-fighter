@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { EMPTY_RECORD, type GameRecord } from '../../domain/kozak/record';
 import { fightConfig } from '../../domain/testing/fixtures';
 import { newId } from '../../storage/ids';
@@ -22,14 +22,14 @@ function physical(): (string | null)[][] {
     .map((row) => [within(row).getByRole('rowheader'), ...within(row).getAllByRole('cell')].map(({ textContent }) => textContent));
 }
 
-// The glory as it reads: «★ 3 з 10 слави».
+// The glory as it reads, one sentence that leads to the ranks: «★ 3 з 10 слави до звання «Заставний»».
 function gloryText(): string | null {
-  return screen.getByText(/^з \d+ слави$/).textContent;
+  return screen.getByRole('link', { name: /слави до звання/ }).textContent;
 }
 
 // The columns of the chart of the last seven days, as a screen reader hears them.
-function week(): (string | null)[] {
-  return within(screen.getByRole('region', { name: 'Останні 7 днів' }))
+function week(title = 'Останні 7 днів'): (string | null)[] {
+  return within(screen.getByRole('region', { name: title }))
     .getAllByRole('listitem')
     .map((day) => day.getAttribute('aria-label'));
 }
@@ -53,17 +53,19 @@ describe('the cossack', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeTruthy();
     expect(screen.getByRole('img', { name: /Джура у вишиванці/ })).toBeTruthy();
-    // «★ 0 з 10 слави», «наступне: Заставний» and the bar of the way there.
-    expect(gloryText()).toBe('0 з 10 слави');
-    expect(screen.getByRole('link', { name: 'наступне: Заставний' }).getAttribute('href')).toBe('/ranks');
+    // «★ 0 з 10 слави до звання «Заставний»» over the bar of the way there.
+    expect(gloryText()).toBe('0 з 10 слави до звання\u00a0«Заставний»');
+    expect(screen.getByRole('link', { name: '0 з 10 слави до звання\u00a0«Заставний»' }).getAttribute('href')).toBe('/ranks');
     expect(screen.getByRole('progressbar', { name: 'Ще 10 слави до звання «Заставний»' }).getAttribute('aria-valuenow')).toBe('0');
     // §24.7: the record of battles in large numbers.
     expect(score()).toEqual(['0 перемог', '0 нічиїх', '0 поразок']);
     // §24.1: the header of the game shows the energy, the screen does not repeat it.
     expect(within(cossackScreen()).queryByText(/енергі/i)).toBeNull();
-    // §24.12: no days in a row yet, and §24.10: nothing done in the last days.
+    // §24.12: no days in a row yet, and §24.10: nothing done, so one card instead of zeros and an empty chart.
     expect(screen.queryByText(/поспіль/)).toBeNull();
-    expect(within(screen.getByRole('region', { name: 'Останні 7 днів' })).getByText(/^За ці дні ще жодного повторення/)).toBeTruthy();
+    expect(within(screen.getByRole('region', { name: 'Фізична статистика' })).getByText(/^Після першого бою/)).toBeTruthy();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Останні 7 днів' })).toBeNull();
   });
 
   // §24.11: the name the player gave the cossack stands over the rank, the name of Google without it.
@@ -119,6 +121,62 @@ describe('the cossack', () => {
     expect(days[6]).toMatch(/^п.ятниця, 30 жовтня: 6 повторень$/);
   });
 
+  // §24.10: an exercise of the table shows alone on the chart, until it gives the chart back to every exercise.
+  it('charts the exercise chosen in the table', async () => {
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+    const { user } = renderKozak('/', {
+      storage: storageWith({
+        ...EMPTY_RECORD,
+        exercises: { 'push-ups': { best: 12, total: 132 }, 'pull-ups': { best: 3, total: 6 } },
+        // The clock of the test stands on October 30.
+        week: { '2026-10-29': { 'push-ups': 32 }, '2026-10-30': { 'push-ups': 10, 'pull-ups': 6 } },
+      }),
+    });
+
+    const pushUps = await screen.findByRole('button', { name: 'Відтискання' });
+    expect(pushUps.getAttribute('aria-pressed')).toBe('false');
+    await user.click(pushUps);
+
+    expect(pushUps.getAttribute('aria-pressed')).toBe('true');
+    const chart = within(screen.getByRole('region', { name: 'Відтискання за 7 днів' }));
+    expect(chart.getByText(/^42/).closest('p')?.textContent).toBe('42 повторення');
+    expect(week('Відтискання за 7 днів').slice(5)).toEqual([
+      expect.stringMatching(/^четвер, 29 жовтня: 32 повторення$/),
+      expect.stringMatching(/^п.ятниця, 30 жовтня: 10 повторень$/),
+    ]);
+    // A narrow screen puts the chart under the table, so it comes into view.
+    expect(scroll).toHaveBeenCalledWith({ block: 'nearest', behavior: 'smooth' });
+    scroll.mockRestore();
+
+    // Another exercise takes its place, and the same one again gives the chart back to every exercise.
+    await user.click(screen.getByRole('button', { name: 'Підтягування' }));
+    expect(pushUps.getAttribute('aria-pressed')).toBe('false');
+    expect(week('Підтягування за 7 днів').at(-1)).toMatch(/: 6 повторень$/);
+    await user.click(screen.getByRole('button', { name: 'Підтягування' }));
+    expect(week().at(-1)).toMatch(/: 16 повторень$/);
+    expect(screen.queryByRole('button', { pressed: true })).toBeNull();
+
+    // An exercise with nothing in these days says so, and «Усі вправи» goes back, the focus on the chart.
+    await user.click(screen.getByRole('button', { name: 'Присідання' }));
+    expect(within(screen.getByRole('region', { name: 'Присідання за 7 днів' })).getByText('За ці дні цієї вправи не було.')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Усі вправи' }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Останні 7 днів' })).toBe(document.activeElement);
+    expect(screen.queryByRole('button', { name: 'Усі вправи' })).toBeNull();
+    expect(screen.queryByRole('button', { pressed: true })).toBeNull();
+  });
+
+  // §24.10: the axis ends at the nearest round number over the best day, so its bar fills most of the height.
+  it('scales the chart to the best day', async () => {
+    renderKozak('/', {
+      storage: storageWith({ ...EMPTY_RECORD, exercises: { squats: { best: 40, total: 215 } }, week: { '2026-10-30': { squats: 215 } } }),
+    });
+
+    const chart = within(await screen.findByRole('region', { name: 'Останні 7 днів' }));
+    expect(chart.getByText('300')).toBeTruthy();
+    expect(chart.getByText('150')).toBeTruthy();
+    expect(chart.queryByText('400')).toBeNull();
+  });
+
   // §24.1: «Грати» of the site leads here, and the screen leads on to a fight and to the journey.
   it('leads to a fight and to the journey', async () => {
     const { user } = renderKozak('/');
@@ -149,7 +207,7 @@ describe('the cossack', () => {
   it('leads to the ranks', async () => {
     const { user } = renderKozak('/');
 
-    await user.click(await screen.findByRole('link', { name: 'наступне: Заставний' }));
+    await user.click(await screen.findByRole('link', { name: '0 з 10 слави до звання\u00a0«Заставний»' }));
     expect(await screen.findByRole('heading', { level: 1, name: 'Звання' })).toBeTruthy();
     expect(screen.getByText('Похід пройдено').nextElementSibling?.textContent).toBe('+30');
   });
@@ -227,7 +285,7 @@ describe('the cossack', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Звання: Джура' });
     expect(score()).toEqual(['2 перемоги', '0 нічиїх', '2 поразки']);
-    expect(gloryText()).toBe('3 з 10 слави');
+    expect(gloryText()).toBe('3 з 10 слави до звання\u00a0«Заставний»');
     const glory = screen.getByRole('progressbar', { name: 'Ще 7 слави до звання «Заставний»' });
     expect([glory.getAttribute('aria-valuenow'), glory.getAttribute('aria-valuemax')]).toEqual(['3', '10']);
   });
@@ -237,8 +295,8 @@ describe('the cossack', () => {
     renderKozak('/', { storage: storageWith({ ...EMPTY_RECORD, fights: { wins: 3500, draws: 0, losses: 0 } }) });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Звання: Гетьман' })).toBeTruthy();
-    expect(screen.getByText('Найвище звання здобуто', { selector: 'p' })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /^наступне/ })).toBeNull();
+    expect(screen.getByText('Найвище звання здобуто', { selector: 'span' }).closest('p')?.textContent).toBe('3\u00a0500 слави Найвище звання здобуто');
+    expect(screen.queryByRole('link', { name: /до звання/ })).toBeNull();
     const glory = screen.getByRole('progressbar', { name: 'Найвище звання здобуто' });
     expect([glory.getAttribute('aria-valuenow'), glory.getAttribute('aria-valuemax')]).toEqual(['3500', '3500']);
   });
