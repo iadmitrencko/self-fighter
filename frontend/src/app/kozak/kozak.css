@@ -1309,10 +1309,6 @@
   padding: 1.25rem;
 }
 
-.k-stats__empty .k-card__text {
-  max-width: 40rem;
-}
-
 /* §24.10: a row for every exercise of the player with its best set, the repetitions of the last seven
    days and every repetition. A narrow card puts the exercise over its three numbers; a wide one
    keeps the numbers in columns on the right and the exercise takes the rest. The rows reach a band
