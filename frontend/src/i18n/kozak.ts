@@ -108,7 +108,7 @@ export const cossackTexts = {
   streak: (days: number) => plural(days, { one: '{n} день поспіль', few: '{n} дні поспіль', many: '{n} днів поспіль' }),
   streakToday: 'продовж сьогодні',
   // §24.10: every exercise of the player, the ready-made ones and their own.
-  physical: 'Фізична статистика',
+  physical: 'Статистика',
   physicalExercise: 'Вправа',
   physicalBest: 'Рекорд за підхід',
   physicalWeek: 'За 7 днів',
@@ -125,7 +125,6 @@ export const cossackTexts = {
   dayReps: (count: number) => plural(count, { one: '{n} повторення', few: '{n} повторення', many: '{n} повторень' }),
   weekEmpty: 'За ці дні повторень не було. Наступний бій чи рівень походу з’явиться тут.',
   weekNone: 'За ці дні цієї вправи не було.',
-  physicalNone: 'ще немає',
   customFailed: 'Не вдалося завантажити твої вправи, тут лише готові.',
 };
 

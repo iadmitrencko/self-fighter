@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import type { Standing } from '../../domain/kozak/ranks';
 import { formatCount } from '../../i18n/format';
 import { gloryTexts, rankNames } from '../../i18n/kozak';
-import { Bar, KozakIcon } from './parts';
+import { Bar, KozakIcon, WithIcon } from './parts';
 
 /**
  * §24.2: «★ 11 слави», the glory of the cossack, and «Ще 14 слави до звання «Ройовий»» beside it,
@@ -44,7 +44,6 @@ export function Glory({ glory, standing: { rank, next }, to }: { glory: number; 
 // keeps to the last word, so it never starts a line alone.
 function Left({ left, rank, arrow = false }: { left: number; rank: string; arrow?: boolean }) {
   const quoted = gloryTexts.quoted(rank);
-  const last = quoted.lastIndexOf(' ') + 1;
 
   return (
     <>
@@ -52,13 +51,9 @@ function Left({ left, rank, arrow = false }: { left: number; rank: string; arrow
       {'\u00a0'}
       <strong>
         {arrow ? (
-          <>
-            {quoted.slice(0, last)}
-            <span className="k-glory__tail">
-              {quoted.slice(last)}
-              <KozakIcon name="forward" className="k-glory__arrow" />
-            </span>
-          </>
+          <WithIcon text={quoted} className="k-glory__tail">
+            <KozakIcon name="forward" className="k-glory__arrow" />
+          </WithIcon>
         ) : (
           quoted
         )}

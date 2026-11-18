@@ -1163,14 +1163,19 @@
   line-height: 1;
 }
 
-/* «Ще 14 слави до звання «Ройовий»»: the number and the rank stand out of the words. */
+/* «Ще 14 слави до звання «Ройовий»»: the number in the gold of every number of the page, the rank
+   in the light of the words. */
 .k-glory__next {
   color: var(--k-ash);
   font-size: var(--text-m);
   line-height: 1.5;
 }
 
-.k-glory__next :is(b, strong) {
+.k-glory__next b {
+  color: var(--k-gold-light);
+}
+
+.k-glory__next strong {
   color: var(--k-parchment);
 }
 
@@ -1260,7 +1265,7 @@
   gap: var(--space-s);
 }
 
-/* The title of a card with its icon: «Фізична статистика». */
+/* The title of a card with its icon: «Статистика». */
 .k-section-title {
   display: flex;
   align-items: center;
@@ -1291,9 +1296,11 @@
 }
 
 /* §24.10: what the cossack has done, the table of the exercises and the chart of the last days side
-   by side where the screen is wide. */
+   by side where the screen is wide. Each card is as tall as what it holds: the table grows with every
+   exercise the cossack takes up, and the chart keeps its height. */
 .k-stats {
   display: grid;
+  align-items: start;
   gap: 1.25rem;
 }
 
@@ -1344,11 +1351,12 @@
   border-top: 0;
 }
 
+/* The numbers stand in the middle of their columns, as in the tiles of the battle record. */
 .k-physical__table th,
 .k-physical__table td {
   display: block;
   padding: 0;
-  text-align: right;
+  text-align: center;
 }
 
 /* The exercise names its row anyway, so a narrow card says «Вправа» to a screen reader only. */
@@ -1371,7 +1379,7 @@
 
 .k-physical__table tbody th {
   grid-column: 1 / -1;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   hyphens: auto;
   color: var(--k-parchment);
   font-size: var(--text-m);
@@ -1379,29 +1387,21 @@
   text-align: left;
 }
 
+/* Every number of the page is in the gold of the glory and of the battle record. */
 .k-physical__table td {
-  color: var(--k-parchment);
+  color: var(--k-gold-light);
   font-size: var(--text-l);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-/* The records in the gold of the battle record above; a record not set yet is a quiet dash. */
-.k-physical__table .k-physical__best {
-  color: var(--k-gold-light);
-}
-
-.k-physical__none {
-  color: var(--k-ash);
-}
-
 /* §24.10: the exercise is a switch of the chart beside the table. The small chart says so where no
    pointer hovers, and the band in the gold of the bars marks the exercise on the chart. */
+/* A flex box takes its baseline from the first line of the name, so the numbers of a long exercise
+   stand level with its first line. */
 .k-physical__pick {
   display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
   max-width: 100%;
   padding: 0;
   border: 0;
@@ -1431,11 +1431,17 @@
   min-width: 0;
 }
 
+/* The small chart follows the last word of the exercise, wherever the name breaks. */
+.k-physical__tail {
+  white-space: nowrap;
+}
+
 .k-physical__chart {
   width: 0.875rem;
   height: 0.875rem;
-  flex: none;
+  margin-left: var(--space-xs);
   color: var(--k-ash);
+  vertical-align: -0.0625rem;
 }
 
 .k-physical__row--chosen {
@@ -1476,10 +1482,12 @@
     display: table-row;
   }
 
+  /* The numbers share equally what the exercise leaves them, each in the middle of its column. */
   .k-physical__table th,
   .k-physical__table td {
     display: table-cell;
-    padding: var(--space-s) 0 var(--space-s) var(--space-m);
+    width: calc(70% / 3);
+    padding: var(--space-s) var(--space-xs);
     border-top: 1px solid var(--k-line);
     vertical-align: baseline;
   }
@@ -1487,18 +1495,15 @@
   .k-physical__table thead th {
     padding-top: 0;
     border-top: 0;
-    white-space: nowrap;
+    text-wrap: balance;
     vertical-align: bottom;
   }
 
+  /* The exercise takes under a third of the row, and more only for a word longer than that. */
   .k-physical__table :is(th, td):first-child {
-    width: 100%;
+    width: 30%;
     padding-left: var(--band);
     text-align: left;
-  }
-
-  .k-physical__table :is(th, td):last-child {
-    padding-right: var(--band);
   }
 
   .k-physical__table thead th:first-child {
@@ -1509,9 +1514,10 @@
   }
 
   /* Not every browser places a box inside a row of a table, so here the switch covers the cell of
-     the exercise alone. */
+     the exercise alone. Its words keep whole: the column grows for a long one instead. */
   .k-physical__table tbody th {
     position: relative;
+    hyphens: manual;
   }
 }
 
@@ -1537,7 +1543,7 @@
 }
 
 .k-week__total b {
-  color: var(--k-parchment);
+  color: var(--k-gold-light);
   font-size: var(--text-l);
   font-weight: 800;
 }
@@ -1677,7 +1683,7 @@
   position: absolute;
   bottom: calc(100% + 0.25rem);
   left: 50%;
-  color: var(--k-parchment);
+  color: var(--k-gold-light);
   font-size: var(--text-xs);
   font-weight: 700;
   white-space: nowrap;

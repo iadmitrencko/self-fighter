@@ -13,7 +13,7 @@ import { CossackFigure } from './art/Cossack';
 import { Glory } from './Glory';
 import { Legend } from './Legend';
 import { kozakPaths } from './paths';
-import { KozakIcon, KozakScreen, WithCossack } from './parts';
+import { KozakIcon, KozakScreen, WithCossack, WithIcon } from './parts';
 import { useNow } from './record';
 
 /**
@@ -218,10 +218,10 @@ function StatsEmpty() {
 
 /**
  * §24.10: the largest set, the repetitions of the last seven days and every repetition of each
- * exercise of the player, the ready-made ones and their own, whatever battle did them, a row for
- * each. A new exercise of the player shows at once. A narrow card puts the exercise over its
- * numbers, so the roles keep the table a table for a screen reader whatever its layout. Each
- * exercise is a switch of the chart beside the table.
+ * exercise the cossack has done, the ready-made ones and the player's own, whatever battle did them,
+ * a row for each; an exercise without a single repetition stays out. A narrow card puts the exercise
+ * over its numbers, so the roles keep the table a table for a screen reader whatever its layout.
+ * Each exercise is a switch of the chart beside the table.
  */
 function Physical({
   record,
@@ -235,6 +235,11 @@ function Physical({
   const titleId = useId();
   const pickId = useId();
   const week = weekTotals(record, today);
+  const done = exercises.flatMap(({ id, name }) => {
+    const totals = record.exercises[id];
+
+    return totals === undefined || totals.total === 0 ? [] : [{ id, name, totals }];
+  });
 
   return (
     <section className="k-card k-physical" aria-labelledby={titleId}>
@@ -243,69 +248,60 @@ function Physical({
         {cossackTexts.physical}
       </h2>
       {customFailed && <p className="notice notice--warning">{cossackTexts.customFailed}</p>}
-      <table className="k-physical__table" role="table" aria-labelledby={titleId}>
-        <thead role="rowgroup">
-          <tr role="row">
-            <th scope="col" role="columnheader">
-              {cossackTexts.physicalExercise}
-            </th>
-            <th scope="col" role="columnheader">
-              {cossackTexts.physicalBest}
-            </th>
-            <th scope="col" role="columnheader">
-              {cossackTexts.physicalWeek}
-            </th>
-            <th scope="col" role="columnheader">
-              {cossackTexts.physicalTotal}
-            </th>
-          </tr>
-        </thead>
-        <tbody role="rowgroup">
-          {exercises.map(({ id, name }) => {
-            const totals = record.exercises[id];
-            const pressed = id === chosen;
+      {/* Nothing to show only while the exercises of the player are on their way, or once they are gone. */}
+      {done.length > 0 && (
+        <table className="k-physical__table" role="table" aria-labelledby={titleId}>
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">
+                {cossackTexts.physicalExercise}
+              </th>
+              <th scope="col" role="columnheader">
+                {cossackTexts.physicalBest}
+              </th>
+              <th scope="col" role="columnheader">
+                {cossackTexts.physicalWeek}
+              </th>
+              <th scope="col" role="columnheader">
+                {cossackTexts.physicalTotal}
+              </th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            {done.map(({ id, name, totals }) => {
+              const pressed = id === chosen;
 
-            return (
-              <tr key={id} role="row" className={pressed ? 'k-physical__row k-physical__row--chosen' : 'k-physical__row'}>
-                <th scope="row" role="rowheader">
-                  <button
-                    type="button"
-                    className="k-physical__pick"
-                    aria-pressed={pressed}
-                    aria-controls={chartId}
-                    aria-describedby={pickId}
-                    onClick={() => onChoose(id)}
-                  >
-                    <span className="k-physical__name">{name}</span>
-                    <KozakIcon name="chart" className="k-physical__chart" />
-                  </button>
-                </th>
-                <td role="cell" className="k-physical__best">
-                  {totals === undefined ? <None /> : formatCount(totals.best)}
-                </td>
-                <td role="cell">{formatCount(week[id] ?? 0)}</td>
-                <td role="cell">{formatCount(totals?.total ?? 0)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+              return (
+                <tr key={id} role="row" className={pressed ? 'k-physical__row k-physical__row--chosen' : 'k-physical__row'}>
+                  <th scope="row" role="rowheader">
+                    <button
+                      type="button"
+                      className="k-physical__pick"
+                      aria-pressed={pressed}
+                      aria-controls={chartId}
+                      aria-describedby={pickId}
+                      onClick={() => onChoose(id)}
+                    >
+                      <span className="k-physical__name">
+                        <WithIcon text={name} className="k-physical__tail">
+                          <KozakIcon name="chart" className="k-physical__chart" />
+                        </WithIcon>
+                      </span>
+                    </button>
+                  </th>
+                  <td role="cell">{formatCount(totals.best)}</td>
+                  <td role="cell">{formatCount(week[id] ?? 0)}</td>
+                  <td role="cell">{formatCount(totals.total)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
       <p id={pickId} hidden>
         {cossackTexts.weekPick}
       </p>
     </section>
-  );
-}
-
-// A dash for a record not set yet; a screen reader says so in words.
-function None() {
-  return (
-    <>
-      <span className="k-physical__none" aria-hidden="true">
-        —
-      </span>
-      <span className="visually-hidden">{cossackTexts.physicalNone}</span>
-    </>
   );
 }
 

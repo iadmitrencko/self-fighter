@@ -60,6 +60,22 @@ export function KozakIcon({ name, className = 'kozak-icon' }: { name: KozakIconN
   );
 }
 
+// An icon after a text keeps to its last word, so it never starts a line alone where the text breaks:
+// the arrow of the way to the ranks, the small chart of an exercise.
+export function WithIcon({ text, className, children }: { text: string; className: string; children: ReactNode }) {
+  const last = text.lastIndexOf(' ') + 1;
+
+  return (
+    <>
+      {text.slice(0, last)}
+      <span className={className}>
+        {text.slice(last)}
+        {children}
+      </span>
+    </>
+  );
+}
+
 // The raven of the bosses: on their markers, cards and badges.
 export function Raven({ className, color = 'currentColor' }: { className?: string; color?: string }) {
   return (

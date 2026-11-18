@@ -14,9 +14,9 @@ function score(): (string | null)[] {
     .map(({ textContent }) => textContent);
 }
 
-// The rows of the physical statistics: the exercise, its best set and every repetition.
+// The rows of the statistics: the exercise, its best set, the last seven days and every repetition.
 function physical(): (string | null)[][] {
-  return within(screen.getByRole('table', { name: 'Фізична статистика' }))
+  return within(screen.getByRole('table', { name: 'Статистика' }))
     .getAllByRole('row')
     .slice(1)
     .map((row) => [within(row).getByRole('rowheader'), ...within(row).getAllByRole('cell')].map(({ textContent }) => textContent));
@@ -70,7 +70,7 @@ describe('the cossack', () => {
     expect(within(cossackScreen()).queryByText(/енергі/i)).toBeNull();
     // §24.12: no days in a row yet, and §24.10: nothing done, so one card instead of zeros and an empty chart.
     expect(screen.queryByText(/поспіль/)).toBeNull();
-    expect(within(screen.getByRole('region', { name: 'Фізична статистика' })).getByText(/^Після першого бою/)).toBeTruthy();
+    expect(within(screen.getByRole('region', { name: 'Статистика' })).getByText(/^Після першого бою/)).toBeTruthy();
     expect(screen.queryByRole('table')).toBeNull();
     expect(screen.queryByRole('region', { name: 'Останні 7 днів' })).toBeNull();
   });
@@ -134,7 +134,8 @@ describe('the cossack', () => {
     const { user } = renderKozak('/', {
       storage: storageWith({
         ...EMPTY_RECORD,
-        exercises: { 'push-ups': { best: 12, total: 132 }, 'pull-ups': { best: 3, total: 6 } },
+        // Squats only long ago.
+        exercises: { 'push-ups': { best: 12, total: 132 }, squats: { best: 15, total: 30 }, 'pull-ups': { best: 3, total: 6 } },
         // The clock of the test stands on October 30.
         week: { '2026-10-29': { 'push-ups': 32 }, '2026-10-30': { 'push-ups': 10, 'pull-ups': 6 } },
       }),
@@ -179,6 +180,8 @@ describe('the cossack', () => {
     });
 
     const chart = within(await screen.findByRole('region', { name: 'Останні 7 днів' }));
+    // The other ready-made exercises have not a single repetition, so the table leaves them out.
+    expect(physical()).toEqual([['Присідання', '40', '215', '215']]);
     expect(chart.getByText('300')).toBeTruthy();
     expect(chart.getByText('150')).toBeTruthy();
     expect(chart.queryByText('400')).toBeNull();
@@ -247,6 +250,7 @@ describe('the cossack', () => {
     const crunches = { id: newId(), name: 'Скручування', description: '' };
     const plank = { id: newId(), name: 'Планка', description: '' };
     await storage.exercises.save(crunches);
+    await storage.exercises.save(plank);
     // Push-ups 10, 12 and 10, squats 15, 15 and 20.
     await storage.attempts.save(gameFight('win', '2026-10-29T10:00:00.000Z', '2026-10-29T12:00:00.000Z'));
     await storage.attempts.save(
@@ -254,31 +258,25 @@ describe('the cossack', () => {
     );
     // Pull-ups 1, 2 and 3 of a level.
     await storage.attempts.save(levelAttempt('forest-ravens/2/3', 'win', '2026-10-29T12:00:00.000Z', '2026-10-29T15:00:00.000Z'));
-    const { user } = renderKozak('/', { storage });
+    renderKozak('/', { storage });
 
-    const table = await screen.findByRole('table', { name: 'Фізична статистика' });
+    const table = await screen.findByRole('table', { name: 'Статистика' });
     expect(within(table).getAllByRole('columnheader').map(({ textContent }) => textContent)).toEqual([
       'Вправа',
       'Рекорд за підхід',
       'За 7 днів',
       'Усього повторень',
     ]);
+    // The exercises of the player come once they arrive. Every battle was within the last seven days.
     await waitFor(() => expect(physical()).toHaveLength(4));
-    // Every battle was within the last seven days.
     expect(physical()).toEqual([
       ['Відтискання', '12', '32', '32'],
       ['Присідання', '20', '50', '50'],
       ['Підтягування', '3', '6', '6'],
       ['Скручування', '40', '70', '70'],
     ]);
-
-    // An exercise made just now shows at once, with nothing done yet.
-    const sections = within(screen.getByRole('navigation', { name: 'Розділи гри' }));
-    await user.click(sections.getByRole('link', { name: 'Бій' }));
-    await storage.exercises.save(plank);
-    await user.click(sections.getByRole('link', { name: 'Козак' }));
-    await waitFor(() => expect(physical()).toHaveLength(5));
-    expect(physical()[4]).toEqual(['Планка', '—ще немає', '0', '0']);
+    // An exercise without a single repetition stays out of the table.
+    expect(within(table).queryByRole('rowheader', { name: 'Планка' })).toBeNull();
   });
 
   // §24.3, §24.6: glory comes from the wins of the game; its record counts fights and levels together.
