@@ -107,11 +107,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* §24.2: the rank over a thin bar of the glory towards the next one, from a tablet up. The star is
-   fuller than the line icons, so it is drawn a little smaller. */
+/* §24.2: the rank and the glory over a thin bar of the way from that rank to the next one, from a
+   tablet up. The star is fuller than the line icons, so it is drawn a little smaller. */
 .game-rank {
   position: relative;
   display: none;
+}
+
+.game-rank__link {
+  position: relative;
 }
 
 .game-rank__icon {
@@ -156,8 +160,9 @@
   color: var(--k-ember-soft);
 }
 
-/* When the next unit comes back: under the pill, for a pointer or the keyboard. */
-.game-energy__tip {
+/* Under a pill, for a pointer or the keyboard: when the next unit of energy comes back, how much more
+   glory the next rank needs. */
+.game-tip {
   position: absolute;
   top: calc(100% + 0.5rem);
   right: 0;
@@ -173,9 +178,15 @@
   white-space: nowrap;
 }
 
-.game-energy:hover .game-energy__tip,
-.game-energy__link:focus-visible + .game-energy__tip {
+:is(.game-energy, .game-rank):hover .game-tip,
+.game-pill:focus-visible + .game-tip {
   display: block;
+}
+
+/* The rank stands first of the pills, so its hint opens to the right, under the energy. */
+.game-rank__tip {
+  right: auto;
+  left: 0;
 }
 
 /* From the width of most phones the name of the site fits beside the two pills of the energy. */
@@ -204,7 +215,7 @@
   }
 
   .game-rank {
-    display: inline-flex;
+    display: block;
   }
 }
 
@@ -1115,21 +1126,25 @@
   line-height: 1;
 }
 
-/* §24.2: the glory towards the next rank over the bar of the way there. */
+/* §24.2: the glory of the cossack beside how much more the next rank needs, over the bar of the way
+   there. A narrow card puts the way under the glory. */
 .k-glory {
   display: flex;
   flex-direction: column;
   gap: var(--space-s);
 }
 
-/* One sentence that wraps as text does; the star stays with the number. */
+.k-glory__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2xs) var(--space-m);
+}
+
 .k-glory__value {
   color: var(--k-ash);
   font-size: var(--text-m);
-  line-height: 1.6;
-}
-
-.k-glory__lead {
   white-space: nowrap;
 }
 
@@ -1148,7 +1163,14 @@
   line-height: 1;
 }
 
-.k-glory__value strong {
+/* «Ще 14 слави до звання «Ройовий»»: the number and the rank stand out of the words. */
+.k-glory__next {
+  color: var(--k-ash);
+  font-size: var(--text-m);
+  line-height: 1.5;
+}
+
+.k-glory__next :is(b, strong) {
   color: var(--k-parchment);
 }
 
@@ -1156,14 +1178,8 @@
   white-space: nowrap;
 }
 
-.k-glory__top::before {
-  margin-inline: 0.375rem;
-  content: '·' / '';
-}
-
-/* The sentence leads to the page of the ranks, and the arrow says so where no pointer hovers. */
+/* The way leads to the page of the ranks, and the arrow says so where no pointer hovers. */
 .k-glory__link {
-  align-self: flex-start;
   text-decoration: none;
 }
 
@@ -1183,7 +1199,8 @@
   vertical-align: -0.0625rem;
 }
 
-/* The track shows the whole way to the next rank, so no glory yet is an empty track, not a dot. */
+/* The track is the way from the rank held to the next one, so a rank just taken is an empty track,
+   not a dot. */
 .k-glory .k-bar {
   height: 0.5rem;
   border-radius: 4px;
@@ -1841,35 +1858,6 @@
 .k-rewards .k-card__title {
   margin-bottom: 0.375rem;
   font-size: 1.625rem;
-}
-
-.k-progress__value {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem 0.625rem;
-  color: var(--k-ash);
-  font-size: var(--text-s);
-}
-
-.k-progress__value b {
-  color: var(--k-gold-light);
-  font-size: 2rem;
-  font-weight: 800;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.k-progress__icon {
-  align-self: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  color: var(--k-gold);
-}
-
-.k-progress .k-bar {
-  height: 0.5rem;
-  border-radius: 4px;
 }
 
 .k-progress__back {

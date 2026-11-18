@@ -3,8 +3,9 @@ import { Link } from 'react-router';
 import { rankGroups, type RankGroup, type Standing } from '../../domain/kozak/ranks';
 import { gloryRewards, lookTexts, rankNames, ranksTexts } from '../../i18n/kozak';
 import { Title } from '../components/Screen';
+import { Glory } from './Glory';
 import { kozakPaths } from './paths';
-import { Bar, KozakIcon, KozakScreen, WithCossack } from './parts';
+import { KozakIcon, KozakScreen, WithCossack } from './parts';
 
 const GROUPS = rankGroups();
 
@@ -28,22 +29,8 @@ export function RanksScreen() {
               <h2 id={progressId} className="k-card__label">
                 {ranksTexts.progress}
               </h2>
-              <p className="k-progress__value">
-                <KozakIcon name="glory" className="k-progress__icon" />
-                <b>{glory}</b>{' '}
-                <span>
-                  {standing.next === null
-                    ? ranksTexts.top
-                    : ranksTexts.toward(standing.next.glory, rankNames[standing.next.id])}
-                </span>
-              </p>
-              {standing.next !== null && (
-                <Bar
-                  value={glory}
-                  max={standing.next.glory}
-                  label={ranksTexts.towardLabel(glory, standing.next.glory, rankNames[standing.next.id])}
-                />
-              )}
+              {/* As on the screen of the cossack, without the way to this very page. */}
+              <Glory glory={glory} standing={standing} />
               <Link className="k-progress__back" to={kozakPaths.cossack}>
                 <span aria-hidden="true">←</span> {ranksTexts.toCossack}
               </Link>

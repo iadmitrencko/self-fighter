@@ -23,7 +23,7 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   await expectAccessible(page);
 
   // §24.2: the next rank leads to all the ranks and what brings glory.
-  await page.getByRole('link', { name: /^0 з 10 слави до звання\s«Заставний»$/ }).click();
+  await page.getByRole('link', { name: /^Ще 10 слави до звання\s«Заставний»$/ }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Звання', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Як здобути славу' })).toBeVisible();
   await expectAccessible(page);
@@ -78,7 +78,8 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Козак' }).click();
   // Chromium puts a space after the block of the name, before its hidden comma; a screen reader keeps quiet about it.
   await expect(page.getByRole('heading', { level: 1, name: /^Іван Сірко ?, Звання: Джура$/ })).toBeVisible();
-  await expect(page.getByRole('progressbar', { name: 'Ще 8 слави до звання «Заставний»' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Ще 8 слави до звання\s«Заставний»$/ })).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Поступ до звання «Заставний»' })).toHaveAttribute('aria-valuenow', '2');
   await expect(page.getByRole('region', { name: 'Бойовий рахунок' }).getByRole('listitem')).toHaveText(['1 перемога', '0 нічиїх', '0 поразок']);
   // §24.10: the level brought three pull-ups, one in each set, today; §24.12: and the first day of a run.
   await expect(page.getByRole('table', { name: 'Фізична статистика' }).getByRole('row', { name: /^Підтягування/ }).getByRole('cell')).toHaveText(['1', '3', '3']);

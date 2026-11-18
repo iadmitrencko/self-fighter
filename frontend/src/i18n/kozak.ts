@@ -69,6 +69,20 @@ const gloryAmount = (glory: number) => plural(glory, { one: '{n} слава', fe
 // The word after a number of glory: «2 слави».
 const gloryWord = (glory: number) => plural(glory, { one: 'слава', few: 'слави', many: 'слави' });
 
+// §24.2: the glory of the cossack and how much more the next rank needs, the same on the screens of the
+// cossack and of the ranks and in the header of the game: «★ 11 слави», «Ще 14 слави до звання «Ройовий»».
+export const gloryTexts = {
+  word: gloryWord,
+  more: 'Ще',
+  toRank: 'до звання',
+  quoted: (rank: string) => `«${rank}»`,
+  // The way in one string, where its number cannot stand out: the hint of the header.
+  left: (left: number, rank: string) => `Ще ${gloryAmount(left)} до звання «${rank}»`,
+  // The bar of the way from the rank the cossack holds to the next one.
+  progress: (rank: string) => `Поступ до звання «${rank}»`,
+  top: 'Найвище звання здобуто',
+};
+
 // §24.3: what brings glory, on the page of the ranks.
 export const gloryRewards = [
   ['Перемога в бою', '+1'],
@@ -82,13 +96,6 @@ export const cossackTexts = {
   title: 'Козак',
   // Before the rank for a screen reader only: the screen shows the rank alone.
   rank: 'Звання:',
-  gloryWord,
-  // «★ 3 з 10 слави до звання «Заставний»»: the glory out of what the next rank needs, and the rank.
-  of: 'з',
-  toRank: 'до звання',
-  quoted: (rank: string) => `«${rank}»`,
-  toNext: (left: number, rank: string) => `Ще ${gloryAmount(left)} до звання «${rank}»`,
-  top: 'Найвище звання здобуто',
   // §24.7: every battle of the game, a large number over its word: «24 перемоги».
   record: 'Бойовий рахунок',
   wins: (count: number) => plural(count, { one: 'перемога', few: 'перемоги', many: 'перемог' }),
@@ -132,9 +139,6 @@ export const ranksTexts = {
   // Read before the name of a rank: the circle with its number is a picture.
   number: (number: number) => `${number}. `,
   progress: 'Твій поступ',
-  toward: (target: number, rank: string) => `з ${target} до «${rank}»`,
-  towardLabel: (glory: number, target: number, rank: string) => `${gloryAmount(glory)} з ${target} до звання «${rank}»`,
-  top: 'Найвище звання здобуто.',
   toCossack: 'До козака',
   howTitle: 'Як здобути славу',
 };
@@ -142,9 +146,8 @@ export const ranksTexts = {
 // §24.1: the header of the game tells the state of the cossack instead of repeating its sections.
 export const statusTexts = {
   label: 'Стан козака',
-  // The badge reads «Джура · 6/10»; a screen reader hears the words instead.
-  rank: (rank: string, glory: number, target: number | null) =>
-    target === null ? `Звання «${rank}», ${gloryAmount(glory)}` : `Звання «${rank}», ${glory} з ${target} ${gloryWord(target)}`,
+  // The badge reads «★ Джура 6», its hint how much more the next rank needs; a screen reader hears words.
+  rank: (rank: string, glory: number) => `Звання «${rank}», ${gloryAmount(glory)}`,
   // The menu of the player: the account and its settings.
   menu: 'Меню гравця',
   // Under «Увійти через Google» in that menu: what a guest gains by signing in.

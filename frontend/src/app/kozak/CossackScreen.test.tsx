@@ -22,9 +22,16 @@ function physical(): (string | null)[][] {
     .map((row) => [within(row).getByRole('rowheader'), ...within(row).getAllByRole('cell')].map(({ textContent }) => textContent));
 }
 
-// The glory as it reads, one sentence that leads to the ranks: «★ 3 з 10 слави до звання «Заставний»».
+// The glory of the cossack as it reads: «★ 3 слави».
 function gloryText(): string | null {
-  return screen.getByRole('link', { name: /слави до звання/ }).textContent;
+  return screen.getByText(/слав/, { selector: '.k-glory__value' }).textContent;
+}
+
+// The bar of the way to the next rank: where it starts, where the glory stands and where it ends.
+function way(rank: string): (string | null)[] {
+  const bar = screen.getByRole('progressbar', { name: `Поступ до звання «${rank}»` });
+
+  return ['aria-valuemin', 'aria-valuenow', 'aria-valuemax'].map((name) => bar.getAttribute(name));
 }
 
 // The columns of the chart of the last seven days, as a screen reader hears them.
@@ -53,10 +60,10 @@ describe('the cossack', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeTruthy();
     expect(screen.getByRole('img', { name: /Джура у вишиванці/ })).toBeTruthy();
-    // «★ 0 з 10 слави до звання «Заставний»» over the bar of the way there.
-    expect(gloryText()).toBe('0 з 10 слави до звання\u00a0«Заставний»');
-    expect(screen.getByRole('link', { name: '0 з 10 слави до звання\u00a0«Заставний»' }).getAttribute('href')).toBe('/ranks');
-    expect(screen.getByRole('progressbar', { name: 'Ще 10 слави до звання «Заставний»' }).getAttribute('aria-valuenow')).toBe('0');
+    // «★ 0 слави» beside the way to the next rank, over the bar of that way.
+    expect(gloryText()).toBe('0 слави');
+    expect(screen.getByRole('link', { name: 'Ще 10 слави до звання\u00a0«Заставний»' }).getAttribute('href')).toBe('/ranks');
+    expect(way('Заставний')).toEqual(['0', '0', '10']);
     // §24.7: the record of battles in large numbers.
     expect(score()).toEqual(['0 перемог', '0 нічиїх', '0 поразок']);
     // §24.1: the header of the game shows the energy, the screen does not repeat it.
@@ -207,7 +214,7 @@ describe('the cossack', () => {
   it('leads to the ranks', async () => {
     const { user } = renderKozak('/');
 
-    await user.click(await screen.findByRole('link', { name: '0 з 10 слави до звання\u00a0«Заставний»' }));
+    await user.click(await screen.findByRole('link', { name: 'Ще 10 слави до звання\u00a0«Заставний»' }));
     expect(await screen.findByRole('heading', { level: 1, name: 'Звання' })).toBeTruthy();
     expect(screen.getByText('Похід пройдено').nextElementSibling?.textContent).toBe('+30');
   });
@@ -285,9 +292,19 @@ describe('the cossack', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Звання: Джура' });
     expect(score()).toEqual(['2 перемоги', '0 нічиїх', '2 поразки']);
-    expect(gloryText()).toBe('3 з 10 слави до звання\u00a0«Заставний»');
-    const glory = screen.getByRole('progressbar', { name: 'Ще 7 слави до звання «Заставний»' });
-    expect([glory.getAttribute('aria-valuenow'), glory.getAttribute('aria-valuemax')]).toEqual(['3', '10']);
+    expect(gloryText()).toBe('3 слави');
+    expect(screen.getByRole('link', { name: 'Ще 7 слави до звання\u00a0«Заставний»' })).toBeTruthy();
+    expect(way('Заставний')).toEqual(['0', '3', '10']);
+  });
+
+  // §24.2: the bar is the way from the rank the cossack holds to the next one, so it fills anew with every rank.
+  it('measures the way from the rank he holds', async () => {
+    renderKozak('/', { storage: storageWith({ ...EMPTY_RECORD, fights: { wins: 11, draws: 0, losses: 0 } }) });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Звання: Заставний' })).toBeTruthy();
+    expect(gloryText()).toBe('11 слави');
+    expect(screen.getByRole('link', { name: 'Ще 14 слави до звання\u00a0«Ройовий»' })).toBeTruthy();
+    expect(way('Ройовий')).toEqual(['10', '11', '25']);
   });
 
   // §24.2: the glory of the highest rank leads nowhere further.
@@ -295,7 +312,8 @@ describe('the cossack', () => {
     renderKozak('/', { storage: storageWith({ ...EMPTY_RECORD, fights: { wins: 3500, draws: 0, losses: 0 } }) });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Звання: Гетьман' })).toBeTruthy();
-    expect(screen.getByText('Найвище звання здобуто', { selector: 'span' }).closest('p')?.textContent).toBe('3\u00a0500 слави Найвище звання здобуто');
+    expect(gloryText()).toBe('3\u00a0500 слави');
+    expect(screen.getByText('Найвище звання здобуто', { selector: 'p' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: /до звання/ })).toBeNull();
     const glory = screen.getByRole('progressbar', { name: 'Найвище звання здобуто' });
     expect([glory.getAttribute('aria-valuenow'), glory.getAttribute('aria-valuemax')]).toEqual(['3500', '3500']);

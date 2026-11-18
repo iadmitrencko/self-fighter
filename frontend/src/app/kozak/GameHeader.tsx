@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router';
 import type { EnergyPool } from '../../domain/kozak/energy';
 import { formatCount } from '../../i18n/format';
-import { energyStatus, energyTexts, formatWait, kozakTexts, rankNames, statusTexts } from '../../i18n/kozak';
+import { energyStatus, energyTexts, formatWait, gloryTexts, kozakTexts, rankNames, statusTexts } from '../../i18n/kozak';
 import { accountTexts, signInTexts, storageMessages } from '../../i18n/uk';
 import { GoogleLogo, useCanSignIn } from '../components/SignIn';
 import { useSignOut } from '../components/SignOut';
@@ -46,25 +46,33 @@ function Status() {
   );
 }
 
-// §24.2: the rank and the glory towards the next one over a thin bar; it leads to all the ranks. The
-// star of the glory tells it from the energy, as on the screens of the cossack and of the ranks.
+// §24.2: the rank and the glory of the cossack over a thin bar of the way from that rank to the next
+// one, as on the screens of the cossack and of the ranks; its hint says how much more the next rank
+// needs, and it leads to all the ranks. The star of the glory tells it from the energy.
 function RankBadge({ cossack: { glory, standing } }: { cossack: Cossack }) {
-  const name = rankNames[standing.rank.id];
-  const target = standing.next?.glory ?? null;
-  const share = target === null ? 1 : Math.min(1, glory / target);
+  const tipId = useId();
+  const { rank, next } = standing;
+  const name = rankNames[rank.id];
+  const share = next === null ? 1 : (glory - rank.glory) / (next.glory - rank.glory);
 
   return (
-    <Link className="game-pill game-rank" to={kozakPaths.ranks}>
-      <KozakIcon name="glory" className="game-pill__icon game-rank__icon" />
-      <span className="game-pill__name game-rank__name" aria-hidden="true">
-        {name}
+    <span className="game-rank">
+      <Link className="game-pill game-rank__link" to={kozakPaths.ranks} aria-describedby={tipId}>
+        <KozakIcon name="glory" className="game-pill__icon game-rank__icon" />
+        <span className="game-pill__name game-rank__name" aria-hidden="true">
+          {name}
+        </span>
+        <b className="game-pill__value" aria-hidden="true">
+          {formatCount(glory)}
+        </b>
+        <span className="visually-hidden">{statusTexts.rank(name, glory)}</span>
+        <span className="game-rank__bar" aria-hidden="true" style={{ '--share': `${share * 100}%` } as CSSProperties} />
+      </Link>
+      {/* Outside the link, so it describes the link instead of adding to its name. */}
+      <span id={tipId} className="game-tip game-rank__tip" role="tooltip">
+        {next === null ? gloryTexts.top : gloryTexts.left(next.glory - glory, rankNames[next.id])}
       </span>
-      <b className="game-pill__value" aria-hidden="true">
-        {target === null ? formatCount(glory) : `${formatCount(glory)}/${formatCount(target)}`}
-      </b>
-      <span className="visually-hidden">{statusTexts.rank(name, glory, target)}</span>
-      <span className="game-rank__bar" aria-hidden="true" style={{ '--share': `${share * 100}%` } as CSSProperties} />
-    </Link>
+    </span>
   );
 }
 
@@ -85,7 +93,7 @@ function EnergyPill({ pool, cossack, now }: { pool: EnergyPool; cossack: Cossack
 
   return (
     <span className={energy.value === 0 ? 'game-energy game-energy--empty' : 'game-energy'}>
-      <Link className="game-pill game-energy__link" to={POOLS[pool].to} aria-describedby={tipId}>
+      <Link className="game-pill" to={POOLS[pool].to} aria-describedby={tipId}>
         <KozakIcon name={POOLS[pool].icon} className="game-pill__icon" />
         <span className="game-pill__name" aria-hidden="true">
           {POOLS[pool].name}
@@ -97,7 +105,7 @@ function EnergyPill({ pool, cossack, now }: { pool: EnergyPool; cossack: Cossack
         <span className="visually-hidden">{energyStatus.named(name, energy.value, energy.max)}</span>
       </Link>
       {/* Outside the link, so it describes the link instead of adding to its name. */}
-      <span id={tipId} className="game-energy__tip" role="tooltip">
+      <span id={tipId} className="game-tip" role="tooltip">
         {tip}
       </span>
     </span>

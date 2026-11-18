@@ -4,6 +4,20 @@ import { createMemoryStorage } from '../../storage/memory';
 import { gameFight } from '../../storage/testing/attempts';
 import { renderKozak } from '../testing/render';
 
+// The way to the next rank, as on the screen of the cossack: the glory, how much more the next rank
+// needs and the bar of that way, from where it starts through the glory to where it ends.
+function progress() {
+  const card = within(screen.getByRole('region', { name: 'Твій поступ' }));
+  const bar = card.getByRole('progressbar', { name: /^Поступ до звання/ });
+
+  return {
+    card,
+    glory: card.getByText(/слав/, { selector: '.k-glory__value' }).textContent,
+    left: card.getByText(/^Ще/, { selector: '.k-glory__next' }).textContent,
+    bar: [bar.getAttribute('aria-label'), ...['aria-valuemin', 'aria-valuenow', 'aria-valuemax'].map((name) => bar.getAttribute(name))],
+  };
+}
+
 function rankRow(name: string): HTMLElement {
   const row = screen.getByText(name, { selector: '.k-rank__name' }).closest('li');
 
@@ -47,10 +61,12 @@ describe('the ranks', () => {
     expect(rankRow('Заставний').textContent).toContain('Ще 10 слави');
     expect(rankRow('Ройовий').textContent).toContain('від 25');
 
-    const progress = within(screen.getByRole('region', { name: 'Твій поступ' }));
-    expect(progress.getByText('з 10 до «Заставний»')).toBeTruthy();
-    expect(progress.getByRole('progressbar', { name: '0 слави з 10 до звання «Заставний»' }).getAttribute('aria-valuenow')).toBe('0');
-    expect(progress.getByRole('link', { name: /До козака/ }).getAttribute('href')).toBe('/');
+    const { card, glory, left, bar } = progress();
+    expect(glory).toBe('0 слави');
+    expect(left).toBe('Ще 10 слави до звання\u00a0«Заставний»');
+    expect(bar).toEqual(['Поступ до звання «Заставний»', '0', '0', '10']);
+    // The page of the ranks does not lead to itself, only back to the cossack.
+    expect(card.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/']);
 
     const rewards = within(screen.getByRole('region', { name: 'Як здобути славу' }));
     expect(rewards.getAllByRole('term').map(({ textContent }) => textContent)).toEqual([
@@ -76,6 +92,10 @@ describe('the ranks', () => {
     expect(screen.getByRole('listitem', { current: 'step' })).toBe(rankRow('Заставний'));
     expect(rankRow('Джура').classList).toContain('k-rank--done');
     expect(rankRow('Ройовий').textContent).toContain('Ще 13 слави');
-    expect(within(screen.getByRole('region', { name: 'Твій поступ' })).getByText('з 25 до «Ройовий»')).toBeTruthy();
+    // The bar of the way starts at the rank the cossack holds.
+    const { glory, left, bar } = progress();
+    expect(glory).toBe('12 слави');
+    expect(left).toBe('Ще 13 слави до звання\u00a0«Ройовий»');
+    expect(bar).toEqual(['Поступ до звання «Ройовий»', '10', '12', '25']);
   });
 });

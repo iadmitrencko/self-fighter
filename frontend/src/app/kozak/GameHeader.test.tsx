@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { EMPTY_RECORD } from '../../domain/kozak/record';
 import { createMemoryStorage } from '../../storage/memory';
 import { gameFight, levelAttempt } from '../../storage/testing/attempts';
 import { renderKozak } from '../testing/render';
@@ -11,6 +12,11 @@ function status() {
 // The hint of a pill: the element that describes it.
 function description(element: HTMLElement): string | null {
   return document.getElementById(element.getAttribute('aria-describedby') ?? '')?.textContent ?? null;
+}
+
+// How far the thin bar under the rank is filled. It is only seen: the hint says the same in words.
+function barOf(rank: HTMLElement): string {
+  return rank.querySelector<HTMLElement>('.game-rank__bar')?.style.getPropertyValue('--share') ?? '';
 }
 
 // What a menu shows while it is open: the panel its button controls.
@@ -28,13 +34,36 @@ describe('the header of the game', () => {
   it('tells the rank and the energy of a new cossack and leads to them', async () => {
     renderKozak('/');
 
-    const rank = await status().findByRole('link', { name: 'Звання «Джура», 0 з 10 слави' });
+    const rank = await status().findByRole('link', { name: 'Звання «Джура», 0 слави' });
     expect(rank.getAttribute('href')).toBe('/ranks');
+    expect(description(rank)).toBe('Ще 10 слави до звання «Заставний»');
     const fight = status().getByRole('link', { name: 'Енергія боїв: 10 з 10' });
     expect(fight.getAttribute('href')).toBe('/fight');
     expect(description(fight)).toBe('+1 кожні 2 години');
     const journey = status().getByRole('link', { name: 'Енергія походу: 6 з 6' });
     expect(journey.getAttribute('href')).toBe('/journey');
+  });
+
+  // §24.2: the thin bar of the rank is the way from the rank the cossack holds to the next one, as on
+  // the screens of the cossack and of the ranks.
+  it('measures the way to the next rank from the rank held', async () => {
+    const storage = createMemoryStorage();
+    const withGlory = (wins: number) => ({
+      ...storage,
+      attempts: { ...storage.attempts, game: () => Promise.resolve({ ...EMPTY_RECORD, fights: { wins, draws: 0, losses: 0 } }) },
+    });
+    const first = renderKozak('/', { storage: withGlory(12) });
+
+    const rank = await status().findByRole('link', { name: 'Звання «Заставний», 12 слави' });
+    expect(description(rank)).toBe('Ще 13 слави до звання «Ройовий»');
+    // 2 of the 15 glory from «Заставний» at 10 to «Ройовий» at 25.
+    expect(Number.parseFloat(barOf(rank))).toBeCloseTo(13.33, 2);
+    first.unmount();
+
+    renderKozak('/', { storage: withGlory(3500) });
+    const hetman = await status().findByRole('link', { name: 'Звання «Гетьман», 3500 слави' });
+    expect(description(hetman)).toBe('Найвище звання здобуто');
+    expect(barOf(hetman)).toBe('100%');
   });
 
   // §24.4: the hint of a pool short of energy says when its next unit comes back.

@@ -2,7 +2,6 @@ import { useCallback, useId, useRef, useState, type CSSProperties, type RefObjec
 import { Link } from 'react-router';
 import type { ExerciseRef } from '../../domain/catalog/exercise';
 import { dayStreak, localDate } from '../../domain/kozak/calendar';
-import type { Standing } from '../../domain/kozak/ranks';
 import { totalTally, weekDays, weekTotals, type DayReps, type GameRecord } from '../../domain/kozak/record';
 import { formatCount, formatDay, formatWeekday } from '../../i18n/format';
 import { cossackTexts, lookTexts, rankNames } from '../../i18n/kozak';
@@ -11,9 +10,10 @@ import { Title } from '../components/Screen';
 import { useGame } from '../game';
 import { useLoad } from '../useLoad';
 import { CossackFigure } from './art/Cossack';
+import { Glory } from './Glory';
 import { Legend } from './Legend';
 import { kozakPaths } from './paths';
-import { Bar, KozakIcon, KozakScreen, WithCossack } from './parts';
+import { KozakIcon, KozakScreen, WithCossack } from './parts';
 import { useNow } from './record';
 
 /**
@@ -61,7 +61,7 @@ export function CossackScreen() {
                   </Title>
                   <Streak days={record.days} today={today} />
                 </div>
-                <Glory glory={glory} standing={standing} />
+                <Glory glory={glory} standing={standing} to={kozakPaths.ranks} />
                 <Score record={record} />
                 {/* §24.1: «Грати» of the site leads here. With no energy the hall of fights and the
                     level close the start themselves and say when a unit comes back. */}
@@ -114,58 +114,6 @@ function Streak({ days, today }: { days: readonly string[]; today: string }) {
         )}
       </span>
     </p>
-  );
-}
-
-// «★ 3 з 10 слави до звання «Заставний»» over the bar of the way there: one sentence says what the
-// glory is for, as on the page of the ranks. It leads to that page, where all the ranks stand with
-// what brings glory.
-function Glory({ glory, standing: { next } }: { glory: number; standing: Standing }) {
-  const lead = (
-    <span className="k-glory__lead">
-      <KozakIcon name="glory" className="k-glory__icon" />
-      <b className="k-glory__number">{formatCount(glory)}</b>
-    </span>
-  );
-
-  return (
-    <div className="k-glory">
-      {next === null ? (
-        <p className="k-glory__value">
-          {lead} {cossackTexts.gloryWord(glory)} <span className="k-glory__top">{cossackTexts.top}</span>
-        </p>
-      ) : (
-        <Link className="k-glory__value k-glory__link" to={kozakPaths.ranks}>
-          {lead} {cossackTexts.of} {formatCount(next.glory)} {cossackTexts.gloryWord(next.glory)}{' '}
-          {/* «звання» keeps to the rank, which may break between its words on a narrow phone. */}
-          {cossackTexts.toRank}
-          {'\u00a0'}
-          <strong>
-            <WithArrow text={cossackTexts.quoted(rankNames[next.id])} />
-          </strong>
-        </Link>
-      )}
-      {next === null ? (
-        <Bar value={glory} max={glory} label={cossackTexts.top} />
-      ) : (
-        <Bar value={glory} max={next.glory} label={cossackTexts.toNext(next.glory - glory, rankNames[next.id])} />
-      )}
-    </div>
-  );
-}
-
-// The arrow of the way to the ranks keeps to the last word, so it never starts a line alone.
-function WithArrow({ text }: { text: string }) {
-  const last = text.lastIndexOf(' ') + 1;
-
-  return (
-    <>
-      {text.slice(0, last)}
-      <span className="k-glory__tail">
-        {text.slice(last)}
-        <KozakIcon name="forward" className="k-glory__arrow" />
-      </span>
-    </>
   );
 }
 

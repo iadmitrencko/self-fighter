@@ -97,17 +97,30 @@ export function StatusBadge({ status }: { status: Status }) {
   return <Badge tone={TONES[status]}>{statusNames[status]}</Badge>;
 }
 
-export function Bar({ value, max, label, thin = false }: { value: number; max: number; label: string; thin?: boolean }) {
+export function Bar({
+  value,
+  min = 0,
+  max,
+  label,
+  thin = false,
+}: {
+  value: number;
+  // Where the bar starts: the way to the next rank starts at the rank the cossack holds.
+  min?: number;
+  max: number;
+  label: string;
+  thin?: boolean;
+}) {
   return (
     <div
       className={thin ? 'k-bar k-bar--thin' : 'k-bar'}
       role="progressbar"
       aria-label={label}
-      aria-valuemin={0}
+      aria-valuemin={min}
       aria-valuemax={max}
       aria-valuenow={value}
     >
-      <span className="k-bar__fill" style={{ '--share': `${max === 0 ? 0 : (value / max) * 100}%` } as CSSProperties} />
+      <span className="k-bar__fill" style={{ '--share': `${max === min ? 0 : ((value - min) / (max - min)) * 100}%` } as CSSProperties} />
     </div>
   );
 }
