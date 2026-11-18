@@ -8,11 +8,10 @@ import type { Outcome } from '../../domain/results/results';
 import { formatShortDateTime } from '../../i18n/format';
 import { gameHistoryTexts, kozakTexts } from '../../i18n/kozak';
 import { campaignName, levelName } from '../../i18n/kozak-names';
-import { commonTexts, historyTexts, outcomeTexts, signInTexts } from '../../i18n/uk';
+import { commonTexts, historyTexts, outcomeTexts } from '../../i18n/uk';
 import type { AttemptFilter, StoredAttempt } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
 import { Title } from '../components/Screen';
-import { SignInPrompt } from '../components/SignIn';
 import { ErrorNotice, StatusBadge } from '../components/notices';
 import { useGame } from '../game';
 import { errorCode, useLoad } from '../useLoad';
@@ -54,9 +53,6 @@ export function HistoryScreen() {
   const [stats, reloadStats] = useLoad(loadStats);
   const loadPage = useCallback(() => storage.attempts.list(filter), [storage, filter]);
   const [page, reloadPage] = useLoad(loadPage);
-  const loadUser = useCallback(() => storage.account.current(), [storage]);
-  const [user] = useLoad(loadUser);
-  const signedIn = user.status === 'ready' && user.value?.kind === 'account';
   const [more, setMore] = useState<MorePages | null>(null);
   const [moreError, setMoreError] = useState<StorageErrorCode | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -143,11 +139,8 @@ export function HistoryScreen() {
         </div>
         <div className="k-history-aside">
           <p className="k-history-aside__note">
-            {signedIn ? historyTexts.accountNote : historyTexts.note}{' '}
-            <Link to={kozakPaths.settings}>{kozakTexts.nav.settings}</Link>
+            {historyTexts.note} <Link to={kozakPaths.settings}>{kozakTexts.nav.settings}</Link>
           </p>
-          {/* §23.2: the history is where a guest misses it on another device. */}
-          {user.status === 'ready' && !signedIn && <SignInPrompt text={signInTexts.promptHistory} />}
         </div>
       </div>
     </KozakScreen>

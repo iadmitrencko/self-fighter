@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { finishSets } from './helpers';
+import { finishSets, openSignedIn } from './helpers';
 
 // §18 «Продукт»: one catalog for every fight, custom exercises are created and edited;
 // §5.3: the history and «Повторити» keep the name an exercise had.
 test('custom exercises are created, used, renamed and deleted', async ({ page }) => {
-  await page.goto('/game/fight');
+  await openSignedIn(page, '/game/fight');
   await page.getByRole('button', { name: 'Додати вправу' }).click();
   await page.getByRole('dialog', { name: 'Додати вправу' }).getByRole('button', { name: 'Власна вправа' }).click();
   const create = page.getByRole('dialog', { name: 'Власна вправа' });

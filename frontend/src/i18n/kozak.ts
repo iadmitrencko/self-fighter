@@ -96,6 +96,9 @@ export const cossackTexts = {
   title: 'Козак',
   // Before the rank for a screen reader only: the screen shows the rank alone.
   rank: 'Звання:',
+  // §24.11: over the rank, while the cossack has no name: «Як звати тебе, козаче? Напиши своє ім’я.»
+  noName: 'Як звати тебе, козаче?',
+  giveName: 'Напиши своє ім’я',
   // §24.7: every battle of the game, a large number over its word: «24 перемоги».
   record: 'Бойовий рахунок',
   wins: (count: number) => plural(count, { one: 'перемога', few: 'перемоги', many: 'перемог' }),
@@ -149,8 +152,6 @@ export const statusTexts = {
   rank: (rank: string, glory: number) => `Звання «${rank}», ${gloryAmount(glory)}`,
   // The menu of the player: the account and its settings.
   menu: 'Меню гравця',
-  // Under «Увійти через Google» in that menu: what a guest gains by signing in.
-  signInWhy: 'Щоб не втратити славу й прогрес',
 };
 
 // §14, §24.1: the one history of every attempt, a section of the game.
@@ -175,7 +176,7 @@ export const gameHistoryTexts = {
 // of the account (accountTexts).
 export const settingsTexts = {
   title: 'Налаштування',
-  // §24.11: the name the player gives the cossack, a guest too.
+  // §24.11: the name the player gives the cossack.
   nameTitle: 'Ім’я козака',
   nameLabel: 'Ім’я або псевдонім',
   nameText: 'Його видно над званням козака.',

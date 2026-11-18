@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Analytics\Presentation\Console;
 
-use App\Account\Application\SignUpGuest;
 use App\Analytics\Application\RecordEvent;
 use App\Shared\Domain\UserId;
+use App\Tests\Account\NewAccount;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -20,7 +20,7 @@ final class MetricsReportCommandTest extends KernelTestCase
     // Three players: one comes back a week later, one the next day, one has just begun.
     protected function setUp(): void
     {
-        [$first, $second, $third] = [$this->signUpGuest(), $this->signUpGuest(), $this->signUpGuest()];
+        [$first, $second, $third] = [$this->signUp(), $this->signUp(), $this->signUp()];
 
         $this->record('2026-11-01 10:00:00', $first, 'workout_started');
         $this->record('2026-11-01 10:20:00', $first, 'workout_completed', ['outcome' => 'win']);
@@ -91,12 +91,9 @@ final class MetricsReportCommandTest extends KernelTestCase
         return new CommandTester((new Application(self::bootKernel()))->find('app:metrics:report'));
     }
 
-    private function signUpGuest(): UserId
+    private function signUp(): UserId
     {
-        $signUpGuest = self::getContainer()->get(SignUpGuest::class);
-        self::assertInstanceOf(SignUpGuest::class, $signUpGuest);
-
-        return $signUpGuest()->user->id();
+        return NewAccount::signUp(self::getContainer())->user;
     }
 
     /**

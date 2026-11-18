@@ -12,8 +12,8 @@ use App\Shared\Application\UserTransaction;
 use App\Shared\Domain\UserId;
 
 /**
- * Deletes the user with the data every module keeps about it, and an account with its ways to
- * sign in (§15.5). A browser that kept its guest while the account was open goes back to that guest.
+ * Deletes the account with the data every module keeps about it, its ways to sign in and the
+ * browsers it is open in (§15.5).
  */
 final readonly class DeleteUser
 {
@@ -35,15 +35,13 @@ final readonly class DeleteUser
             foreach ($this->userData as $holder) {
                 $holder->erase($id);
             }
+
             $this->identities->removeAllOf($id);
 
-            foreach ($this->devices->findUsedBy($id) as $device) {
-                if (!$device->owner()->equals($id)) {
-                    $device->forgetGuest();
-                } elseif (!$device->fallBackToGuest()) {
-                    $this->devices->remove($device);
-                }
+            foreach ($this->devices->findOwnedBy($id) as $device) {
+                $this->devices->remove($device);
             }
+
             $this->users->remove($id);
         });
     }

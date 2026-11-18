@@ -33,6 +33,8 @@ export function CossackScreen() {
   // Until the exercises of the player arrive, the ready-made ones show alone.
   const exercises: readonly ExerciseRef[] = custom.status === 'ready' ? [...readyMade, ...custom.value] : readyMade;
   const name = user.status === 'ready' ? nameOf(user.value) : null;
+  // Nothing until the player is known, so the question does not flash for an account with a name.
+  const nameless = user.status === 'ready' && name === null;
 
   return (
     <KozakScreen title={cossackTexts.title} className="k-cossack">
@@ -44,22 +46,25 @@ export function CossackScreen() {
                 <CossackFigure look={standing.look} label={lookTexts[standing.look].figure} />
               </figure>
               <div className="k-hero__body">
-                <div className="k-hero__top">
-                  <Title className="k-hero__title">
-                    {name !== null && (
-                      <>
-                        {/* The comma gives a screen reader a pause between the name and the rank. */}
-                        <span className="k-hero__name">
-                          {name}
-                          <span className="visually-hidden">,</span>
-                        </span>{' '}
-                      </>
-                    )}
-                    {/* The rank speaks for itself on the screen; a screen reader still hears what it is. */}
-                    <span className="visually-hidden">{cossackTexts.rank}</span>{' '}
-                    <span className="k-hero__rank">{rankNames[standing.rank.id]}</span>
-                  </Title>
-                  <Streak days={record.days} today={today} />
+                <div className="k-hero__head">
+                  {nameless && <AskName />}
+                  <div className="k-hero__top">
+                    <Title className="k-hero__title">
+                      {name !== null && (
+                        <>
+                          {/* The comma gives a screen reader a pause between the name and the rank. */}
+                          <span className="k-hero__name">
+                            {name}
+                            <span className="visually-hidden">,</span>
+                          </span>{' '}
+                        </>
+                      )}
+                      {/* The rank speaks for itself on the screen; a screen reader still hears what it is. */}
+                      <span className="visually-hidden">{cossackTexts.rank}</span>{' '}
+                      <span className="k-hero__rank">{rankNames[standing.rank.id]}</span>
+                    </Title>
+                    <Streak days={record.days} today={today} />
+                  </div>
                 </div>
                 <Glory glory={glory} standing={standing} to={kozakPaths.ranks} />
                 <Score record={record} />
@@ -84,13 +89,20 @@ export function CossackScreen() {
   );
 }
 
-// §24.11: the name the player gave the cossack, or else the one Google gave an account.
+// §24.11: the name the player gave the cossack, or else the one Google gave.
 function nameOf(user: CurrentUser | null): string | null {
-  if (user === null) {
-    return null;
-  }
+  return user === null ? null : (user.nickname ?? user.name);
+}
 
-  return user.nickname ?? (user.kind === 'account' ? user.name : null);
+// §24.11: over the rank of a cossack without a name, «Як звати тебе, козаче? Напиши своє ім’я.»: the
+// way to the settings, where the player names him.
+function AskName() {
+  return (
+    <p className="k-hero__hint">
+      <KozakIcon name="cossack" className="k-hero__hint-icon" />
+      {cossackTexts.noName} <Link to={kozakPaths.settings}>{cossackTexts.giveName}</Link>.
+    </p>
+  );
 }
 
 // §24.12: the days in a row with a battle. A run without a battle today yet asks to go on with it.

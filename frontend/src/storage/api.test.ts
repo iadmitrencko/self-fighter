@@ -29,6 +29,8 @@ describe('storage over the API', () => {
 
   beforeEach(() => {
     server = createFakeServer();
+    // The game needs an account (§23.1): the person signed in before the page loaded.
+    server.signIn({ sub: 'tester' });
     storage = createApiStorage({ fetch: server.fetch, buffer: createBrowserBuffer(null) });
   });
 
@@ -36,18 +38,22 @@ describe('storage over the API', () => {
     vi.useRealTimers();
   });
 
-  describe('guests', () => {
-    // §15.1: bots and visitors who only look leave nothing on the server.
-    it('reads without creating a guest', async () => {
-      await storage.account.current();
-      await storage.exercises.list();
-      await storage.exercises.remove(newId());
-      await storage.attempts.list();
-      await storage.attempts.get(newId());
-      await storage.attempts.stats();
-      await storage.account.deleteData();
+  describe('the account', () => {
+    // §23.1: a browser nobody signed in on asks the server who it is and nothing else.
+    it('asks for no data without an account', async () => {
+      const visitor = createFakeServer();
+      const browser = createApiStorage({ fetch: visitor.fetch, buffer: createBrowserBuffer(null) });
 
-      expect(server.guests).toBe(0);
+      await browser.exercises.list();
+      await browser.exercises.remove(newId());
+      await browser.attempts.list();
+      await browser.attempts.get(newId());
+      await browser.attempts.stats();
+      await browser.attempts.game('UTC');
+      await browser.account.deleteData();
+
+      expect(visitor.requests).toEqual(['GET /api/v1/me']);
+      expect(visitor.accounts).toBe(0);
     });
 
     it('asks the server who the user is only once', async () => {
@@ -55,11 +61,12 @@ describe('storage over the API', () => {
       await storage.exercises.list();
       await storage.settings.get('fight');
 
-      expect(server.requests).toEqual(['GET /api/v1/me']);
+      expect(server.requests.filter((request) => request === 'GET /api/v1/me')).toHaveLength(1);
     });
 
     // Each module of the server answers for its own data, and the browser asks it once.
     it('loads each kind of data once', async () => {
+      await storage.account.current();
       await storage.settings.save(fightConfig());
       const requests = server.requests.length;
 
@@ -90,26 +97,15 @@ describe('storage over the API', () => {
       ]);
     });
 
-    it('creates one guest when two writes start together', async () => {
-      await Promise.all([
-        storage.settings.save(fightConfig()),
-        storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' }),
-      ]);
-
-      expect(server.guests).toBe(1);
-    });
-
-    // The cookie is gone, for example because the browser cleared site data.
-    it('starts over as a new guest when the server no longer knows the browser', async () => {
+    // The cookie is gone, for example after signing out in another tab (§23.2).
+    it('says the browser has signed out when the server no longer knows it', async () => {
       await storage.settings.save(fightConfig());
-      const first = await storage.account.current();
       server.clearCookie();
 
-      await storage.settings.save(fightConfig());
+      await expect(storage.settings.save(fightConfig())).rejects.toEqual(new StorageError('signed-out'));
 
-      expect(await storage.account.current()).not.toEqual(first);
-      expect(await storage.settings.get('fight')).toEqual(fightConfig());
-      expect(server.guests).toBe(2);
+      expect(await storage.account.current()).toBeNull();
+      expect(server.accounts).toBe(1);
     });
   });
 
@@ -170,7 +166,7 @@ describe('storage over the API', () => {
 
     it('marks an attempt the server refuses and stops sending it', async () => {
       const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
-      await storage.settings.save(fightConfig());
+      await storage.account.current();
       server.failNext(422);
 
       await storage.attempts.save(attempt);
@@ -180,22 +176,6 @@ describe('storage over the API', () => {
 
       expect(await storage.attempts.get(attempt.id)).toEqual({ attempt, status: 'rejected' });
       expect(server.requests).toHaveLength(requests);
-    });
-
-    // A browser has one guest at a time: the attempts of the guest it lost belong to the next one.
-    it('gives the attempts of a lost guest to the new one', async () => {
-      await storage.settings.save(fightConfig());
-      const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
-      server.online = false;
-      await storage.attempts.save(attempt);
-      await storage.attempts.flush();
-      server.online = true;
-      server.clearCookie();
-
-      await storage.attempts.flush();
-
-      expect(server.guests).toBe(2);
-      expect(server.savedAttempts()).toEqual([attempt]);
     });
 
     it('deletes the attempts waiting in the browser together with the data', async () => {
@@ -210,7 +190,7 @@ describe('storage over the API', () => {
 
       expect(await storage.attempts.get(attempt.id)).toBeNull();
       expect(storage.gameSessions.fight.load()).toBeNull();
-      expect(server.guests).toBe(0);
+      expect(server.accounts).toBe(0);
     });
   });
 
@@ -237,7 +217,7 @@ describe('storage over the API', () => {
 
     // §24.4: the server keeps the energy, so a battle it refused takes no unit and wins no level.
     it('counts nothing of a battle the server refused', async () => {
-      await storage.settings.save(fightConfig());
+      await storage.account.current();
       server.failNext(409);
       await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
       await storage.attempts.flush();
@@ -250,31 +230,9 @@ describe('storage over the API', () => {
       });
     });
 
-    // A guest made just now has nothing on the server yet, so its first battle ends without the network.
-    it('knows the record of a guest made just now', async () => {
-      await storage.settings.save(fightConfig());
-      server.online = false;
-      await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
-
-      expect(await storage.attempts.game('UTC')).toMatchObject({
-        campaign: { wins: 1, draws: 0, losses: 0 },
-        passed: ['forest-ravens/1/1'],
-      });
-    });
-
-    // §15.4: the network went away before the first write made the browser a guest.
-    it('counts the battles of a browser that lost the network before it became a guest', async () => {
-      await storage.attempts.game('UTC');
-      server.online = false;
-      await expect(storage.settings.save(fightConfig())).rejects.toEqual(new StorageError('offline'));
-      await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
-
-      expect((await storage.attempts.game('UTC')).passed).toEqual(['forest-ravens/1/1']);
-    });
-
     it('needs the server once before it can count without it', async () => {
       await storage.settings.save(fightConfig());
-      // The page opens again: the guest of the browser may have battles only the server knows.
+      // The page opens again: the account may have battles only the server knows.
       const reopened = createApiStorage({ fetch: server.fetch, buffer: createBrowserBuffer(null) });
       await reopened.account.current();
       server.online = false;
@@ -290,11 +248,6 @@ describe('storage over the API', () => {
       await expect(storage.attempts.game('UTC')).rejects.toEqual(new StorageError('server'));
     });
 
-    it('asks nothing while the browser has no user', async () => {
-      expect((await storage.attempts.game('UTC')).passed).toEqual([]);
-      expect(server.requests).not.toContain('GET /api/v1/game');
-    });
-
     it('starts over when the server no longer knows the browser', async () => {
       await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
       await storage.attempts.flush();
@@ -303,26 +256,29 @@ describe('storage over the API', () => {
       expect((await storage.attempts.game('UTC')).passed).toEqual([]);
     });
 
-    it('forgets the record of the previous user', async () => {
+    // The next account on this browser never counts with what the server said of the previous one.
+    it('forgets the record of the previous account', async () => {
       await storage.attempts.save(won('forest-ravens/1/1', '2026-11-02T10:00:00.000Z', '2026-11-02T15:00:00.000Z'));
       await storage.attempts.flush();
       await storage.attempts.game('UTC');
       await storage.account.deleteData();
-      await storage.settings.save(fightConfig());
+      server.signIn({ sub: 'next' });
+      await storage.account.current();
       server.online = false;
 
-      expect((await storage.attempts.game('UTC')).passed).toEqual([]);
+      await expect(storage.attempts.game('UTC')).rejects.toEqual(new StorageError('offline'));
     });
   });
 
-  // §15.4, §23.3: an attempt that waits in the browser reaches its own user and nobody else.
+  // §15.4, §23.2: an attempt that waits in the browser reaches its own account and nobody else.
   describe('attempts waiting while signing in and out', () => {
     const OLENA = { sub: '1001', name: 'Олена' };
+    const MAKSYM = { sub: '1002', name: 'Максим' };
     let buffer: BrowserBuffer;
 
     // Google sends the browser back, and the page loads again with the same localStorage.
-    async function signIn(): Promise<void> {
-      server.signIn(OLENA);
+    async function signIn(account: typeof OLENA = OLENA): Promise<void> {
+      server.signIn(account);
       storage = createApiStorage({ fetch: server.fetch, buffer });
       await storage.account.current();
     }
@@ -342,33 +298,6 @@ describe('storage over the API', () => {
       storage = createApiStorage({ fetch: server.fetch, buffer });
     });
 
-    it('sends the attempts of a guest to the account it became', async () => {
-      await storage.settings.save(fightConfig());
-      const attempt = await finishOffline();
-
-      await signIn();
-      await storage.attempts.flush();
-
-      expect(server.savedAttempts()).toEqual([attempt]);
-    });
-
-    // The guest became the account, so its waiting attempts are the account's and wait for it.
-    it('keeps the attempts of a guest that became the account for the account', async () => {
-      vi.useFakeTimers();
-      await storage.settings.save(fightConfig());
-      const attempt = await finishOffline();
-      await signIn();
-      server.failNext(503);
-      await storage.attempts.flush();
-
-      await storage.account.signOut();
-      await storage.settings.save(fightConfig());
-      await storage.attempts.flush();
-
-      expect(server.savedAttempts()).toEqual([]);
-      expect(await storage.attempts.get(attempt.id)).toBeNull();
-    });
-
     // §15.4: they wait for the account to sign in on this browser again.
     it('keeps the attempts of the account for the account after signing out', async () => {
       await signIn();
@@ -377,7 +306,6 @@ describe('storage over the API', () => {
       expect(await storage.attempts.unsent()).toBe(1);
 
       await storage.account.signOut();
-      await storage.settings.save(fightConfig());
       await storage.attempts.flush();
 
       expect(server.savedAttempts()).toEqual([]);
@@ -390,55 +318,35 @@ describe('storage over the API', () => {
       expect(server.savedAttempts()).toEqual([attempt]);
     });
 
-    // A guest joined at once at the sign-in leaves its waiting attempts to the account: after
-    // signing out they must not go to the next guest.
-    it('gives the account the attempts of a guest that joined it', async () => {
+    // Another person signs in on the same browser: the attempt of the first one is not theirs.
+    it('sends no attempt of one account to another', async () => {
       await signIn();
-      await storage.account.signOut();
-      await storage.settings.save(fightConfig());
       const attempt = await finishOffline();
-      await signIn();
-
       await storage.account.signOut();
-      await storage.settings.save(fightConfig());
+
+      await signIn(MAKSYM);
       await storage.attempts.flush();
 
       expect(server.savedAttempts()).toEqual([]);
-
-      await signIn();
-      await storage.attempts.flush();
-
-      expect(server.savedAttempts()).toEqual([attempt]);
-    });
-
-    it('keeps the attempts of the kept guest for it until it joins the account', async () => {
-      await signIn();
-      await storage.account.signOut();
-      await storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
-      const attempt = await finishOffline();
-
-      await signIn();
-      await storage.attempts.flush();
-
-      expect(server.savedAttempts()).toEqual([]);
-      expect(await storage.account.keptGuest()).toMatchObject({ attempts: 1, exercises: 1 });
       expect((await storage.attempts.list()).items).toEqual([]);
 
-      await storage.account.joinGuest();
+      await signIn();
       await storage.attempts.flush();
 
       expect(server.savedAttempts()).toEqual([attempt]);
-      expect((await storage.attempts.list()).items).toEqual([{ attempt, status: 'saved' }]);
     });
 
-    it('sends the attempts of the kept guest once the browser is its own again', async () => {
+    // The cookie is gone, as after signing out in another tab: the attempt waits for its account.
+    it('keeps an attempt for the account the browser lost', async () => {
       await signIn();
-      await storage.account.signOut();
-      await storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
       const attempt = await finishOffline();
-      await signIn();
+      server.clearCookie();
 
-      await storage.account.signOut();
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([]);
+
+      await signIn();
       await storage.attempts.flush();
 
       expect(server.savedAttempts()).toEqual([attempt]);
@@ -454,19 +362,6 @@ describe('storage over the API', () => {
       expect(storage.gameSessions.fight.load()).toBeNull();
     });
 
-    // The account has taken in the exercises of the guest, so the list loads again.
-    it('reloads the exercises after joining the guest', async () => {
-      await signIn();
-      await storage.account.signOut();
-      const plank = await storage.exercises.save({ id: newId(), name: 'Планка', description: '' });
-      await signIn();
-      expect(await storage.exercises.list()).toEqual([]);
-
-      await storage.account.joinGuest();
-
-      expect(await storage.exercises.list()).toEqual([plank]);
-    });
-
     // The account was deleted on another device, so the cookie of this browser leads nowhere.
     it('signs out without a user when the account is gone', async () => {
       await signIn();
@@ -475,19 +370,6 @@ describe('storage over the API', () => {
       await storage.account.signOut();
 
       expect(await storage.account.current()).toBeNull();
-    });
-
-    it('joins nothing when the account is gone', async () => {
-      await signIn();
-      await storage.account.signOut();
-      await storage.exercises.save({ id: newId(), name: 'Планка', description: '' });
-      await signIn();
-      server.clearCookie();
-
-      await storage.account.joinGuest();
-
-      expect(await storage.account.current()).toBeNull();
-      expect(await storage.account.keptGuest()).toBeNull();
     });
   });
 
@@ -511,16 +393,9 @@ describe('storage over the API', () => {
 
     it.each([
       ['a page instead of JSON', '/api/v1/me', '<h1>Bad gateway</h1>', (s: GameStorage) => s.account.current()],
-      ['a user without an id', '/api/v1/me', { user: { kind: 'guest' } }, (s: GameStorage) => s.account.current()],
-      ['a guest without the name of the cossack', '/api/v1/me', { user: { id: 'a', kind: 'guest', createdAt: '' } }, (s: GameStorage) => s.account.current()],
-      ['an account without a name', '/api/v1/me', { user: { id: 'a', kind: 'account', createdAt: '' } }, (s: GameStorage) => s.account.current()],
-      ['a user of another kind', '/api/v1/me', { user: { id: 'a', kind: 'admin', createdAt: '' } }, (s: GameStorage) => s.account.current()],
-      [
-        'a kept guest without counts',
-        '/api/v1/me',
-        { user: { id: 'a', kind: 'account', createdAt: '', nickname: null, name: null, email: null }, guest: { id: 'b', attempts: 1 } },
-        (s: GameStorage) => s.account.keptGuest(),
-      ],
+      ['a user without an id', '/api/v1/me', { user: { createdAt: '' } }, (s: GameStorage) => s.account.current()],
+      ['an account without the name of the cossack', '/api/v1/me', { user: { id: 'a', createdAt: '' } }, (s: GameStorage) => s.account.current()],
+      ['an account without a name', '/api/v1/me', { user: { id: 'a', createdAt: '', nickname: null } }, (s: GameStorage) => s.account.current()],
       ['an exercise without a name', '/api/v1/exercises', [{ id: 'a' }], (s: GameStorage) => s.exercises.list()],
       ['settings as a list', '/api/v1/settings', [], (s: GameStorage) => s.settings.get('fight')],
       ['a page without items', '/api/v1/attempts', { nextCursor: null }, (s: GameStorage) => s.attempts.list()],
@@ -539,12 +414,12 @@ describe('storage over the API', () => {
         (s: GameStorage) => s.attempts.game('UTC'),
       ],
     ])('reports %s as a server failure', async (_, brokenPath, body, read) => {
-      const guest = { user: { id: newId(), kind: 'guest', createdAt: '', nickname: null } };
+      const account = { user: { id: newId(), createdAt: '', nickname: null, name: null, email: null } };
       const broken = createApiStorage({
-        // Every other answer introduces a user, so the read reaches the broken one.
+        // Every other answer introduces an account, so the read reaches the broken one.
         fetch: (path) =>
           Promise.resolve(
-            new Response(path === brokenPath ? (typeof body === 'string' ? body : JSON.stringify(body)) : JSON.stringify(guest)),
+            new Response(path === brokenPath ? (typeof body === 'string' ? body : JSON.stringify(body)) : JSON.stringify(account)),
           ),
         buffer: createBrowserBuffer(null),
       });
@@ -558,7 +433,7 @@ describe('storage over the API', () => {
 
       server.online = true;
 
-      expect(await storage.account.current()).toBeNull();
+      expect(await storage.account.current()).toMatchObject({ nickname: null });
     });
   });
 
@@ -590,6 +465,7 @@ describe('storage of the running game', () => {
 
   it('sends waiting attempts when the connection comes back', async () => {
     const server = createFakeServer();
+    server.signIn({ sub: 'tester' });
     vi.stubGlobal('fetch', server.fetch);
     const storage = createBrowserStorage();
     server.online = false;

@@ -45,7 +45,7 @@ const RETRY_FIRST_MS = 5_000;
 const RETRY_MAX_MS = 300_000;
 
 const EMPTY_PAGE: AttemptPage = { items: [], nextCursor: null };
-const NOBODY: BrowserState = { user: null, guest: null };
+const NOBODY: BrowserState = { user: null };
 
 export interface ApiStorageOptions {
   readonly fetch: Fetch;
@@ -78,7 +78,6 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   let known: BrowserState = NOBODY;
   // Whether the server has answered that at all.
   let answered = false;
-  let newGuest: Promise<CurrentUser> | null = null;
   let flushing: Promise<void> | null = null;
   // What the server last said about the game of this user: a battle starts without the network (§15.4).
   let lastGame: GameRecord | null = null;
@@ -95,9 +94,10 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   );
   const settingsMap = cached(() => ofUser<Settings>({}, '/api/v1/settings', parseSettings));
 
-  // Takes in an answer about who uses the browser.
+  // Takes in an answer about who uses the browser. The first answer comes while the first data
+  // loads, and that data is already of this account, so only another account starts over.
   function settle(browser: BrowserState): BrowserState {
-    if (browser.user?.id !== known.user?.id) {
+    if (answered && browser.user?.id !== known.user?.id) {
       exerciseList.clear();
       settingsMap.clear();
       lastGame = null;
@@ -116,24 +116,21 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   }
 
   /**
-   * The attempts of a guest the browser no longer has, because it lost its cookie or joined the
-   * account, belong to the user of the browser now, and the outbox says so: after signing out they
-   * must not go to the next guest (§23.2).
+   * An attempt finished before the browser knew its account belongs to the account it learns of,
+   * and the outbox says so: after signing out it must not go to the next account (§23.2).
    */
-  function adoptWaiting(browser: BrowserState): void {
-    const { user } = browser;
-
+  function adoptWaiting({ user }: BrowserState): void {
     if (user === null) {
       return;
     }
     for (const entry of outbox.entries()) {
-      if (belongsTo(entry.owner, browser) && (entry.owner?.id !== user.id || entry.owner.kind !== user.kind)) {
+      if (entry.owner === null) {
         outbox.put({ ...entry, owner: ownerOf(user) });
       }
     }
   }
 
-  // A browser without a user has no data yet, so it asks for none.
+  // A browser without an account has no data, so it asks for none.
   async function ofUser<T>(empty: T, path: string, parse: (body: unknown) => T): Promise<T> {
     if ((await me.get()).user === null) {
       return empty;
@@ -150,51 +147,16 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     return empty;
   }
 
-  // A guest appears with the first write of the browser (§15.1). The lock keeps two tabs
-  // from creating two guests at the same moment.
-  async function ensureUser(): Promise<CurrentUser> {
-    const current = (await me.get()).user;
-
-    if (current !== null) {
-      return current;
-    }
-    newGuest ??= withLock('self-fighter:new-guest', async () => {
-      // Another tab may have created the guest while this one waited for the lock.
-      me.clear();
-      const created = (await me.get()).user;
-
-      if (created !== null) {
-        return created;
-      }
-      const reply = await request('POST', '/api/v1/me');
-      const guest = userOf(remember(parseMe(expectStatus(reply, 200, 201))).user);
-
-      // A guest made just now has no battles on the server yet, so the game knows its record
-      // without asking: its first battle may end without the network (§15.4).
-      if (reply.status === 201) {
-        lastGame = EMPTY_RECORD;
-      }
-
-      return guest;
-    }).finally(() => {
-      newGuest = null;
-    });
-
-    return newGuest;
-  }
-
-  // When the server no longer knows the cookie, the browser starts over as a new guest once.
+  // A write needs the account: the server no longer knows it after signing out in another tab (§23.2).
   async function write(method: string, path: string, body?: unknown): Promise<Reply> {
-    await ensureUser();
     const reply = await request(method, path, body);
 
-    if (reply.status !== 401) {
-      return reply;
+    if (reply.status === 401) {
+      forgotten(undefined);
+      throw new StorageError('signed-out');
     }
-    me.clear();
-    await ensureUser();
 
-    return request(method, path, body);
+    return reply;
   }
 
   function waiting(browser: BrowserState, filter: AttemptFilter): StoredAttempt[] {
@@ -212,7 +174,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
 
     try {
       for (const entry of queued) {
-        // An attempt of another user waits until that user is back in this browser.
+        // An attempt of another account waits until that account is back in this browser.
         if (!belongsTo(entry.owner, await me.get())) {
           continue;
         }
@@ -243,43 +205,13 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
 
   const account: AccountStore = {
     current: async () => (await me.get()).user,
-    async keptGuest() {
-      const { guest } = await me.get();
-
-      if (guest === null) {
-        return null;
-      }
-      // Attempts the guest finished without a connection move with it as well.
-      const queued = outbox.entries().filter(({ owner }) => owner?.id === guest.id).length;
-
-      return { ...guest, attempts: guest.attempts + queued };
-    },
-    async joinGuest() {
-      if ((await me.get()).guest === null) {
-        return;
-      }
-      const reply = await request('POST', '/api/v1/me/merge');
-
-      if (reply.status === 401) {
-        forgotten(undefined);
-
-        return;
-      }
-      // The account has taken in the exercises and the settings of the guest.
-      const browser = parseMe(expectStatus(reply, 200));
-      exerciseList.clear();
-      settingsMap.clear();
-      remember(browser);
-      // The attempts of the guest that wait in the browser go to the account now.
-      void attempts.flush();
-    },
     async rename(nickname) {
       remember(parseMe(expectStatus(await write('PATCH', '/api/v1/me', { nickname }), 200)));
     },
     async signOut() {
       const reply = await request('POST', '/api/v1/me/logout');
       const browser = reply.status === 401 ? NOBODY : parseMe(expectStatus(reply, 200));
-      // The next person on this browser does not continue the workout of the account.
+      // The next person on this browser does not continue the battle of the account.
       clearSessions();
       remember(browser);
     },
@@ -298,7 +230,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
         outbox.remove(attempt.id);
       }
       clearSessions();
-      // A browser that kept its guest beside the account goes back to it, so it asks who it is now.
+      // The browser forgets the account and asks who it is the next time.
       settle(NOBODY);
       me.clear();
     },
@@ -318,7 +250,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       return saved;
     },
     async remove(id) {
-      // A browser without a user has nothing to delete, and deleting must not create a guest.
+      // A browser without an account has nothing to delete.
       if ((await me.get()).user === null) {
         return;
       }
@@ -484,25 +416,13 @@ function cached<T>(load: () => Promise<T>): Cached<T> {
   };
 }
 
-/**
- * A browser has one guest at a time, so the attempts of a guest it lost, or of one that joined the
- * account, belong to its current user. The attempts of an account and of the guest the browser
- * keeps beside it wait for them (§23.3).
- */
-function belongsTo(owner: Owner, { user, guest }: BrowserState): boolean {
-  return owner === null || owner.id === user?.id || (owner.kind === 'guest' && owner.id !== guest?.id);
+// The attempts of an account wait in the browser for that account, whoever signs in meanwhile (§23.2).
+function belongsTo(owner: Owner, { user }: BrowserState): boolean {
+  return owner === null || owner.id === user?.id;
 }
 
 function ownerOf(user: CurrentUser | null): Owner {
-  return user === null ? null : { id: user.id, kind: user.kind };
-}
-
-function userOf(user: CurrentUser | null): CurrentUser {
-  if (user === null) {
-    throw new StorageError('server');
-  }
-
-  return user;
+  return user === null ? null : { id: user.id };
 }
 
 function search(query: AttemptQuery): string {
@@ -517,9 +437,4 @@ function search(query: AttemptQuery): string {
   const text = params.toString();
 
   return text === '' ? '' : `?${text}`;
-}
-
-// Web Locks coordinate the tabs of one browser. Without them each tab is on its own.
-async function withLock<T>(name: string, task: () => Promise<T>): Promise<T> {
-  return 'locks' in navigator ? await navigator.locks.request(name, task) : task();
 }

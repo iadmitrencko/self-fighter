@@ -18,12 +18,9 @@ use App\Shared\Domain\UserId;
 use Psr\Clock\ClockInterface;
 
 /**
- * Opens the account of a person on this browser (§23.2, §23.3):
- *
- * - a way to sign in used for the first time turns the guest of the browser into the account,
- *   so nothing moves, and a browser without a guest gets a new account;
- * - a known one opens its account. A guest with attempts or custom exercises stays with the
- *   browser until the person decides whether to join it, a guest with nothing to miss joins at once.
+ * Opens the account of a person on this browser (§23.2). A way to sign in used for the first time
+ * creates the account, a known one opens its account. The game needs an account, so nobody plays
+ * before this (§23.1).
  */
 final readonly class SignIn
 {
@@ -31,8 +28,6 @@ final readonly class SignIn
         private UserRepository $users,
         private IdentityRepository $identities,
         private DeviceRepository $devices,
-        private GuestData $guestData,
-        private JoinGuest $joinGuest,
         private Transaction $transaction,
         private UserTransaction $userTransaction,
         private ClockInterface $clock,
@@ -53,68 +48,22 @@ final readonly class SignIn
         $this->transaction->run(function () use ($identity, $current, $token): void {
             $device = null === $current ? null : $this->devices->findByToken($current);
             $linked = $this->identities->find($identity->provider, $identity->subject);
-            $guest = null === $device ? null : $this->guestOf($device);
 
-            if (null !== $linked) {
-                $this->openAccount($linked->user(), $identity, $device, $guest, $token);
-            } elseif (null !== $device && null !== $guest) {
-                $this->turnIntoAccount($guest, $identity, $device, $token);
-            } else {
+            if (null === $linked) {
                 $this->createAccount($identity, $device, $token);
+            } else {
+                $this->openAccount($linked->user(), $identity, $device, $token);
             }
         });
 
         return $token;
     }
 
-    // The user of the browser, when it is a guest.
-    private function guestOf(Device $device): ?UserId
+    private function openAccount(UserId $account, ExternalIdentity $identity, ?Device $device, DeviceToken $token): void
     {
-        $user = $device->owner();
-
-        return null !== $this->users->find($user) && !$this->identities->existsFor($user) ? $user : null;
-    }
-
-    private function openAccount(UserId $account, ExternalIdentity $identity, ?Device $device, ?UserId $guest, DeviceToken $token): void
-    {
-        $this->userTransaction->run($account, function () use ($account, $identity, $device, $guest, $token): void {
-            $now = $this->clock->now();
+        $this->userTransaction->run($account, function () use ($account, $identity, $device, $token): void {
             $this->users->find($account)?->rememberProfile($identity->email, $identity->name);
-
-            if (null === $device) {
-                $this->devices->add(Device::register($account, $token, $now));
-
-                return;
-            }
-
-            if (null === $guest) {
-                // The same account again or another one: the browser keeps the guest it had.
-                $device->signIn($account, $device->guest(), $token, $now);
-
-                return;
-            }
-
-            if ($this->guestData->isWorthKeeping($guest)) {
-                // The person decides whether to join the guest. Until then it stays with the browser.
-                $device->signIn($account, $guest, $token, $now);
-
-                return;
-            }
-
-            // Nothing to miss, so nothing to ask: settings and events join the account at once.
-            // The browser leaves the guest first, so the guest takes no browser with it.
-            $device->signIn($account, null, $token, $now);
-            $this->userTransaction->run($guest, fn () => ($this->joinGuest)($guest, $account));
-        });
-    }
-
-    private function turnIntoAccount(UserId $guest, ExternalIdentity $identity, Device $device, DeviceToken $token): void
-    {
-        $this->userTransaction->run($guest, function () use ($guest, $identity, $device, $token): void {
-            $now = $this->clock->now();
-            $this->identities->add(Identity::link($identity->provider, $identity->subject, $guest, $now));
-            $this->users->find($guest)?->rememberProfile($identity->email, $identity->name);
-            $device->signIn($guest, null, $token, $now);
+            $this->open($account, $device, $token);
         });
     }
 
@@ -125,12 +74,18 @@ final readonly class SignIn
         $user->rememberProfile($identity->email, $identity->name);
         $this->users->add($user);
         $this->identities->add(Identity::link($identity->provider, $identity->subject, $user->id(), $now));
+        $this->open($user->id(), $device, $token);
+    }
+
+    // A browser that had another account open now leads to this one.
+    private function open(UserId $account, ?Device $device, DeviceToken $token): void
+    {
+        $now = $this->clock->now();
 
         if (null === $device) {
-            $this->devices->add(Device::register($user->id(), $token, $now));
+            $this->devices->add(Device::register($account, $token, $now));
         } else {
-            // The browser had an account open: its guest, if any, stays with the browser.
-            $device->signIn($user->id(), $device->guest(), $token, $now);
+            $device->signIn($account, $token, $now);
         }
     }
 }

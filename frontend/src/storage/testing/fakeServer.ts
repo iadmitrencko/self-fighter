@@ -17,8 +17,8 @@ const MODES: readonly string[] = ['fight'];
 interface User {
   readonly id: string;
   readonly createdAt: string;
-  // The Google account of an account; a guest has none.
-  subject: string | null;
+  // The Google account that opens the account (§23.2).
+  readonly subject: string;
   name: string | null;
   email: string | null;
   // §24.11: the name the player gave the cossack.
@@ -28,10 +28,9 @@ interface User {
   attempts: Attempt[];
 }
 
-// What the device cookie of the browser leads to (section 3.7 of the plan).
+// What the device cookie of the browser leads to (section 3.7 of the plan): an account.
 interface Device {
   user: string;
-  guest: string | null;
 }
 
 export interface FakeServer {
@@ -44,10 +43,10 @@ export interface FakeServer {
   readonly requests: readonly string[];
   // The browser loses the device cookie, for example when its site data is cleared.
   clearCookie(): void;
-  // The person comes back from Google, and the server opens the account on this browser (§23.3).
+  // The person comes back from Google, and the server opens the account on this browser (§23.2).
   signIn(account: TestGoogleAccount): void;
-  // The number of users, guests and accounts.
-  readonly guests: number;
+  // The number of accounts.
+  readonly accounts: number;
   savedAttempts(): Attempt[];
 }
 
@@ -59,54 +58,15 @@ export function createFakeServer(): FakeServer {
   const failures: number[] = [];
   let device: Device | null = null;
 
-  const describeUser = (user: User) =>
-    user.subject === null
-      ? { id: user.id, kind: 'guest', createdAt: user.createdAt, nickname: user.nickname }
-      : { id: user.id, kind: 'account', createdAt: user.createdAt, nickname: user.nickname, name: user.name, email: user.email };
-
   function describe() {
     const user = device === null ? undefined : users.get(device.user);
-    const guest = device?.guest === null || device === null ? undefined : users.get(device.guest);
 
     return {
-      user: user === undefined ? null : describeUser(user),
-      guest:
-        guest === undefined
+      user:
+        user === undefined
           ? null
-          : { id: guest.id, attempts: guest.attempts.length, exercises: guest.exercises.length },
+          : { id: user.id, createdAt: user.createdAt, nickname: user.nickname, name: user.name, email: user.email },
     };
-  }
-
-  function createUser(): User {
-    const user: User = {
-      id: newId(),
-      createdAt: new Date().toISOString(),
-      subject: null,
-      name: null,
-      email: null,
-      nickname: null,
-      exercises: [],
-      settings: {},
-      attempts: [],
-    };
-    users.set(user.id, user);
-
-    return user;
-  }
-
-  // §23.3: attempts keep their ids, exercises with a name the account has give way, the account keeps its settings.
-  function join(guest: User, account: User): void {
-    const taken = new Set(account.exercises.map(({ name }) => exerciseNameKey(name)));
-    account.nickname ??= guest.nickname;
-    account.attempts = [...account.attempts, ...guest.attempts];
-    account.exercises = [...account.exercises, ...guest.exercises.filter(({ name }) => !taken.has(exerciseNameKey(name)))];
-    account.settings = { ...guest.settings, ...account.settings };
-    users.delete(guest.id);
-  }
-
-  // The browser goes back to the guest it kept, or to no user.
-  function fallBack(): void {
-    device = device?.guest === null || device === null ? null : { user: device.guest, guest: null };
   }
 
   function route(method: string, url: URL, body: unknown): Response {
@@ -115,14 +75,6 @@ export function createFakeServer(): FakeServer {
 
     if (resource === 'me' && id === undefined && method === 'GET') {
       return reply(200, describe());
-    }
-    if (resource === 'me' && id === undefined && method === 'POST') {
-      if (user !== undefined) {
-        return reply(200, describe());
-      }
-      device = { user: createUser().id, guest: null };
-
-      return reply(201, describe());
     }
     if (user === undefined) {
       return reply(401, { error: 'unauthorized' });
@@ -134,7 +86,7 @@ export function createFakeServer(): FakeServer {
     switch (`${method} ${path}`) {
       case 'DELETE me':
         users.delete(user.id);
-        fallBack();
+        device = null;
 
         return reply(204);
       case 'PATCH me': {
@@ -149,22 +101,9 @@ export function createFakeServer(): FakeServer {
         return reply(200, describe());
       }
       case 'POST me/logout':
-        if (user.subject === null) {
-          return reply(409, { error: 'not-signed-in' });
-        }
-        fallBack();
+        device = null;
 
         return reply(200, describe());
-      case 'POST me/merge': {
-        const guest = device?.guest === null || device === null ? undefined : users.get(device.guest);
-
-        if (guest !== undefined) {
-          join(guest, user);
-        }
-        device = { user: user.id, guest: null };
-
-        return reply(200, describe());
-      }
       case 'GET exercises':
         return reply(200, user.exercises);
       case 'PUT exercises/:id':
@@ -266,32 +205,25 @@ export function createFakeServer(): FakeServer {
     clearCookie() {
       device = null;
     },
-    // The rules of backend/src/Account/Application/SignIn.php.
+    // The rules of backend/src/Account/Application/SignIn.php: a new Google account creates the account.
     signIn({ sub, name = null, email = null }) {
       const linked = [...users.values()].find(({ subject }) => subject === sub);
-      const current = device === null ? undefined : users.get(device.user);
-      const guest = current?.subject === null ? current : undefined;
-
-      if (linked === undefined && guest !== undefined) {
-        Object.assign(guest, { subject: sub, name, email });
-        device = { user: guest.id, guest: null };
-      } else if (linked === undefined) {
-        const created = Object.assign(createUser(), { subject: sub, name, email });
-        device = { user: created.id, guest: device?.guest ?? null };
-      } else {
-        Object.assign(linked, { name, email });
-
-        if (guest !== undefined && guest.attempts.length + guest.exercises.length > 0) {
-          device = { user: linked.id, guest: guest.id };
-        } else {
-          if (guest !== undefined) {
-            join(guest, linked);
-          }
-          device = { user: linked.id, guest: guest === undefined ? (device?.guest ?? null) : null };
-        }
-      }
+      const account: User = linked ?? {
+        id: newId(),
+        createdAt: new Date().toISOString(),
+        subject: sub,
+        name,
+        email,
+        nickname: null,
+        exercises: [],
+        settings: {},
+        attempts: [],
+      };
+      Object.assign(account, { name, email });
+      users.set(account.id, account);
+      device = { user: account.id };
     },
-    get guests() {
+    get accounts() {
       return users.size;
     },
     savedAttempts: () => [...users.values()].flatMap(({ attempts }) => attempts),

@@ -34,7 +34,7 @@ describe('the ranks', () => {
     renderKozak('/ranks');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Звання' })).toBeTruthy();
-    const ladder = within(screen.getByRole('region', { name: 'Усі звання' }));
+    const ladder = within(await screen.findByRole('region', { name: 'Усі звання' }));
 
     expect(ladder.getAllByRole('heading', { level: 2 }).map(({ textContent }) => textContent)).toEqual([
       'Молодші',
@@ -54,7 +54,7 @@ describe('the ranks', () => {
     renderKozak('/ranks');
 
     await screen.findByRole('heading', { level: 1, name: 'Звання' });
-    const current = screen.getByRole('listitem', { current: 'step' });
+    const current = await screen.findByRole('listitem', { current: 'step' });
 
     expect(current).toBe(rankRow('Джура'));
     expect(current.textContent).toContain('Зараз');
@@ -89,7 +89,7 @@ describe('the ranks', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Звання' });
 
-    expect(screen.getByRole('listitem', { current: 'step' })).toBe(rankRow('Заставний'));
+    expect(await screen.findByRole('listitem', { current: 'step' })).toBe(rankRow('Заставний'));
     expect(rankRow('Джура').classList).toContain('k-rank--done');
     expect(rankRow('Ройовий').textContent).toContain('Ще 13 слави');
     // The bar of the way starts at the rank the cossack holds.

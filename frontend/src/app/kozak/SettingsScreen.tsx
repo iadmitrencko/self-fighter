@@ -1,59 +1,46 @@
 import { useCallback, useId, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router';
+import { useNavigate } from 'react-router';
 import { settingsTexts } from '../../i18n/kozak';
-import { accountTexts, commonTexts, signInTexts } from '../../i18n/uk';
-import { NICKNAME_MAX, type AccountUser, type CurrentUser, type KeptGuest } from '../../storage/contract';
+import { accountTexts, commonTexts } from '../../i18n/uk';
+import { NICKNAME_MAX, type CurrentUser } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
 import { ConfirmDialog } from '../components/Dialog';
 import { Title } from '../components/Screen';
-import { SignInWithGoogle, useCanSignIn } from '../components/SignIn';
 import { useSignOut } from '../components/SignOut';
 import { ErrorNotice } from '../components/notices';
 import { useDataVersion } from '../data';
 import { useGame } from '../game';
-import { isWorthJoining } from '../signIn';
 import { errorCode, useLoad } from '../useLoad';
+import { kozakPaths } from './paths';
 import { KozakScreen } from './parts';
 
 /**
- * §15.5, §23, §24.1, §24.11: the data of the player as a section of the game. Every player, a guest
- * too, names the cossack and can delete the data; a guest can sign in, an account can sign out and
- * take in the guest this browser kept beside it.
+ * §15.5, §23, §24.1, §24.11: the data of the player as a section of the game: the name of the
+ * cossack, the account with signing out, and deleting the data. Signing out and deleting leave the
+ * browser without an account, so the way in says what they did (§23.1).
  */
 export function SettingsScreen() {
   const { storage } = useGame();
   const { changed } = useDataVersion();
-  const canSignIn = useCanSignIn();
-  const load = useCallback(async () => {
-    const user = await storage.account.current();
-
-    return { user, guest: user?.kind === 'account' ? await storage.account.keptGuest() : null };
-  }, [storage]);
-  const [browser, reload] = useLoad(load);
+  const navigate = useNavigate();
+  const loadUser = useCallback(() => storage.account.current(), [storage]);
+  const [account, reload] = useLoad(loadUser);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<StorageErrorCode | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const signOut = useSignOut({ onDone: setMessage, onFailure: setFailure });
-  // The menu of the player signs out on any screen and comes here to say so (GameHeader.tsx).
-  const arrived = noticeOf(useLocation().state);
-  const user = browser.status === 'ready' ? browser.value.user : null;
-  const account = user?.kind === 'account' ? user : null;
-  const guest = browser.status === 'ready' ? browser.value.guest : null;
+  const leave = (notice: string) => void navigate(kozakPaths.cossack, { state: { notice } });
+  const signOut = useSignOut({ onDone: leave, onFailure: setFailure });
 
   // Runs an action of the screen; a finished one says what it did, and the screens load again.
-  async function act(action: () => Promise<string | null>) {
+  async function act(action: () => Promise<string>) {
     setBusy(true);
     setFailure(null);
     setMessage(null);
 
     try {
-      const done = await action();
-
-      if (done !== null) {
-        setMessage(done);
-        changed();
-      }
+      setMessage(await action());
+      changed();
     } catch (error) {
       setConfirming(false);
       setFailure(errorCode(error));
@@ -75,62 +62,53 @@ export function SettingsScreen() {
       return nickname === null ? settingsTexts.nameCleared : settingsTexts.nameSaved;
     });
 
-  const join = () =>
-    act(async () => {
-      await storage.account.joinGuest();
+  async function remove() {
+    setBusy(true);
+    setFailure(null);
 
-      return signInTexts.joined;
-    });
-
-  const remove = () =>
-    act(async () => {
+    try {
       await storage.account.deleteData();
+      changed();
+      leave(accountTexts.deleted);
+    } catch (error) {
       setConfirming(false);
-
-      return accountTexts.deleted;
-    });
+      setFailure(errorCode(error));
+      setBusy(false);
+    }
+  }
 
   return (
     <KozakScreen title={settingsTexts.title} className="k-settings-screen">
       <header className="k-head">
         <Title className="k-title">{settingsTexts.title}</Title>
-        <p className="k-lead">{account === null ? accountTexts.intro : accountTexts.accountIntro}</p>
+        <p className="k-lead">{accountTexts.intro}</p>
       </header>
-      {browser.status === 'loading' && (
+      {account.status === 'loading' && (
         <p className="k-loading" role="status">
           {commonTexts.loading}
         </p>
       )}
-      {browser.status === 'failed' && <ErrorNotice error={browser.error} onRetry={reload} />}
+      {account.status === 'failed' && <ErrorNotice error={account.error} onRetry={reload} />}
       {failure !== null && <ErrorNotice error={failure} />}
       <p className="k-settings__status" role="status">
-        {message ?? arrived ?? (browser.status === 'ready' && user === null ? accountTexts.nothing : '')}
+        {message ?? ''}
       </p>
-      {browser.status === 'ready' && (
+      {account.status === 'ready' && account.value !== null && (
         <div className="k-settings">
-          <CossackNameCard user={user} busy={busy} onSave={(nickname) => void rename(nickname)} />
-          {account !== null && <AccountCard account={account} busy={busy || signOut.busy} onSignOut={startSignOut} />}
-          {account === null && canSignIn && (
-            <Setting title={accountTexts.signInTitle}>
-              <p className="k-card__text">{accountTexts.signInText}</p>
-              <SignInWithGoogle />
-            </Setting>
-          )}
-          {isWorthJoining(guest) && <KeptGuestCard guest={guest} busy={busy} onJoin={() => void join()} />}
-          {user !== null && (
-            <Setting title={accountTexts.deleteTitle}>
-              <p className="k-card__text">{account === null ? accountTexts.deleteText : accountTexts.accountDeleteText}</p>
-              <button type="button" className="k-button k-button--danger" disabled={busy} onClick={() => setConfirming(true)}>
-                {accountTexts.delete}
-              </button>
-            </Setting>
-          )}
+          <CossackNameCard user={account.value} busy={busy} onSave={(nickname) => void rename(nickname)} />
+          <AccountCard account={account.value} busy={busy || signOut.busy} onSignOut={startSignOut} />
+          <Setting title={accountTexts.deleteTitle}>
+            <p className="k-card__text">{accountTexts.deleteText}</p>
+            <button type="button" className="k-button k-button--danger" disabled={busy} onClick={() => setConfirming(true)}>
+              {accountTexts.delete}
+            </button>
+          </Setting>
         </div>
       )}
       {confirming && (
         <ConfirmDialog
           title={accountTexts.deleteQuestion}
-          text={account === null ? accountTexts.deleteWarning : accountTexts.accountDeleteWarning}
+          text={accountTexts.deleteWarning}
           confirm={accountTexts.deleteConfirm}
           busy={busy}
           onConfirm={() => void remove()}
@@ -142,15 +120,11 @@ export function SettingsScreen() {
   );
 }
 
-function noticeOf(state: unknown): string | null {
-  return typeof state === 'object' && state !== null && 'notice' in state && typeof state.notice === 'string' ? state.notice : null;
-}
-
-function Setting({ title, active = false, children }: { title: string; active?: boolean; children: ReactNode }) {
+function Setting({ title, children }: { title: string; children: ReactNode }) {
   const titleId = useId();
 
   return (
-    <section className={active ? 'k-card k-card--active k-setting' : 'k-card k-setting'} aria-labelledby={titleId}>
+    <section className="k-card k-setting" aria-labelledby={titleId}>
       <h2 id={titleId} className="k-setting__title">
         {title}
       </h2>
@@ -159,21 +133,21 @@ function Setting({ title, active = false, children }: { title: string; active?: 
   );
 }
 
-// §24.11: the name the player gives the cossack, a guest too; without it an account carries the
-// name Google gave. An empty field takes the name away.
+// §24.11: the name the player gives the cossack; without it the cossack carries the name Google
+// gave. An empty field takes the name away.
 function CossackNameCard({
   user,
   busy,
   onSave,
 }: {
-  user: CurrentUser | null;
+  user: CurrentUser;
   busy: boolean;
   onSave: (nickname: string | null) => void;
 }) {
   const inputId = useId();
   const hintId = useId();
-  const [value, setValue] = useState(user?.nickname ?? '');
-  const google = user?.kind === 'account' ? user.name : null;
+  const [value, setValue] = useState(user.nickname ?? '');
+  const google = user.name;
 
   return (
     <Setting title={settingsTexts.nameTitle}>
@@ -212,7 +186,7 @@ function CossackNameCard({
 }
 
 // §23.1: the person sees whose account is open, by the name and the email Google gave.
-function AccountCard({ account, busy, onSignOut }: { account: AccountUser; busy: boolean; onSignOut: () => void }) {
+function AccountCard({ account, busy, onSignOut }: { account: CurrentUser; busy: boolean; onSignOut: () => void }) {
   return (
     <Setting title={accountTexts.accountTitle}>
       {(account.name !== null || account.email !== null) && (
@@ -223,18 +197,6 @@ function AccountCard({ account, busy, onSignOut }: { account: AccountUser; busy:
       )}
       <button type="button" className="k-button k-button--secondary" disabled={busy} onClick={onSignOut}>
         {accountTexts.signOut}
-      </button>
-    </Setting>
-  );
-}
-
-// §23.3: what this browser saved without signing in waits for the person to take it into the account.
-function KeptGuestCard({ guest, busy, onJoin }: { guest: KeptGuest; busy: boolean; onJoin: () => void }) {
-  return (
-    <Setting title={accountTexts.keptTitle} active>
-      <p className="k-card__text">{accountTexts.keptText(guest.attempts, guest.exercises)}</p>
-      <button type="button" className="k-button k-button--primary" disabled={busy} onClick={onJoin}>
-        {accountTexts.join}
       </button>
     </Setting>
   );

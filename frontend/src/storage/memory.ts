@@ -5,7 +5,6 @@ import { computeStatistics } from '../domain/history/statistics';
 import { computeGameRecord } from '../domain/kozak/record';
 import type {
   ActiveSessionStore,
-  AccountUser,
   CurrentUser,
   CustomExercise,
   GameStorage,
@@ -25,8 +24,14 @@ export interface TestGoogleAccount {
 }
 
 export interface MemoryStorage extends GameStorage {
-  // For tests only: the person comes back from Google, and the server opens the account (§23.3).
+  // For tests only: the person comes back from Google, and the server opens the account (§23.2).
   signIn(account: TestGoogleAccount): void;
+}
+
+export interface MemoryStorageOptions {
+  // The game needs an account (§23.1), so the screens are tried signed in, as a person Google gave
+  // neither a name nor an email. false starts with a browser nobody signed in on.
+  readonly signedIn?: boolean;
 }
 
 interface Person {
@@ -39,11 +44,10 @@ interface Person {
 }
 
 // The storage without a server, for tests of the screens. It behaves as the API does (section 3.7 of the plan).
-export function createMemoryStorage(): MemoryStorage {
+export function createMemoryStorage({ signedIn = true }: MemoryStorageOptions = {}): MemoryStorage {
   const people = new Map<string, Person>();
-  // The user of this browser and the guest it keeps beside a signed-in account.
+  // The account signed in on this browser.
   let current: string | null = null;
-  let kept: string | null = null;
   // The battles of the game in progress.
   const sessions = new Map<string, Session>();
   const sessionStore = <TSession extends Session>(
@@ -66,114 +70,76 @@ export function createMemoryStorage(): MemoryStorage {
   const person = (): Person | null => (current === null ? null : (people.get(current) ?? null));
   const now = () => new Date().toISOString();
 
-  function signUp(): Person {
+  // The account a write goes to: a write needs one, as on the server.
+  function holder(): Person {
     const found = person();
 
-    if (found !== null) {
-      return found;
+    if (found === null) {
+      throw new StorageError('signed-out');
     }
-    const created: Person = {
-      user: { id: newId(), kind: 'guest', createdAt: now(), nickname: null },
-      google: null,
-      exercises: [],
-      settings: {},
-      attempts: [],
-    };
-    people.set(created.user.id, created);
-    current = created.user.id;
 
-    return created;
+    return found;
   }
 
-  function account(user: CurrentUser, { name, email }: TestGoogleAccount): AccountUser {
-    return { id: user.id, kind: 'account', createdAt: user.createdAt, nickname: user.nickname, name: name ?? null, email: email ?? null };
+  // §23.2: a Google account used for the first time creates the account, a known one opens it.
+  function signIn({ sub, name, email }: TestGoogleAccount): void {
+    const linked = [...people.values()].find((someone) => someone.google === sub);
+
+    if (linked === undefined) {
+      const created: Person = {
+        user: { id: newId(), createdAt: now(), nickname: null, name: name ?? null, email: email ?? null },
+        google: sub,
+        exercises: [],
+        settings: {},
+        attempts: [],
+      };
+      people.set(created.user.id, created);
+      current = created.user.id;
+    } else {
+      linked.user = { ...linked.user, name: name ?? null, email: email ?? null };
+      current = linked.user.id;
+    }
   }
 
-  // §23.3: attempts move with their ids, an exercise gives way to one with the same name, the
-  // settings of the account stay.
-  function join(guest: Person, into: Person): void {
-    const taken = new Set(into.exercises.map(({ name }) => exerciseNameKey(name)));
-    // §24.11: an account without a name for its cossack takes the one the guest gave.
-    into.user = { ...into.user, nickname: into.user.nickname ?? guest.user.nickname };
-    into.attempts = [...into.attempts, ...guest.attempts];
-    into.exercises = [...into.exercises, ...guest.exercises.filter(({ name }) => !taken.has(exerciseNameKey(name)))];
-    into.settings = { ...guest.settings, ...into.settings };
-    people.delete(guest.user.id);
+  // Leaves the browser without an account.
+  function forget(): void {
+    current = null;
+    sessions.clear();
+  }
+
+  // A rejected promise rather than a throw, as the API answers.
+  function write<T>(change: (owner: Person) => T): Promise<T> {
+    try {
+      return Promise.resolve(change(holder()));
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new StorageError('server'));
+    }
   }
 
   const saved = (attempt: Attempt): StoredAttempt => ({ attempt, status: 'saved' });
 
+  if (signedIn) {
+    signIn({ sub: 'tester' });
+  }
+
   return {
     persistent: true,
-    signIn(google) {
-      const linked = [...people.values()].find((someone) => someone.google === google.sub);
-      const browser = person();
-      const guest = browser?.user.kind === 'guest' ? browser : null;
-
-      if (linked === undefined && guest !== null) {
-        guest.user = account(guest.user, google);
-        guest.google = google.sub;
-      } else if (linked === undefined) {
-        const created: Person = {
-          user: account({ id: newId(), kind: 'guest', createdAt: now(), nickname: null }, google),
-          google: google.sub,
-          exercises: [],
-          settings: {},
-          attempts: [],
-        };
-        people.set(created.user.id, created);
-        current = created.user.id;
-      } else {
-        linked.user = account(linked.user, google);
-
-        if (guest !== null && guest.attempts.length + guest.exercises.length > 0) {
-          kept = guest.user.id;
-        } else if (guest !== null) {
-          join(guest, linked);
-        }
-        current = linked.user.id;
-      }
-    },
+    signIn,
     account: {
       current: () => Promise.resolve(person()?.user ?? null),
-      keptGuest() {
-        const guest = kept === null ? undefined : people.get(kept);
-
-        return Promise.resolve(
-          guest === undefined
-            ? null
-            : { id: guest.user.id, attempts: guest.attempts.length, exercises: guest.exercises.length },
-        );
-      },
-      joinGuest() {
-        const guest = kept === null ? undefined : people.get(kept);
-        const into = person();
-
-        if (guest !== undefined && into !== null) {
-          join(guest, into);
-        }
-        kept = null;
-
-        return Promise.resolve();
-      },
       rename(nickname) {
         const clean = cleanNickname(nickname);
 
         if (clean === false) {
           return Promise.reject(new StorageError('rejected'));
         }
-        const owner = signUp();
-        owner.user = { ...owner.user, nickname: clean };
 
-        return Promise.resolve();
+        return write((owner) => {
+          owner.user = { ...owner.user, nickname: clean };
+        });
       },
       signOut() {
-        if (person()?.user.kind !== 'account') {
-          return Promise.reject(new StorageError('rejected'));
-        }
-        current = kept;
-        kept = null;
-        sessions.clear();
+        forget();
 
         return Promise.resolve();
       },
@@ -181,10 +147,7 @@ export function createMemoryStorage(): MemoryStorage {
         if (current !== null) {
           people.delete(current);
         }
-        // A browser that kept its guest beside the account goes back to it.
-        current = kept;
-        kept = null;
-        sessions.clear();
+        forget();
 
         return Promise.resolve();
       },
@@ -198,12 +161,14 @@ export function createMemoryStorage(): MemoryStorage {
         if ((person()?.exercises ?? []).some(({ id, name }) => id !== exercise.id && exerciseNameKey(name) === key)) {
           return Promise.reject(new StorageError('exercise-name-taken'));
         }
-        const owner = signUp();
-        const stored = { id: exercise.id, name, description: exercise.description.trim().normalize('NFC') };
-        const index = owner.exercises.findIndex(({ id }) => id === exercise.id);
-        owner.exercises = index === -1 ? [...owner.exercises, stored] : owner.exercises.with(index, stored);
 
-        return Promise.resolve(stored);
+        return write((owner) => {
+          const stored = { id: exercise.id, name, description: exercise.description.trim().normalize('NFC') };
+          const index = owner.exercises.findIndex(({ id }) => id === exercise.id);
+          owner.exercises = index === -1 ? [...owner.exercises, stored] : owner.exercises.with(index, stored);
+
+          return stored;
+        });
       },
       remove(id) {
         const owner = person();
@@ -218,10 +183,9 @@ export function createMemoryStorage(): MemoryStorage {
     settings: {
       get: (mode) => Promise.resolve(person()?.settings[mode] ?? null),
       save(config) {
-        const owner = signUp();
-        owner.settings = { ...owner.settings, [config.mode]: config };
-
-        return Promise.resolve();
+        return write((owner) => {
+          owner.settings = { ...owner.settings, [config.mode]: config };
+        });
       },
     },
     attempts: {
@@ -232,13 +196,12 @@ export function createMemoryStorage(): MemoryStorage {
         if (existing !== undefined && JSON.stringify(existing) !== JSON.stringify(attempt)) {
           return Promise.reject(new StorageError('rejected'));
         }
-        const owner = signUp();
 
-        if (existing === undefined) {
-          owner.attempts = [...owner.attempts, structuredClone(attempt)];
-        }
-
-        return Promise.resolve();
+        return write((owner) => {
+          if (existing === undefined) {
+            owner.attempts = [...owner.attempts, structuredClone(attempt)];
+          }
+        });
       },
       get: (id) => {
         const attempt = person()?.attempts.find((item) => item.id === id);

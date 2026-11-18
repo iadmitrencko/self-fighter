@@ -1,4 +1,3 @@
-import type { KeptGuest } from '../storage/contract';
 import { KOZAK_BASE } from './kozak/paths';
 
 // How the sign-in went, as the server tells it in the address of the screen it comes back to.
@@ -25,11 +24,6 @@ export function withoutSignInOutcome(search: string): string {
   const rest = params.toString();
 
   return rest === '' ? '' : `?${rest}`;
-}
-
-// §23.3: the person is asked about a guest with attempts or custom exercises only.
-export function isWorthJoining(guest: KeptGuest | null): guest is KeptGuest {
-  return guest !== null && guest.attempts + guest.exercises > 0;
 }
 
 /**

@@ -19,7 +19,7 @@ use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPasspor
 use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface;
 
 /**
- * Finds the user of a request by the device cookie. Guests and signed-in users go the same way.
+ * Finds the account of a request by the device cookie, which only signing in gives (§23.2).
  */
 final class DeviceAuthenticator extends AbstractAuthenticator implements AuthenticationEntryPointInterface
 {

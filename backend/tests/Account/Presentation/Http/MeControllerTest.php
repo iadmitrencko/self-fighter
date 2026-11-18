@@ -25,22 +25,26 @@ final class MeControllerTest extends ApiTestCase
         $this->send('GET', '/api/v1/me');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('{"user":null,"guest":null}', $this->browser->getResponse()->getContent());
+        self::assertSame('{"user":null}', $this->browser->getResponse()->getContent());
         self::assertResponseNotHasCookie(self::DEVICE_COOKIE);
         self::assertSame(0, $this->rowCount('user'));
     }
 
-    public function testFirstWriteCreatesGuestFoundByDeviceCookie(): void
+    // §23.1: the game needs an account, so a write of a browser that has not signed in creates nobody.
+    public function testWriteWithoutAccountCreatesNobody(): void
+    {
+        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
+
+        $this->assertError(401, 'unauthorized');
+        self::assertResponseNotHasCookie(self::DEVICE_COOKIE);
+        self::assertSame(0, $this->rowCount('user'));
+    }
+
+    public function testSigningInGivesTheCookieThatFindsTheAccount(): void
     {
         self::mockTime('2026-11-02 10:00:00.123');
 
-        $this->send('POST', '/api/v1/me');
-
-        self::assertResponseStatusCodeSame(201);
-        $user = $this->responseData()['user'];
-        self::assertIsArray($user);
-        self::assertNotNull(UserId::tryFrom((string) $user['id']));
-        self::assertSame(['kind' => 'guest', 'createdAt' => '2026-11-02T10:00:00.000Z'], ['kind' => $user['kind'], 'createdAt' => $user['createdAt']]);
+        $this->signInWithGoogle();
 
         $cookie = $this->issuedDeviceCookie();
         self::assertTrue($cookie->isSecure());
@@ -55,19 +59,15 @@ final class MeControllerTest extends ApiTestCase
             [hash('sha256', (string) $cookie->getValue())],
             $this->database()->fetchFirstColumn('SELECT token_hash FROM device'),
         );
-    }
 
-    public function testRepeatedRequestKeepsTheSameGuest(): void
-    {
-        $userId = $this->signUp();
-
-        $this->send('POST', '/api/v1/me');
-
-        self::assertResponseStatusCodeSame(200);
+        $this->send('GET', '/api/v1/me');
         $user = $this->responseData()['user'];
         self::assertIsArray($user);
-        self::assertSame($userId, $user['id']);
-        self::assertSame(1, $this->rowCount('user'));
+        self::assertNotNull(UserId::tryFrom((string) $user['id']));
+        self::assertSame(
+            ['createdAt' => '2026-11-02T10:00:00.000Z', 'nickname' => null, 'name' => 'Олена Коваль', 'email' => 'olena@example.com'],
+            array_diff_key($user, ['id' => true]),
+        );
     }
 
     public function testUnknownCookieIsRemovedFromTheBrowser(): void
@@ -77,12 +77,12 @@ final class MeControllerTest extends ApiTestCase
         $this->send('GET', '/api/v1/me');
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['user' => null, 'guest' => null], $this->responseData());
+        self::assertSame(['user' => null], $this->responseData());
         self::assertTrue($this->issuedDeviceCookie()->isCleared());
     }
 
-    // §24.11: a guest names the cossack too; the name is cleaned, and null takes it away.
-    public function testGuestNamesTheCossack(): void
+    // §24.11: the player names the cossack; the name is cleaned, and null takes it away.
+    public function testPlayerNamesTheCossack(): void
     {
         $this->signUp();
 
@@ -153,17 +153,6 @@ final class MeControllerTest extends ApiTestCase
         self::assertSame('2026-11-03 10:00:00', $this->database()->fetchOne('SELECT last_seen_at FROM device'));
     }
 
-    public function testGuestsAreCreatedAtLimitedPacePerAddress(): void
-    {
-        $this->exhaustLimit('guest_creation', $this->address);
-
-        $this->send('POST', '/api/v1/me');
-
-        $this->assertError(429, 'rate-limited');
-        self::assertResponseHasHeader('Retry-After');
-        self::assertSame(0, $this->rowCount('user'));
-    }
-
     // §15.5: the data of every module goes with the user, and the data of others stays.
     public function testDeletingDataRemovesEverythingOfThisUserOnly(): void
     {
@@ -188,14 +177,14 @@ final class MeControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(204);
         self::assertTrue($this->issuedDeviceCookie()->isCleared());
         self::assertSame(
-            ['user' => 1, 'user_identity' => 0, 'device' => 1, 'attempt' => 1, 'custom_exercise' => 0, 'workout_settings' => 1],
+            ['user' => 1, 'user_identity' => 1, 'device' => 1, 'attempt' => 1, 'custom_exercise' => 0, 'workout_settings' => 1],
             array_map($this->rowCount(...), array_combine(self::TABLES, self::TABLES)),
         );
 
         $this->switchBrowser($mine);
         $this->send('GET', '/api/v1/me');
 
-        self::assertSame(['user' => null, 'guest' => null], $this->responseData());
+        self::assertSame(['user' => null], $this->responseData());
     }
 
     public function testDeletingTwiceFindsNobodyTheSecondTime(): void

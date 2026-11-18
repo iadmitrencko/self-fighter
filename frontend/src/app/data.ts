@@ -1,7 +1,7 @@
 import { createContext, use } from 'react';
 
 /**
- * Signing out, joining the guest or deleting the data change what every screen shows. A change
+ * Signing out or deleting the data change what every screen shows. A change
  * raises the version, and the screens load their data again.
  */
 export interface DataVersion {

@@ -27,16 +27,6 @@ final readonly class DoctrineIdentityRepository implements IdentityRepository
         return $this->entityManager->find(Identity::class, ['provider' => $provider->value, 'subject' => $subject]);
     }
 
-    public function existsFor(UserId $user): bool
-    {
-        $found = $this->entityManager
-            ->createQuery('SELECT COUNT(i.subject) FROM App\Account\Domain\Identity i WHERE i.user = :user')
-            ->setParameter('user', $user, UserIdType::NAME)
-            ->getSingleScalarResult();
-
-        return (int) $found > 0;
-    }
-
     public function removeAllOf(UserId $user): void
     {
         $this->entityManager

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectAccessible, finishSets, openSection } from './helpers';
+import { expectAccessible, finishSets, googleAccount, openSection, openSignedIn, signIn } from './helpers';
 
 interface GameRecord {
   fights: { wins: number; draws: number; losses: number };
@@ -19,7 +19,14 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   await page.goto('/');
   await page.getByRole('banner').getByRole('link', { name: 'Грати' }).click();
 
+  // §23.1: the game needs an account, so it asks to sign in and comes back to the cossack.
+  await expect(page.getByRole('heading', { level: 1, name: 'Увійди, щоб грати' })).toBeVisible();
+  await expectAccessible(page);
+  await signIn(page, googleAccount(''));
+
   await expect(page.getByRole('heading', { level: 1, name: 'Звання: Джура' })).toBeVisible();
+  // §24.11: a cossack without a name asks the player for one over the rank.
+  await expect(page.getByText('Як звати тебе, козаче? Напиши своє ім’я.')).toBeVisible();
   await expectAccessible(page);
 
   // §24.2: the next rank leads to all the ranks and what brings glory.
@@ -70,7 +77,7 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   await expect(page.getByRole('heading', { level: 1, name: 'Налаштування' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Видалити всі дані' })).toBeVisible();
   await expectAccessible(page);
-  // §24.11: the player names the cossack, a guest too.
+  // §24.11: the player names the cossack.
   await page.getByRole('textbox', { name: 'Ім’я або псевдонім' }).fill('Іван Сірко');
   await page.getByRole('button', { name: 'Зберегти' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Ім’я козака збережено.' })).toBeVisible();
@@ -78,6 +85,8 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   await page.getByRole('navigation', { name: 'Розділи гри' }).getByRole('link', { name: 'Козак' }).click();
   // Chromium puts a space after the block of the name, before its hidden comma; a screen reader keeps quiet about it.
   await expect(page.getByRole('heading', { level: 1, name: /^Іван Сірко ?, Звання: Джура$/ })).toBeVisible();
+  // A cossack with a name is not asked for one again.
+  await expect(page.getByText('Як звати тебе, козаче?')).toHaveCount(0);
   await expect(page.getByRole('link', { name: /^Ще 8 слави до звання\s«Заставний»$/ })).toBeVisible();
   await expect(page.getByRole('progressbar', { name: 'Поступ до звання «Заставний»' })).toHaveAttribute('aria-valuenow', '2');
   await expect(page.getByRole('region', { name: 'Бойовий рахунок' }).getByRole('listitem')).toHaveText(['1 перемога', '0 нічиїх', '0 поразок']);
@@ -94,7 +103,7 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
 
 // §24.5: «Чорний прапор» opens beside «Лісові круки», with its own maps and levels.
 test('the campaign «Чорний прапор» leads to its first level', async ({ page }) => {
-  await page.goto('/game/journey');
+  await openSignedIn(page, '/game/journey');
   await page.getByRole('article').filter({ hasText: 'Чорний прапор' }).getByRole('link', { name: 'Вирушити в кампанію' }).click();
 
   await expect(page.getByRole('heading', { level: 1, name: 'Чорний прапор' })).toBeVisible();
@@ -112,7 +121,7 @@ test('the campaign «Чорний прапор» leads to its first level', asyn
 
 // §24.5: «Степові вовки» opens beside the other campaigns, with the maps of the Wild Field.
 test('the campaign «Степові вовки» leads to its first level', async ({ page }) => {
-  await page.goto('/game/journey');
+  await openSignedIn(page, '/game/journey');
   await page.getByRole('article').filter({ hasText: 'Степові вовки' }).getByRole('link', { name: 'Вирушити в кампанію' }).click();
 
   await expect(page.getByRole('heading', { level: 1, name: 'Степові вовки' })).toBeVisible();
@@ -130,7 +139,7 @@ test('the campaign «Степові вовки» leads to its first level', asyn
 
 // §24.5: a retreat loses the level and keeps it open for another try.
 test('a retreat from a level is a defeat', async ({ page }) => {
-  await page.goto('/game/journey/forest-ravens/1/1');
+  await openSignedIn(page, '/game/journey/forest-ravens/1/1');
   await page.getByRole('button', { name: 'Почати випробування' }).click();
 
   const battle = page.getByRole('dialog', { name: 'Перше випробування' });
@@ -146,7 +155,7 @@ test('a retreat from a level is a defeat', async ({ page }) => {
 
 // §6, §24.6: a fight is put together freely, takes energy and brings glory.
 test('a fight of the game spends energy and brings glory', async ({ page }) => {
-  await page.goto('/game/fight');
+  await openSignedIn(page, '/game/fight');
   await expect(page.getByRole('heading', { level: 1, name: 'Бій' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Відтискання, раунд 1' })).toHaveValue('10');
   await expectAccessible(page);

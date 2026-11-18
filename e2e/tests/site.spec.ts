@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { expectAccessible } from './helpers';
+import { expectAccessible, signIn } from './helpers';
 
-// §18 «Продукт»: the landing tells what the cossack game is, and the game starts without signing up.
-test('the landing explains the game and opens it without signing up', async ({ page }) => {
+// §18 «Продукт»: the landing tells what the cossack game is, and the game opens after signing in with Google.
+test('the landing explains the game and leads into it', async ({ page }) => {
   await page.goto('/');
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Від джури до гетьмана — підхід за підходом.');
@@ -11,8 +11,10 @@ test('the landing explains the game and opens it without signing up', async ({ p
 
   await page.getByRole('main').getByRole('link', { name: 'Почати бій' }).first().click();
 
-  // §24.1: everything is made for the game, so a workout starts with the choice of a fight in it.
+  // §23.1: the game needs an account; Google brings the browser back to the hall of fights.
   await expect(page).toHaveURL('/game/fight');
+  await signIn(page);
+  // §24.1: everything is made for the game, so a workout starts with the choice of a fight in it.
   await expect(page.getByRole('heading', { level: 1, name: 'Бій' })).toBeVisible();
   // §6: the hall offers a fight of the ready-made exercises at once.
   await expect(page.getByRole('textbox', { name: 'Відтискання, раунд 1' })).toHaveValue('10');
@@ -31,6 +33,8 @@ test('an address the game does not have is a real 404', async ({ page }) => {
 // The pages about the game share their header and lead into it; the game has a header of its own
 // (§24.1). Every page has the same footer, and every screen of the game leads back by itself.
 test('the game has a header of its own, the footer is everywhere and screens lead back', async ({ page }) => {
+  await page.goto('/game');
+  await signIn(page);
   await page.goto('/');
   const footer = await page.locator('footer.site-footer').innerHTML();
   // The header has one way into the game, a phone included: to the cossack.

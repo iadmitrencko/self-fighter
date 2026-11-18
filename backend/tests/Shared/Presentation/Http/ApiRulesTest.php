@@ -12,10 +12,15 @@ final class ApiRulesTest extends ApiTestCase
     #[DataProvider('foreignOrigins')]
     public function testWritesFromOtherSitesAreRefused(?string $origin): void
     {
-        $this->browser->request('POST', '/api/v1/me', server: ['HTTP_ORIGIN' => $origin]);
+        $this->browser->request(
+            'POST',
+            '/api/v1/events',
+            server: ['HTTP_ORIGIN' => $origin, 'CONTENT_TYPE' => 'application/json'],
+            content: '{"name":"workout_started","mode":"fight"}',
+        );
 
         $this->assertError(403, 'cross-origin');
-        self::assertSame(0, $this->rowCount('user'));
+        self::assertSame(0, $this->rowCount('analytics_event'));
     }
 
     /**

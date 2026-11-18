@@ -7,8 +7,8 @@ namespace App\Account\Domain;
 use App\Shared\Domain\UserId;
 
 /**
- * Everyone who has saved something (§15.1). A guest has no way to sign in, and the browser finds
- * it by its device. Signing in adds an Identity to the same user, so its data stays where it is (§23.3).
+ * The account of a person who signed in (§23.1). Its Identity leads to it from Google, and the
+ * browsers it is open in find it by their devices.
  */
 final class User
 {
@@ -21,7 +21,7 @@ final class User
     private function __construct(
         private readonly UserId $id,
         private readonly \DateTimeImmutable $createdAt,
-        // What the provider of the sign-in tells about the person; a guest has neither (§23.2).
+        // What the provider of the sign-in tells about the person (§23.2).
         private ?string $email = null,
         private ?string $name = null,
         private ?string $nickname = null,
@@ -73,7 +73,7 @@ final class User
     }
 
     /**
-     * §24.11: the name the player gives the cossack, a guest too. An empty one leaves the cossack the
+     * §24.11: the name the player gives the cossack. An empty one leaves the cossack the
      * name Google gave, if any. A name longer than allowed changes nothing.
      */
     public function rename(?string $nickname): bool

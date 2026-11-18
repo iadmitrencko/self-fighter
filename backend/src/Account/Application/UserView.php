@@ -7,24 +7,23 @@ namespace App\Account\Application;
 use App\Account\Domain\User;
 use App\Shared\Domain\Instant;
 
-// The user as the browser sees it (CurrentUser in frontend/src/storage/contract.ts).
+// The account as the browser sees it (CurrentUser in frontend/src/storage/contract.ts).
 final class UserView
 {
     /**
-     * An account also shows the name and the email Google gave, so the person sees whose account is
-     * open. The name the player gave the cossack goes with a guest as well (§24.11).
+     * The name and the email Google gave show whose account is open, and the name the player gave
+     * the cossack goes with them (§24.11).
      *
      * @return array<string, string|null>
      */
-    public static function of(User $user, bool $account): array
+    public static function of(User $user): array
     {
-        $view = [
+        return [
             'id' => $user->id()->value,
-            'kind' => $account ? 'account' : 'guest',
             'createdAt' => Instant::format($user->createdAt()),
             'nickname' => $user->nickname(),
+            'name' => $user->name(),
+            'email' => $user->email(),
         ];
-
-        return $account ? [...$view, 'name' => $user->name(), 'email' => $user->email()] : $view;
     }
 }

@@ -6,127 +6,46 @@ namespace App\Tests\Account\Presentation\Http;
 
 use App\Tests\Shared\Presentation\Http\ApiTestCase;
 use App\Tests\Workout\Documents;
-use App\Workout\Domain\ExerciseId;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
- * An account on a browser: signing out, joining the guest of the browser and deleting it (§15.5, §23).
+ * An account on its browsers: signing out and deleting it (§15.5, §23).
  */
 final class AccountTest extends ApiTestCase
 {
     use ClockSensitiveTrait;
 
-    // §23.2: after signing out the browser is its guest again and the data of the account is out of reach.
-    public function testSigningOutBringsBackTheGuestOfTheBrowser(): void
+    // §23.2: signing out forgets the browser; the data waits for the next sign-in on any browser.
+    public function testSigningOutForgetsTheBrowser(): void
     {
-        [, $guest, , $guestAttempt] = $this->accountWithGuestOnThisBrowser();
+        $attempt = $this->accountWithAttempt();
         $accountCookie = $this->deviceCookie();
 
         $this->send('POST', '/api/v1/me/logout');
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['id' => $guest, 'kind' => 'guest'], array_intersect_key($this->user($this->responseData()), ['id' => 1, 'kind' => 1]));
-        self::assertNull($this->responseData()['guest']);
-        self::assertNotSame($accountCookie->getValue(), $this->deviceCookie()->getValue());
+        self::assertSame(['user' => null], $this->responseData());
+        self::assertTrue($this->issuedCookie()->isCleared());
+        self::assertSame(0, $this->rowCount('device'));
         $this->send('GET', '/api/v1/attempts');
-        self::assertSame([$guestAttempt], $this->attemptIds());
+        $this->assertError(401, 'unauthorized');
 
         // The old token led to the account and leads nowhere now.
         $this->switchBrowser($accountCookie);
         $this->send('GET', '/api/v1/me');
-        self::assertSame(['user' => null, 'guest' => null], $this->responseData());
-    }
-
-    public function testSigningOutWithoutAGuestLeavesNoUser(): void
-    {
-        $this->signInWithGoogle(['sub' => '1001']);
-
-        $this->send('POST', '/api/v1/me/logout');
-
-        self::assertSame(['user' => null, 'guest' => null], $this->responseData());
-        self::assertTrue($this->issuedCookie()->isCleared());
-        self::assertSame(0, $this->rowCount('device'));
-        self::assertSame(1, $this->rowCount('user'));
-    }
-
-    // A guest has no other way to its data, so it cannot sign out.
-    public function testGuestCannotSignOut(): void
-    {
-        $this->signUp();
-
-        $this->send('POST', '/api/v1/me/logout');
-
-        $this->assertError(409, 'not-signed-in');
-        self::assertSame(1, $this->rowCount('device'));
-    }
-
-    // §23.3: attempts move with their ids, exercises with the same name merge, the account keeps its settings.
-    public function testJoiningTheGuestBringsItsDataOnce(): void
-    {
-        self::mockTime('2026-11-04 10:00:00');
-        $this->signInWithGoogle(['sub' => '1001']);
-        $accountBurpees = ExerciseId::generate()->value;
-        $this->send('PUT', '/api/v1/exercises/'.$accountBurpees, ['name' => 'Бурпі', 'description' => 'Як у залі']);
-        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
-        $accountAttempt = Documents::fight('win', '2026-11-03T10:00:00.000Z', overrides: ['startedAt' => '2026-11-03T09:40:00.000Z']);
-        $this->send('PUT', '/api/v1/attempts/'.$accountAttempt['id'], $accountAttempt);
-        $account = $this->user()['id'] ?? null;
+        self::assertSame(['user' => null], $this->responseData());
 
         $this->switchBrowser();
-        $this->signUp();
-        $plank = ExerciseId::generate()->value;
-        $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'бурпі', 'description' => 'Вдома']);
-        $this->send('PUT', '/api/v1/exercises/'.$plank, ['name' => 'Планка', 'description' => '']);
-        $this->send('PUT', '/api/v1/settings/fight', ['mode' => 'fight', 'exercises' => [['id' => 'pull-ups', 'name' => 'Підтягування', 'sets' => [3]]]]);
-        $guestAttempt = Documents::level(outcome: 'loss', overrides: ['startedAt' => '2026-11-04T08:50:00.000Z', 'finishedAt' => '2026-11-04T09:00:00.000Z']);
-        $this->send('PUT', '/api/v1/attempts/'.$guestAttempt['id'], $guestAttempt);
-        $this->send('POST', '/api/v1/events', ['name' => 'workout_completed', 'mode' => 'fight', 'outcome' => 'loss']);
         $this->signInWithGoogle(['sub' => '1001']);
-
-        $this->send('POST', '/api/v1/me/merge');
-
-        self::assertResponseIsSuccessful();
-        self::assertSame([$account, null], [$this->user($this->responseData())['id'] ?? null, $this->responseData()['guest']]);
         $this->send('GET', '/api/v1/attempts');
-        self::assertSame([$guestAttempt['id'], $accountAttempt['id']], $this->attemptIds());
-        $this->send('GET', '/api/v1/exercises');
-        self::assertSame(
-            [['id' => $accountBurpees, 'name' => 'Бурпі', 'description' => 'Як у залі'], ['id' => $plank, 'name' => 'Планка', 'description' => '']],
-            $this->responseData(),
-        );
-        $this->send('GET', '/api/v1/settings');
-        self::assertEquals(['fight' => Documents::fightConfig()], $this->responseData());
-        self::assertSame(1, $this->rowCount('user'));
-        self::assertSame(1, (int) $this->database()->fetchOne('SELECT COUNT(*) FROM analytics_event WHERE user_id IS NOT NULL'));
-
-        // Asking again, as a second tab would, adds nothing.
-        $this->send('POST', '/api/v1/me/merge');
-
-        self::assertResponseIsSuccessful();
-        self::assertSame(2, $this->rowCount('attempt'));
-        self::assertSame(2, $this->rowCount('custom_exercise'));
+        self::assertSame([$attempt], $this->attemptIds());
     }
 
-    // §23.3: a person who did not join the guest finds it again after signing out.
-    public function testGuestNobodyJoinedWaitsForTheBrowser(): void
+    // §15.5: deleting the account takes its data, its way to sign in and every browser it is open in.
+    public function testDeletingTheAccountSignsOutEveryBrowser(): void
     {
-        [, $guest, $accountAttempt, $guestAttempt] = $this->accountWithGuestOnThisBrowser();
-
-        $this->send('GET', '/api/v1/attempts');
-        self::assertSame([$accountAttempt], $this->attemptIds());
-
-        $this->send('POST', '/api/v1/me/logout');
-        self::assertSame($guest, $this->user($this->responseData())['id'] ?? null);
-        $this->send('GET', '/api/v1/attempts');
-
-        self::assertSame([$guestAttempt], $this->attemptIds());
-    }
-
-    // §15.5: deleting the account takes its way to sign in; a browser that kept its guest goes back to it.
-    public function testDeletingTheAccountLeavesTheGuestsOfItsBrowsers(): void
-    {
-        [, $guest, , $guestAttempt] = $this->accountWithGuestOnThisBrowser();
+        $this->accountWithAttempt();
         $thisBrowser = $this->deviceCookie();
         $this->switchBrowser();
         $this->signInWithGoogle(['sub' => '1001']);
@@ -136,67 +55,29 @@ final class AccountTest extends ApiTestCase
         $this->send('DELETE', '/api/v1/me');
 
         self::assertResponseStatusCodeSame(204);
-        self::assertResponseNotHasCookie(self::DEVICE_COOKIE);
-        $this->send('GET', '/api/v1/me');
-        self::assertSame(['id' => $guest, 'kind' => 'guest'], array_intersect_key($this->user(), ['id' => 1, 'kind' => 1]));
-        $this->send('GET', '/api/v1/attempts');
-        self::assertSame([$guestAttempt], $this->attemptIds());
-        // Nothing of the account is left: only the guest and its attempt remain.
+        self::assertTrue($this->issuedCookie()->isCleared());
         self::assertSame(
-            ['user_identity' => 0, 'user' => 1, 'attempt' => 1],
-            ['user_identity' => $this->rowCount('user_identity'), 'user' => $this->rowCount('user'), 'attempt' => $this->rowCount('attempt')],
+            ['user' => 0, 'user_identity' => 0, 'device' => 0, 'attempt' => 0],
+            array_map($this->rowCount(...), ['user' => 'user', 'user_identity' => 'user_identity', 'device' => 'device', 'attempt' => 'attempt']),
         );
 
         $this->switchBrowser($otherBrowser);
         $this->send('GET', '/api/v1/me');
-        self::assertSame(['user' => null, 'guest' => null], $this->responseData());
+        self::assertSame(['user' => null], $this->responseData());
     }
 
-    /**
-     * An account with an attempt, open on a browser whose guest has an attempt too and was not joined.
-     *
-     * @return array{string, string, string, string} the ids of the account, the guest and their attempts
-     */
-    private function accountWithGuestOnThisBrowser(): array
+    // An account with a battle of the day before, open on this browser. Returns the id of the battle.
+    private function accountWithAttempt(): string
     {
         // The server takes a battle of the last days only (§24.4).
         self::mockTime('2026-11-04 10:00:00');
         $this->signInWithGoogle(['sub' => '1001']);
-        $accountAttempt = Documents::fight('win', '2026-11-03T10:00:00.000Z', overrides: ['startedAt' => '2026-11-03T09:40:00.000Z']);
-        $this->send('PUT', '/api/v1/attempts/'.$accountAttempt['id'], $accountAttempt);
-        $account = $this->user()['id'] ?? null;
+        $attempt = Documents::fight('win', '2026-11-03T10:00:00.000Z', overrides: ['startedAt' => '2026-11-03T09:40:00.000Z']);
+        $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
+        self::assertResponseIsSuccessful();
+        self::assertIsString($attempt['id']);
 
-        $this->switchBrowser();
-        $guest = $this->signUp();
-        $guestAttempt = Documents::level(outcome: 'loss', overrides: ['startedAt' => '2026-11-04T08:50:00.000Z', 'finishedAt' => '2026-11-04T09:00:00.000Z']);
-        $this->send('PUT', '/api/v1/attempts/'.$guestAttempt['id'], $guestAttempt);
-        $this->signInWithGoogle(['sub' => '1001']);
-
-        self::assertIsString($account);
-        self::assertIsString($accountAttempt['id']);
-        self::assertIsString($guestAttempt['id']);
-
-        return [$account, $guest, $accountAttempt['id'], $guestAttempt['id']];
-    }
-
-    /**
-     * The user the answer names, or the user of the browser.
-     *
-     * @param array<mixed>|null $answer
-     *
-     * @return array<string, mixed>
-     */
-    private function user(?array $answer = null): array
-    {
-        if (null === $answer) {
-            $this->send('GET', '/api/v1/me');
-            $answer = $this->responseData();
-        }
-        $user = $answer['user'] ?? null;
-        self::assertIsArray($user);
-
-        /* @var array<string, mixed> $user */
-        return $user;
+        return $attempt['id'];
     }
 
     /**

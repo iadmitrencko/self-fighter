@@ -10,7 +10,7 @@ use App\Shared\Application\UserTransaction;
 use App\Shared\Domain\UserId;
 
 /**
- * §24.11: the player names the cossack, a guest too. Without a name of their own the cossack
+ * §24.11: the player names the cossack. Without a name of their own the cossack
  * carries the name Google gave.
  */
 final readonly class RenameCossack

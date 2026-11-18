@@ -6,10 +6,9 @@ import { standingOf } from '../../../domain/kozak/ranks';
 import type { FightResult as Result } from '../../../domain/results/results';
 import { formatDateTime, formatDuration } from '../../../i18n/format';
 import { fightHallTexts, fightResultTexts, rankNames, victoryTexts } from '../../../i18n/kozak';
-import { resultTexts, signInTexts } from '../../../i18n/uk';
+import { resultTexts } from '../../../i18n/uk';
 import type { AttemptStatus } from '../../../storage/contract';
 import { Title } from '../../components/Screen';
-import { SignInPrompt } from '../../components/SignIn';
 import { ErrorNotice, Loading } from '../../components/notices';
 import { useGame } from '../../game';
 import { useLoad } from '../../useLoad';
@@ -64,19 +63,12 @@ export function FightResult() {
 }
 
 function FightOutcome({ attempt, status }: { attempt: FightAttempt; status: AttemptStatus }) {
-  const { storage, analytics } = useGame();
+  const { analytics } = useGame();
   const fights = useFightStart();
   const navigate = useNavigate();
   const { cossack, current } = useCossack();
   const fresh = useFresh();
   const [refusal, setRefusal] = useState<FightRefusal | null>(null);
-  // §23.2: the offer to sign in comes after the first finished battle of a guest.
-  const loadFirst = useCallback(async () => {
-    const user = await storage.account.current();
-
-    return user?.kind !== 'account' && (await storage.attempts.stats()).total === 1;
-  }, [storage]);
-  const [first] = useLoad(loadFirst);
   const won = attempt.result.outcome === 'win';
   const sets = attempt.result.exercises.flatMap((exercise) => exercise.sets);
   const done = sets.filter((set) => set.done);
@@ -159,7 +151,6 @@ function FightOutcome({ attempt, status }: { attempt: FightAttempt; status: Atte
             {fightResultTexts.history}
           </Link>
         </div>
-        {first.status === 'ready' && first.value && <SignInPrompt text={signInTexts.promptResult} />}
       </div>
     </KozakScreen>
   );

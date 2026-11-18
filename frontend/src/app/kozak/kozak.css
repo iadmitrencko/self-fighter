@@ -264,7 +264,7 @@
   color: var(--k-parchment);
 }
 
-/* A quiet rim: gold is left for the letter of the name and for the dot of a guest. */
+/* A quiet rim: gold is left for the letter of the name. */
 .player-menu__avatar {
   position: relative;
   display: grid;
@@ -297,27 +297,9 @@
   transform: rotate(180deg);
 }
 
-/* The icon of «Ще», which carries the dot as the avatar does. */
+/* The icon of «Ще». */
 .player-menu__mark {
-  position: relative;
   display: flex;
-}
-
-/* A guest has not signed in yet: a small gold dot at the corner, cut out of what it sits on. */
-.player-menu__dot {
-  position: absolute;
-  top: -0.0625rem;
-  right: -0.0625rem;
-  width: 0.5625rem;
-  height: 0.5625rem;
-  border-radius: 50%;
-  background: var(--k-gold);
-  box-shadow: 0 0 0 2px var(--k-bg);
-}
-
-.player-menu__mark .player-menu__dot {
-  top: -0.125rem;
-  right: -0.3125rem;
 }
 
 .player-menu__panel {
@@ -375,13 +357,6 @@
   list-style: none;
 }
 
-/* Signing in leads the menu of a guest, apart from the rest. */
-.player-menu__start {
-  margin-bottom: var(--space-2xs);
-  padding-bottom: var(--space-2xs);
-  border-bottom: 1px solid var(--k-line);
-}
-
 .player-menu__end {
   margin-top: var(--space-2xs);
   padding-top: var(--space-2xs);
@@ -415,25 +390,6 @@
 
 .player-menu__item[aria-current='page'] {
   color: var(--k-gold-light);
-}
-
-/* The main action of a guest: brighter than the rest, with the reason under it. */
-.player-menu__item--lead {
-  padding-block: var(--space-xs);
-  color: var(--k-parchment);
-  font-weight: 800;
-}
-
-.player-menu__text {
-  display: grid;
-  gap: 0.125rem;
-}
-
-.player-menu__hint {
-  color: var(--k-ash);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  white-space: normal;
 }
 
 /* Signing out keeps out of the way of the rest. */
@@ -1054,6 +1010,75 @@
   gap: var(--space-l);
   min-width: 0;
   padding: 1.25rem;
+}
+
+/* §23.1: the way in, which every screen of the game shows until the person signs in: the cossack of
+   a beginner beside why the game needs an account and the button of Google. */
+.k-sign-in .k-hero__body {
+  justify-content: center;
+}
+
+.k-sign-in__title {
+  color: var(--k-parchment);
+  font-family: var(--k-font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.k-sign-in__lead {
+  max-width: 34rem;
+  color: var(--k-ash);
+  font-size: var(--text-m);
+  line-height: 1.5;
+}
+
+.k-sign-in__privacy {
+  font-size: var(--text-s);
+}
+
+.k-sign-in__privacy a {
+  color: var(--k-gold-light);
+}
+
+/* Signing out and deleting the data say over the way in what they did. */
+.k-sign-in__notice {
+  margin-bottom: 1.25rem;
+  color: var(--k-parchment-dim);
+  font-size: var(--text-s);
+}
+
+/* §24.11: what the cossack still lacks stands right over his name and rank. */
+.k-hero__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.k-hero__hint {
+  color: var(--k-ash);
+  font-size: var(--text-s);
+  line-height: 1.5;
+}
+
+.k-hero__hint-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: var(--space-xs);
+  color: var(--k-gold);
+  vertical-align: -0.1875rem;
+}
+
+.k-hero__hint a {
+  color: var(--k-gold-light);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--k-gold-line);
+  text-underline-offset: 0.2em;
+}
+
+.k-hero__hint a:hover {
+  text-decoration-color: currentColor;
 }
 
 /* The name and the rank, with the days in a row beside them while they fit and under them where not. */
@@ -2346,13 +2371,6 @@
 .k-history-aside__note a {
   color: var(--k-gold-light);
   white-space: nowrap;
-}
-
-/* Beside the list the offer to sign in is as compact as the cards above it. */
-.k-history-aside .sign-in-prompt {
-  padding: 1.25rem;
-  font-size: var(--text-s);
-  line-height: 1.5;
 }
 
 @container k-history (min-width: 46rem) {
@@ -4520,15 +4538,9 @@ button.k-marker::before {
    Manrope. */
 
 .kozak .screen-head__title,
-.kozak .sign-in-prompt__title,
 .kozak .dialog__title {
   font-family: var(--k-font-display);
   font-weight: 700;
-}
-
-.kozak .sign-in-prompt__title {
-  font-size: 1.5rem;
-  line-height: 1.1;
 }
 
 /* As large as the title of a card of the game (k-card__title). */

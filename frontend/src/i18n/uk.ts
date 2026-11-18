@@ -17,6 +17,7 @@ export const storageMessages: Record<StorageErrorCode, string> = {
   server: 'Сервер зараз не відповідає. Спробуй ще раз за хвилину.',
   'rate-limited': 'Забагато дій поспіль. Зачекай кілька хвилин і спробуй ще раз.',
   rejected: 'Сервер не прийняв ці дані. Онови сторінку й спробуй ще раз.',
+  'signed-out': 'Вхід у гру завершився. Онови сторінку й увійди через Google ще раз.',
   'exercise-name-taken': validationMessages['exercise-name-taken'],
 };
 
@@ -35,19 +36,7 @@ export const counts = {
   rounds: (n: number) => plural(n, { one: '{n} раунд', few: '{n} раунди', many: '{n} раундів' }),
   exercises: (n: number) => plural(n, { one: '{n} вправа', few: '{n} вправи', many: '{n} вправ' }),
   workouts: (n: number) => plural(n, { one: '{n} тренування', few: '{n} тренування', many: '{n} тренувань' }),
-  customExercises: (n: number) =>
-    plural(n, { one: '{n} власна вправа', few: '{n} власні вправи', many: '{n} власних вправ' }),
 };
-
-// What the guest of the browser would bring to the account (§23.3): «3 тренування та 1 власна вправа».
-function guestData(attempts: number, exercises: number): string {
-  return [
-    attempts > 0 ? counts.workouts(attempts) : null,
-    exercises > 0 ? counts.customExercises(exercises) : null,
-  ]
-    .filter((part) => part !== null)
-    .join(' та ');
-}
 
 // A short message that floats over the screen and goes away by itself (app/toast.ts).
 export const toastTexts = {
@@ -101,8 +90,7 @@ export const historyTexts = {
     `${counts.rounds(rounds)} · ${counts.exercises(exercises)} · ${done}\u00a0з\u00a0${total} підходів`,
   emptyFiltered: 'За цим фільтром тренувань немає.',
   more: 'Показати ще',
-  note: "Історія прив'язана до цього браузера.",
-  accountNote: 'Історія відкривається на будь-якому пристрої після входу через Google.',
+  note: 'Історія відкривається на будь-якому пристрої після входу через Google.',
 };
 
 // §23: signing in with Google. The texts do not guess the gender of the person: «Вхід виконано», not «Ти ввійшов».
@@ -111,52 +99,33 @@ export const signInTexts = {
   button: 'Увійти через Google',
   embedded:
     'Схоже, сайт відкрито всередині іншого застосунку, а там Google може не дозволити вхід. Відкрий сайт у Safari чи Chrome: у меню застосунку обери «Відкрити в браузері».',
-  promptTitle: 'Історія на будь-якому пристрої',
-  promptHistory:
-    'Увійди через Google, і тренування, власні вправи й налаштування будуть доступні на будь-якому пристрої. Усе, що вже збережено тут, лишиться з тобою.',
-  promptResult:
-    'Перше тренування вже в історії. Щоб вона не залежала від цього браузера, увійди через Google.',
-  dismiss: 'Закрити пропозицію увійти',
+  // §23.1: the game needs an account, so every screen of it shows the way in until the person signs in.
+  title: 'Увійди, щоб грати',
+  lead: 'Козак, його слава й бої зберігаються в обліковому записі Google, тож гра відкривається на будь-якому пристрої.',
+  unavailable: 'Вхід зараз недоступний, тож грати не вийде. Спробуй трохи згодом.',
+  privacy: 'Які дані ми зберігаємо',
   // The toast of a sign-in that went well: its title, and what it gives under it.
   doneTitle: 'Вхід виконано',
-  doneText: 'Тренування, вправи й налаштування синхронізуються між пристроями.',
-  cancelled: 'Вхід скасовано. Без входу гра працює так само.',
+  doneText: 'Козак і його бої тепер відкриваються на будь-якому пристрої.',
+  cancelled: 'Вхід скасовано. Щоб грати, увійди через Google.',
   failed: 'Не вдалося увійти через Google. Спробуй ще раз трохи згодом.',
   close: 'Закрити',
-  joinTitle: 'Перенести дані цього браузера?',
-  joinText: (attempts: number, exercises: number) =>
-    `У цьому браузері є ${guestData(attempts, exercises)}, збережені без входу. Перенеси їх в обліковий запис, щоб усе було в одній історії: спроби не задублюються, вправи з однаковою назвою об'єднаються, а налаштування облікового запису залишаться. Якщо не переносити, ці дані лишаться тут і знову стануть доступні після виходу.`,
-  join: 'Перенести',
-  keepApart: 'Не переносити',
-  joined: 'Дані браузера перенесено в обліковий запис.',
 };
 
 export const accountTexts = {
   intro:
-    "Ти граєш як гість. Тренування, власні вправи й налаштування зберігаються на сервері та прив'язані до цього браузера: в іншому браузері чи після очищення його даних історія почнеться з нуля.",
-  accountIntro:
-    'Тренування, власні вправи й налаштування зберігаються в обліковому записі й відкриваються на будь-якому пристрої після входу через Google.',
-  nothing: 'Ще нічого не збережено.',
-  signInTitle: 'Вхід через Google',
-  signInText:
-    'Увійди, щоб бачити історію, власні вправи й налаштування на будь-якому пристрої. Усе, що вже збережено в цьому браузері, лишиться з тобою.',
+    'Козак, його бої, власні вправи й налаштування зберігаються в обліковому записі й відкриваються на будь-якому пристрої після входу через Google.',
   accountTitle: 'Обліковий запис Google',
   signOut: 'Вийти',
   signOutTitle: 'Вийти з облікового запису?',
   signOutUnsent: (count: number) =>
     `${counts.workouts(count)} ще не надіслано на сервер. Вони зачекають у цьому браузері й надішлються, коли ти знову ввійдеш тут.`,
   signedOut: 'Вихід виконано: дані облікового запису в цьому браузері більше не видно.',
-  keptTitle: 'Дані без входу',
-  keptText: (attempts: number, exercises: number) =>
-    `У цьому браузері є ${guestData(attempts, exercises)}, збережені до входу. Їх можна перенести в обліковий запис, а інакше вони знову стануть доступні після виходу.`,
-  join: 'Перенести в обліковий запис',
   deleteTitle: 'Видалити дані',
-  deleteText: 'Історія, власні вправи й налаштування зникнуть назавжди.',
-  accountDeleteText: 'Історія, власні вправи, налаштування й сам обліковий запис зникнуть назавжди.',
+  deleteText: 'Історія, власні вправи, налаштування й сам обліковий запис зникнуть назавжди.',
   delete: 'Видалити всі дані',
   deleteQuestion: 'Видалити всі дані?',
-  deleteWarning: 'Історію, власні вправи й налаштування не вдасться відновити.',
-  accountDeleteWarning: 'Обліковий запис, історію, власні вправи й налаштування не вдасться відновити.',
+  deleteWarning: 'Обліковий запис, історію, власні вправи й налаштування не вдасться відновити.',
   deleteConfirm: 'Видалити назавжди',
-  deleted: 'Дані видалено.',
+  deleted: 'Обліковий запис і всі його дані видалено.',
 };

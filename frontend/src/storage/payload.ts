@@ -6,17 +6,15 @@ import type {
   AttemptPage,
   CurrentUser,
   CustomExercise,
-  KeptGuest,
   Settings,
 } from './contract';
 import { StorageError } from './errors';
 
 // The shapes the server sends (backend/src/*/Application/*View.php). Any other shape is a server failure.
 
-// Who uses this browser: its user and the guest it keeps beside a signed-in account (§23.3).
+// The account signed in on this browser, or none (§23.1).
 export interface BrowserState {
   readonly user: CurrentUser | null;
-  readonly guest: KeptGuest | null;
 }
 
 export function parseMe(body: unknown): BrowserState {
@@ -24,10 +22,7 @@ export function parseMe(body: unknown): BrowserState {
     throw unexpected();
   }
 
-  return {
-    user: body.user === null ? null : parseUser(body.user),
-    guest: body.guest === null || body.guest === undefined ? null : parseKeptGuest(body.guest),
-  };
+  return { user: body.user === null ? null : parseUser(body.user) };
 }
 
 export function parseExercises(body: unknown): CustomExercise[] {
@@ -215,32 +210,18 @@ function parseTally(value: unknown): Tally {
 }
 
 function parseUser(value: unknown): CurrentUser {
-  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.createdAt !== 'string' || !isOptionalText(value.nickname)) {
-    throw unexpected();
-  }
-  const { id, createdAt, nickname } = value;
-
-  if (value.kind === 'guest') {
-    return { id, kind: 'guest', createdAt, nickname };
-  }
-  if (value.kind !== 'account' || !isOptionalText(value.name) || !isOptionalText(value.email)) {
-    throw unexpected();
-  }
-
-  return { id, kind: 'account', createdAt, nickname, name: value.name, email: value.email };
-}
-
-function parseKeptGuest(value: unknown): KeptGuest {
   if (
     !isRecord(value) ||
     typeof value.id !== 'string' ||
-    !isCount(value.attempts) ||
-    !isCount(value.exercises)
+    typeof value.createdAt !== 'string' ||
+    !isOptionalText(value.nickname) ||
+    !isOptionalText(value.name) ||
+    !isOptionalText(value.email)
   ) {
     throw unexpected();
   }
 
-  return { id: value.id, attempts: value.attempts, exercises: value.exercises };
+  return { id: value.id, createdAt: value.createdAt, nickname: value.nickname, name: value.name, email: value.email };
 }
 
 function isOptionalText(value: unknown): value is string | null {

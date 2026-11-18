@@ -1,21 +1,15 @@
-import { createContext, use, useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { signInTexts, storageMessages } from '../../i18n/uk';
-import type { StorageErrorCode } from '../../storage/errors';
-import { useDataVersion } from '../data';
+import { signInTexts } from '../../i18n/uk';
 import { useGame } from '../game';
 import {
   isEmbeddedBrowser,
-  isWorthJoining,
   readSignInOutcome,
   signInPath,
   withoutSignInOutcome,
   type SignInOutcome as Outcome,
 } from '../signIn';
 import { showToast } from '../toast';
-import { errorCode, useLoad } from '../useLoad';
-import { ConfirmDialog } from './Dialog';
-import { Icon } from './Icon';
 
 // The server offers signing in with Google only when it has a client of Google Cloud (§23.2).
 export function useCanSignIn(): boolean {
@@ -47,83 +41,26 @@ export function SignInWithGoogle() {
   );
 }
 
-interface Prompt {
-  readonly dismissed: boolean;
-  readonly dismiss: () => void;
-}
-
-const PromptContext = createContext<Prompt>({ dismissed: false, dismiss: () => undefined });
-
-// A closed offer stays closed while the game is open, so it does not get in the way (§23.2).
-export function SignInPromptProvider({ children }: { children: ReactNode }) {
-  const [dismissed, setDismissed] = useState(false);
-  const prompt = useMemo(() => ({ dismissed, dismiss: () => setDismissed(true) }), [dismissed]);
-
-  return <PromptContext value={prompt}>{children}</PromptContext>;
-}
-
-// §23.2: the offer to sign in, after the first workout and on the screen of the history in the game.
-export function SignInPrompt({ text }: { text: string }) {
-  const { dismissed, dismiss } = use(PromptContext);
-  const canSignIn = useCanSignIn();
-  const titleId = useId();
-
-  if (dismissed || !canSignIn) {
-    return null;
-  }
-
-  return (
-    <section className="card sign-in-prompt" aria-labelledby={titleId}>
-      <div className="sign-in-prompt__head">
-        <h2 id={titleId} className="sign-in-prompt__title">
-          {signInTexts.promptTitle}
-        </h2>
-        <button type="button" className="sign-in-prompt__close" aria-label={signInTexts.dismiss} onClick={dismiss}>
-          <Icon name="close" />
-        </button>
-      </div>
-      <p>{text}</p>
-      <SignInWithGoogle />
-    </section>
-  );
-}
-
 /**
- * §23.2–§23.3: Google sends the browser back to the screen it left, on the site or in the game, and
- * the address tells how the sign-in went. A guest of this browser with data waits for the person to
- * decide whether to join it. A sign-in that went well says so in a toast that goes away by itself;
- * one that was cancelled or failed stays above the screen until it is closed.
+ * §23.2: Google sends the browser back to the screen of the game it left, and the address tells how
+ * the sign-in went. One that went well says so in a toast that goes away by itself; one that was
+ * cancelled or failed stays above the screen until it is closed.
  */
 export function SignInOutcome() {
-  const { storage } = useGame();
-  const { changed } = useDataVersion();
   const location = useLocation();
   const navigate = useNavigate();
   // Read once: the address forgets the outcome at once, so a reload does not tell it again.
   const [outcome] = useState(() => readSignInOutcome(location.search));
-  const forgotten = useRef(false);
-  const loadGuest = useCallback(
-    () => (outcome === 'done' ? storage.account.keptGuest() : Promise.resolve(null)),
-    [storage, outcome],
-  );
-  const [guest] = useLoad(loadGuest);
   const [closed, setClosed] = useState(false);
-  const [joined, setJoined] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<StorageErrorCode | null>(null);
-  // The data of the browser waits for the person to decide whether to join it.
-  const asking = outcome === 'done' && guest.status === 'ready' && isWorthJoining(guest.value) && !joined && failure === null;
-  // Once the data of the browser is joined or there is nothing to join. Leaving it apart is an answer
-  // of its own, so no toast follows it.
-  const succeeded = outcome === 'done' && guest.status !== 'loading' && !asking && failure === null && !closed;
+  const forgotten = useRef(false);
   const toasted = useRef(false);
 
   useEffect(() => {
-    if (succeeded && !toasted.current) {
+    if (outcome === 'done' && !toasted.current) {
       toasted.current = true;
-      showToast(signInTexts.doneTitle, joined ? signInTexts.joined : signInTexts.doneText);
+      showToast(signInTexts.doneTitle, signInTexts.doneText);
     }
-  }, [succeeded, joined]);
+  }, [outcome]);
 
   useEffect(() => {
     if (outcome !== null && !forgotten.current) {
@@ -135,47 +72,10 @@ export function SignInOutcome() {
     }
   }, [outcome, navigate, location]);
 
-  async function join() {
-    setBusy(true);
-
-    try {
-      await storage.account.joinGuest();
-      setJoined(true);
-      changed();
-    } catch (error) {
-      setFailure(errorCode(error));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (outcome === null || closed || (outcome === 'done' && guest.status === 'loading')) {
+  if (outcome === null || outcome === 'done' || closed) {
     return null;
   }
-
-  if (asking) {
-    const { attempts, exercises } = guest.value;
-
-    return (
-      <ConfirmDialog
-        title={signInTexts.joinTitle}
-        text={signInTexts.joinText(attempts, exercises)}
-        confirm={signInTexts.join}
-        cancel={signInTexts.keepApart}
-        tone="primary"
-        busy={busy}
-        onConfirm={() => void join()}
-        onCancel={() => setClosed(true)}
-      />
-    );
-  }
-
-  // A sign-in that went well has its toast; one cancelled or failed stays here until it is closed.
-  const notice = failure !== null ? { tone: 'error', text: storageMessages[failure] } : outcome === 'done' ? null : OUTCOME_NOTICES[outcome];
-
-  if (notice === null) {
-    return null;
-  }
+  const notice = OUTCOME_NOTICES[outcome];
 
   return (
     <div className="app-notice">

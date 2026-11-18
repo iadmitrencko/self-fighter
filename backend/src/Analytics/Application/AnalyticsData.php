@@ -9,8 +9,7 @@ use App\Shared\Application\UserDataHolder;
 use App\Shared\Domain\UserId;
 
 /**
- * The part of the deletion and the joining of a guest to an account that the events of a user
- * make up (§15.5, §23.3).
+ * The part of the deletion of an account that its events make up (§15.5).
  */
 final readonly class AnalyticsData implements UserDataHolder
 {
@@ -22,17 +21,5 @@ final readonly class AnalyticsData implements UserDataHolder
     public function erase(UserId $user): void
     {
         $this->events->forget($user);
-    }
-
-    // Nobody misses an event, so they never make a guest worth joining.
-    public function summary(UserId $user): array
-    {
-        return [];
-    }
-
-    // The guest and the account are one player, and §19 counts them as one.
-    public function transfer(UserId $guest, UserId $account): void
-    {
-        $this->events->transfer($guest, $account);
     }
 }

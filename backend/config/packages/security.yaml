@@ -14,8 +14,8 @@ security:
 
     # Note: Only the *first* matching rule is applied
     access_control:
-        # Anyone may ask who they are, and the first write creates a guest.
-        - { path: ^/api/v1/me$, methods: [GET, POST], roles: PUBLIC_ACCESS }
-        # An event of a visitor who has saved nothing yet stays without a user and creates none.
+        # Anyone may ask who they are: a browser without an account gets no user (§23.1).
+        - { path: ^/api/v1/me$, methods: [GET], roles: PUBLIC_ACCESS }
+        # An event of a visitor who has not signed in stays without a user.
         - { path: ^/api/v1/events$, methods: [POST], roles: PUBLIC_ACCESS }
         - { path: ^/api/, roles: ROLE_USER }

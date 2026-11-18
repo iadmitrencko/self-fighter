@@ -13,12 +13,4 @@ interface UserRepository
     public function find(UserId $id): ?User;
 
     public function remove(UserId $id): void;
-
-    /**
-     * Guests no browser leads to any more: nobody can open their data again. An account stays,
-     * since it can sign in on another browser.
-     *
-     * @return list<UserId>
-     */
-    public function findUnreachable(): array;
 }

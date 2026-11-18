@@ -27,10 +27,10 @@ final readonly class DoctrineDeviceRepository implements DeviceRepository
         return $this->entityManager->getRepository(Device::class)->findOneBy(['tokenHash' => $token->hash()]);
     }
 
-    public function findUsedBy(UserId $user): array
+    public function findOwnedBy(UserId $user): array
     {
         return $this->entityManager
-            ->createQuery('SELECT d FROM App\Account\Domain\Device d WHERE d.owner = :user OR d.guest = :user ORDER BY d.createdAt, d.id')
+            ->createQuery('SELECT d FROM App\Account\Domain\Device d WHERE d.owner = :user ORDER BY d.createdAt, d.id')
             ->setParameter('user', $user, UserIdType::NAME)
             ->getResult();
     }

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Account\Infrastructure\Doctrine;
 
 use App\Account\Application\DeleteUser;
-use App\Account\Application\SignUpGuest;
 use App\Shared\Application\Refusal;
 use App\Shared\Application\RefusalReason;
+use App\Tests\Account\NewAccount;
 use App\Tests\Workout\Documents;
 use App\Workout\Application\SaveAttempt;
 use App\Workout\Domain\AttemptId;
@@ -20,7 +20,7 @@ final class DoctrineUserTransactionTest extends KernelTestCase
     // that arrives after the data was deleted in another tab.
     public function testWriteOfUserDeletedMeanwhileLeavesNothing(): void
     {
-        $user = $this->service(SignUpGuest::class)()->user->id();
+        $user = NewAccount::signUp(self::getContainer())->user;
         $this->service(DeleteUser::class)($user);
         $attempt = Documents::fight();
 

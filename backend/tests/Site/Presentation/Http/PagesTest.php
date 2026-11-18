@@ -124,7 +124,7 @@ final class PagesTest extends WebTestCase
                 (string) $button->attr('class'),
             ]),
         );
-        self::assertStringContainsString('ідентифікатором твого користувача, гостя чи облікового запису', $crawler->filter('#consent')->text());
+        self::assertStringContainsString('ідентифікатором твого облікового запису', $crawler->filter('#consent')->text());
     }
 
     // §24.1: the pages about the game lead into it, and inside the game the header is the status of the

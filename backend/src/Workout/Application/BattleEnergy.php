@@ -10,7 +10,6 @@ use App\Workout\Domain\Attempt;
 use App\Workout\Domain\AttemptRepository;
 use App\Workout\Domain\Battle;
 use App\Workout\Domain\EnergyReplay;
-use App\Workout\Domain\GamePool;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -63,17 +62,6 @@ final readonly class BattleEnergy
         $this->keep($later, \array_slice($with->fullAt, 1));
 
         return $attempt->withEnergyFullAt($with->fullAt[0] ?? throw new \LogicException('The replay lost the new battle.'));
-    }
-
-    // §23.3: the battles of a guest join those of the account, so the account counts its energy anew.
-    public function recount(UserId $owner): void
-    {
-        foreach (GamePool::cases() as $pool) {
-            $battles = $this->attempts->battles($owner, $pool);
-            $starts = array_map(static fn (Battle $battle): \DateTimeImmutable => $battle->startedAt, $battles);
-
-            $this->keep($battles, EnergyReplay::of($this->rules->of($pool), null, $starts)->fullAt);
-        }
     }
 
     /**

@@ -9,7 +9,7 @@ use App\Account\Domain\DeviceRepository;
 use Psr\Clock\ClockInterface;
 
 /**
- * Notes that the browser is still in use, so neither its cookie nor its guest expires (§15.2).
+ * Notes that the browser is still in use, so its cookie does not expire (§15.2).
  */
 final readonly class KeepDeviceAlive
 {

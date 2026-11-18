@@ -10,6 +10,58 @@ export async function expectAccessible(page: Page): Promise<void> {
   ).toEqual([]);
 }
 
+export interface GoogleAccount {
+  readonly sub: string;
+  readonly name: string;
+  readonly email: string;
+}
+
+// Every test signs in with an account of its own: the tests of the three devices run at once. An
+// empty name is a person Google tells no name of, whose cossack has none yet (§24.11).
+export function googleAccount(name = 'Олена Коваль'): GoogleAccount {
+  const sub = `e2e-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  return { sub, name, email: `${sub}@example.com` };
+}
+
+interface SignInOptions {
+  // The person changes their mind on the page of Google.
+  readonly cancel?: boolean;
+  // The toast of a sign-in that went well fades in and out over the screen, and axe takes a toast
+  // halfway faded for one without contrast, so the tests close it at once unless they look at it.
+  readonly keepToast?: boolean;
+}
+
+// §23.1: the game needs an account. Signs in from the screen on display and waits for the way back
+// from the fake Google (e2e/fake-google.mjs) to the same screen.
+export async function signIn(page: Page, account = googleAccount(), { cancel = false, keepToast = false }: SignInOptions = {}): Promise<void> {
+  const screen = new URL(page.url()).pathname;
+
+  await page.getByRole('link', { name: 'Увійти через Google' }).first().click();
+  await expect(page.getByRole('heading', { name: 'Choose an account' })).toBeVisible();
+  await page.getByLabel('Subject').fill(account.sub);
+  await page.getByLabel('Name').fill(account.name);
+  await page.getByLabel('Email').fill(account.email);
+  await page.getByRole('button', { name: cancel ? 'Cancel' : 'Continue' }).click();
+
+  // The screen comes back without the outcome in its address, so a reload does not tell it again.
+  await expect(page).toHaveURL(new RegExp(`${screen}$`));
+
+  if (!cancel && !keepToast) {
+    const toast = page.getByRole('status').filter({ hasText: 'Вхід виконано' });
+    await toast.getByRole('button', { name: 'Закрити' }).click();
+    await expect(toast).toHaveCount(0);
+  }
+}
+
+// Opens a screen of the game as a new person who signs in there, as the game asks (§23.1).
+export async function openSignedIn(page: Page, path: string, account = googleAccount()): Promise<GoogleAccount> {
+  await page.goto(path);
+  await signIn(page, account);
+
+  return account;
+}
+
 // §6: says every set of the fight on the screen is done and ends it.
 export async function finishSets(page: Page): Promise<void> {
   const battle = page.getByRole('dialog', { name: 'Бій' });

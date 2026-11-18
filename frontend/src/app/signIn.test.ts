@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isEmbeddedBrowser, isWorthJoining, readSignInOutcome, signInPath, withoutSignInOutcome } from './signIn';
+import { isEmbeddedBrowser, readSignInOutcome, signInPath, withoutSignInOutcome } from './signIn';
 
 describe('signing in with Google', () => {
   // The server brings the browser back to the screen it left.
@@ -21,14 +21,6 @@ describe('signing in with Google', () => {
     expect(readSignInOutcome('')).toBeNull();
     expect(withoutSignInOutcome('?sign-in=done')).toBe('');
     expect(withoutSignInOutcome('?mode=ladder&sign-in=failed')).toBe('?mode=ladder');
-  });
-
-  // §23.3: a guest with nothing to miss is not worth a question.
-  it('asks about a guest with attempts or custom exercises only', () => {
-    expect(isWorthJoining({ id: 'a', attempts: 1, exercises: 0 })).toBe(true);
-    expect(isWorthJoining({ id: 'a', attempts: 0, exercises: 2 })).toBe(true);
-    expect(isWorthJoining({ id: 'a', attempts: 0, exercises: 0 })).toBe(false);
-    expect(isWorthJoining(null)).toBe(false);
   });
 
   // §23.2: Google refuses to sign in inside the browsers of other apps.

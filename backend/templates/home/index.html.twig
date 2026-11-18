@@ -54,7 +54,7 @@
                 </div>
                 <p class="landing-hero__note">
                     <svg class="landing-hero__note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-                    {{- 'home.no_signup'|trans -}}
+                    {{- 'home.sign_in_note'|trans -}}
                 </p>
             </div>
             <div class="landing-hero__figure" aria-hidden="true">{{ include('home/_cossack.html.twig', {look: 'hetman', sizes: '(min-width: 64rem) 23rem, 17rem', eager: true}) }}</div>
@@ -188,7 +188,7 @@
         <div class="landing-cta">
             <h2 class="landing-cta__title" id="cta-title">{{ 'home.cta.title'|trans }}</h2>
             <a class="button button--primary button--large" href="{{ path('kozak_fight') }}">{{ 'site.start'|trans }}</a>
-            <p class="landing-cta__note">{{ 'home.no_signup'|trans }}</p>
+            <p class="landing-cta__note">{{ 'home.sign_in_note'|trans }}</p>
         </div>
     </section>
 {% endblock %}

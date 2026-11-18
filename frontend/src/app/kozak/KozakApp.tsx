@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { NavLink, Outlet, Route, Routes } from 'react-router';
 import { kozakTexts } from '../../i18n/kozak';
 import { ScrollToTop, SiteLinks } from '../components/routing';
-import { SignInOutcome, SignInPromptProvider } from '../components/SignIn';
+import { SignInOutcome } from '../components/SignIn';
 import { DataVersionContext } from '../data';
 import { GameProvider, type Game } from '../game';
 import { CossackScreen } from './CossackScreen';
@@ -17,6 +17,7 @@ import { KOZAK_BASE, kozakPaths } from './paths';
 import { KozakIcon, type KozakIconName } from './parts';
 import { RanksScreen } from './RanksScreen';
 import { SettingsScreen } from './SettingsScreen';
+import { SignedIn } from './SignInScreen';
 import { CossackProvider } from './record';
 
 /*
@@ -31,6 +32,7 @@ const PrepScreen = lazy(() => import('./journey/PrepScreen').then((module) => ({
 const StageScreen = lazy(() => import('./journey/StageScreen').then((module) => ({ default: module.StageScreen })));
 
 // §24: the section «Гра» under /game, the cossack game of the site and the only place of its workouts.
+// §23.1: it needs an account, so a browser nobody signed in on sees the way in on every screen.
 export function KozakApp({ game }: { game: Game }) {
   const [version, setVersion] = useState(0);
   const data = useMemo(() => ({ version, changed: () => setVersion((value) => value + 1) }), [version]);
@@ -38,16 +40,16 @@ export function KozakApp({ game }: { game: Game }) {
   return (
     <GameProvider game={game}>
       <DataVersionContext value={data}>
-        <SignInPromptProvider>
-          <ScrollToTop />
-          <SiteLinks base={KOZAK_BASE} />
-          {/* §23.2: Google brings the browser back to the screen the sign-in started from. */}
-          <SignInOutcome />
+        <ScrollToTop />
+        <SiteLinks base={KOZAK_BASE} />
+        {/* §23.2: Google brings the browser back to the screen the sign-in started from. */}
+        <SignInOutcome />
+        <SignedIn>
           <CossackProvider>
             <GameStatus />
             <KozakRoutes />
           </CossackProvider>
-        </SignInPromptProvider>
+        </SignedIn>
       </DataVersionContext>
     </GameProvider>
   );

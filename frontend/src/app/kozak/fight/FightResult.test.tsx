@@ -85,44 +85,15 @@ describe('the result of a fight', () => {
   // §15.4: a fight that waits for the network says so.
   it('says when a fight still waits for the server', async () => {
     const server = createFakeServer();
+    server.signIn({ sub: 'tester' });
     const storage = createApiStorage({ fetch: server.fetch, buffer: createBrowserBuffer(null) });
-    // The game knows who plays before the connection drops, so it opens without the network.
-    await storage.account.current();
+    // The game knows the account and its record before the connection drops, so it opens without the network.
+    await storage.attempts.game('UTC');
     server.online = false;
     const fight = gameFight('win', '2026-10-30T09:50:00.000Z', '2026-10-30T11:50:00.000Z');
     await storage.attempts.save(fight);
     renderKozak(`/fight/result/${fight.id}`, { storage });
 
     expect(await screen.findByText("Спроба очікує надсилання: вона піде на сервер, щойно з'явиться зв'язок.")).toBeTruthy();
-  });
-});
-
-// §23.2: after the first finished fight a guest is offered to sign in.
-describe('the offer to sign in', () => {
-  it('comes after the first fight only', async () => {
-    const first = gameFight('win', '2026-10-30T09:00:00.000Z', '2026-10-30T11:00:00.000Z');
-    const storage = await saved(first);
-    const view = renderKozak(`/fight/result/${first.id}`, { storage });
-
-    expect(await screen.findByText(/^Перше тренування вже в історії/)).toBeTruthy();
-
-    view.unmount();
-    const second = gameFight('loss', '2026-10-30T09:30:00.000Z', '2026-10-30T13:00:00.000Z');
-    await storage.attempts.save(second);
-    renderKozak(`/fight/result/${second.id}`, { storage });
-
-    expect(await screen.findByRole('heading', { level: 1, name: 'Бій програно' })).toBeTruthy();
-    expect(screen.queryByText(/^Перше тренування вже в історії/)).toBeNull();
-  });
-
-  it('is not made to an account', async () => {
-    const storage = createMemoryStorage();
-    storage.signIn({ sub: '1001' });
-    const fight = gameFight('win', '2026-10-30T09:00:00.000Z', '2026-10-30T11:00:00.000Z');
-    await storage.attempts.save(fight);
-    renderKozak(`/fight/result/${fight.id}`, { storage });
-
-    expect(await screen.findByRole('heading', { level: 1, name: 'Бій виграно' })).toBeTruthy();
-    expect(screen.queryByText(/^Перше тренування вже в історії/)).toBeNull();
   });
 });

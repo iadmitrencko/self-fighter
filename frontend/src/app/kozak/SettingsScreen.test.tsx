@@ -1,11 +1,11 @@
 import { screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StorageError } from '../../storage/errors';
-import { createMemoryStorage, type MemoryStorage } from '../../storage/memory';
+import { createMemoryStorage } from '../../storage/memory';
 import { gameFight } from '../../storage/testing/attempts';
 import { renderKozak } from '../testing/render';
 
-async function guestWithAttempt() {
+async function accountWithAttempt() {
   const storage = createMemoryStorage();
   await storage.attempts.save(gameFight('win', '2026-10-29T10:00:00.000Z', '2026-10-29T12:00:00.000Z'));
 
@@ -18,30 +18,37 @@ afterEach(() => {
 
 // §24.1: the data of the player is a section of the game.
 describe('the settings of the game', () => {
-  it('has nothing to offer before the first save', async () => {
+  it('open with the name, the account and deleting the data', async () => {
     renderKozak('/settings');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Налаштування' })).toBeTruthy();
     expect(document.title).toBe('Налаштування — Self-Fighter');
-    expect(await screen.findByText('Ще нічого не збережено.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Видалити всі дані' })).toBeNull();
+    expect((await screen.findAllByRole('heading', { level: 2 })).map(({ textContent }) => textContent)).toEqual([
+      'Ім’я козака',
+      'Обліковий запис Google',
+      'Видалити дані',
+    ]);
+    // §23.1: every player has signed in, so nothing offers it here.
+    expect(screen.queryByRole('link', { name: 'Увійти через Google' })).toBeNull();
   });
 
   // §15.5: the data stays on the server; the settings only delete it.
-  it('offers no download of the data', async () => {
-    renderKozak('/settings', { storage: await guestWithAttempt() });
+  it('offer no download of the data', async () => {
+    renderKozak('/settings', { storage: await accountWithAttempt() });
 
     expect(await screen.findByRole('button', { name: 'Видалити всі дані' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /^Завантажити/ })).toBeNull();
   });
 
-  // §15.5: deleting is final, so it asks first.
-  it('deletes the data after a confirmation', async () => {
-    const storage = await guestWithAttempt();
+  // §15.5: deleting is final, so it asks first; the account goes with its data, and the way in says so.
+  it('delete the account with its data after a confirmation', async () => {
+    const storage = await accountWithAttempt();
     const { user } = renderKozak('/settings', { storage });
 
-    await user.click(await screen.findByRole('button', { name: 'Видалити всі дані' }));
+    expect(await screen.findByText('Історія, власні вправи, налаштування й сам обліковий запис зникнуть назавжди.')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Видалити всі дані' }));
     const dialog = screen.getByRole('dialog', { name: 'Видалити всі дані?' });
+    expect(within(dialog).getByText('Обліковий запис, історію, власні вправи й налаштування не вдасться відновити.')).toBeTruthy();
     await user.click(within(dialog).getByRole('button', { name: 'Скасувати' }));
 
     expect(await storage.account.current()).not.toBeNull();
@@ -49,15 +56,15 @@ describe('the settings of the game', () => {
     await user.click(screen.getByRole('button', { name: 'Видалити всі дані' }));
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Видалити назавжди' }));
 
-    expect(await screen.findByText('Дані видалено.')).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Увійди, щоб грати' })).toBeTruthy();
+    expect(screen.getByText('Обліковий запис і всі його дані видалено.')).toBeTruthy();
     expect(await storage.account.current()).toBeNull();
-    expect((await storage.attempts.stats()).total).toBe(0);
   });
 });
 
-// §24.11: the player names the cossack, a guest too, and an empty field takes the name away.
+// §24.11: the player names the cossack, and an empty field takes the name away.
 describe('the name of the cossack', () => {
-  it('is given by a guest, the first save making the guest', async () => {
+  it('is given and taken away', async () => {
     const storage = createMemoryStorage();
     const { user } = renderKozak('/settings', { storage });
 
@@ -68,7 +75,7 @@ describe('the name of the cossack', () => {
     await user.click(screen.getByRole('button', { name: 'Зберегти' }));
 
     expect(await screen.findByText('Ім’я козака збережено.')).toBeTruthy();
-    expect(await storage.account.current()).toMatchObject({ kind: 'guest', nickname: 'Іван Сірко' });
+    expect(await storage.account.current()).toMatchObject({ nickname: 'Іван Сірко' });
 
     await user.clear(field);
     await user.click(screen.getByRole('button', { name: 'Зберегти' }));
@@ -77,8 +84,8 @@ describe('the name of the cossack', () => {
     expect(await storage.account.current()).toMatchObject({ nickname: null });
   });
 
-  // Without a name of its own the cossack of an account carries the name Google gave.
-  it('says an account falls back to the name of Google', async () => {
+  // Without a name of its own the cossack carries the name Google gave.
+  it('says the cossack falls back to the name of Google', async () => {
     const storage = createMemoryStorage();
     storage.signIn({ sub: '1001', name: 'Олена' });
     renderKozak('/settings', { storage });
@@ -98,47 +105,8 @@ describe('the name of the cossack', () => {
   });
 });
 
-// An account that also lives on another device, opened here beside a guest with one attempt.
-async function accountWithKeptGuest(): Promise<MemoryStorage> {
-  const storage = createMemoryStorage();
-  storage.signIn({ sub: '1001' });
-  await storage.attempts.save(gameFight('loss', '2026-10-28T10:00:00.000Z', '2026-10-28T12:00:00.000Z'));
-  await storage.account.signOut();
-  await storage.attempts.save(gameFight('win', '2026-10-29T10:00:00.000Z', '2026-10-29T12:00:00.000Z'));
-  storage.signIn({ sub: '1001' });
-
-  return storage;
-}
-
-describe('signing in and out in the settings', () => {
-  // §23.2: the button of Google brings the browser back to this screen of the game.
-  it('offers a guest to sign in with Google', async () => {
-    renderKozak('/settings');
-
-    const button = await screen.findByRole('link', { name: 'Увійти через Google' });
-    expect(button.getAttribute('href')).toBe('/connect/google?to=%2Fgame%2Fsettings');
-    expect(screen.queryByText(/Відкрий сайт у Safari чи Chrome/)).toBeNull();
-  });
-
-  // A server without a client of Google offers no sign-in that would fail.
-  it('hides the button when the server offers no sign-in', async () => {
-    renderKozak('/settings', { signIn: [] });
-
-    expect(await screen.findByText('Ще нічого не збережено.')).toBeTruthy();
-    expect(screen.queryByRole('link', { name: 'Увійти через Google' })).toBeNull();
-  });
-
-  // §23.2: inside the browser of another app Google may refuse, so the game says where to go.
-  it('explains how to leave the browser of another app', async () => {
-    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
-      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 302.0.0.23.114',
-    );
-    renderKozak('/settings');
-
-    expect(await screen.findByText(/Відкрий сайт у Safari чи Chrome/)).toBeTruthy();
-  });
-
-  // §23.1–§23.2: the screen names the account, and signing out hides its data in this browser.
+describe('signing out in the settings', () => {
+  // §23.1–§23.2: the screen names the account, and signing out leads to the way in.
   it('shows whose account is open and signs out', async () => {
     const storage = createMemoryStorage();
     storage.signIn({ sub: '1001', name: 'Олена', email: 'olena@example.com' });
@@ -146,13 +114,12 @@ describe('signing in and out in the settings', () => {
 
     expect(await screen.findByText('Олена')).toBeTruthy();
     expect(screen.getByText('olena@example.com')).toBeTruthy();
-    expect(screen.queryByRole('link', { name: 'Увійти через Google' })).toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Вийти' }));
 
-    expect(await screen.findByText(/^Вихід виконано/)).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Увійди, щоб грати' })).toBeTruthy();
+    expect(screen.getByText(/^Вихід виконано/)).toBeTruthy();
     expect(await storage.account.current()).toBeNull();
-    expect(await screen.findByRole('link', { name: 'Увійти через Google' })).toBeTruthy();
   });
 
   // §15.4: before signing out the game names the attempts that have not reached the server.
@@ -167,58 +134,12 @@ describe('signing in and out in the settings', () => {
     expect(within(dialog).getByText(/^2 тренування ще не надіслано/)).toBeTruthy();
     await user.click(within(dialog).getByRole('button', { name: 'Скасувати' }));
 
-    expect(await storage.account.current()).toMatchObject({ kind: 'account' });
+    expect(await storage.account.current()).not.toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Вийти' }));
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Вийти' }));
 
     expect(await screen.findByText(/^Вихід виконано/)).toBeTruthy();
     expect(await storage.account.current()).toBeNull();
-  });
-
-  // §23.3: what the browser saved without signing in joins the account on request.
-  it('takes the data of the browser into the account', async () => {
-    const storage = await accountWithKeptGuest();
-    const { user } = renderKozak('/settings', { storage });
-
-    const card = await screen.findByRole('region', { name: 'Дані без входу' });
-    expect(within(card).getByText(/^У цьому браузері є 1 тренування, збережені до входу/)).toBeTruthy();
-
-    await user.click(within(card).getByRole('button', { name: 'Перенести в обліковий запис' }));
-
-    expect(await screen.findByText('Дані браузера перенесено в обліковий запис.')).toBeTruthy();
-    expect(screen.queryByRole('region', { name: 'Дані без входу' })).toBeNull();
-    expect((await storage.attempts.stats()).total).toBe(2);
-  });
-
-  // §17.2: coming back from Google, a failure to join is explained, and the card still offers it.
-  it('explains why the data was not joined after coming back from Google', async () => {
-    const storage = await accountWithKeptGuest();
-    const offline = {
-      ...storage,
-      account: { ...storage.account, joinGuest: () => Promise.reject(new StorageError('offline')) },
-    };
-    const { user } = renderKozak('/settings?sign-in=done', { storage: offline });
-
-    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Перенести' }));
-
-    expect(await screen.findByText("Немає зв'язку із сервером. Перевір інтернет і спробуй ще раз.")).toBeTruthy();
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(screen.getByRole('region', { name: 'Дані без входу' })).toBeTruthy();
-  });
-
-  // §15.5: deleting the data of an account deletes the account as well.
-  it('says that the account goes with its data', async () => {
-    const storage = createMemoryStorage();
-    storage.signIn({ sub: '1001' });
-    const { user } = renderKozak('/settings', { storage });
-
-    expect(await screen.findByText('Історія, власні вправи, налаштування й сам обліковий запис зникнуть назавжди.')).toBeTruthy();
-
-    await user.click(screen.getByRole('button', { name: 'Видалити всі дані' }));
-
-    expect(
-      within(screen.getByRole('dialog')).getByText('Обліковий запис, історію, власні вправи й налаштування не вдасться відновити.'),
-    ).toBeTruthy();
   });
 });

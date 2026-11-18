@@ -95,8 +95,7 @@ function Hall({
 
       return;
     }
-    // The next fight starts from this one. The settings make a new player a guest, so the event
-    // that follows them names the user (§19); a failure is not worth stopping a fight for.
+    // The next fight starts from this one (§6); a failure is not worth stopping a fight for.
     void storage.settings
       .save(config)
       .catch(() => undefined)

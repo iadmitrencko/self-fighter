@@ -41,6 +41,11 @@ function week(title = 'Останні 7 днів'): (string | null)[] {
     .map((day) => day.getAttribute('aria-label'));
 }
 
+// §24.11: the hint over the rank of what the cossack lacks, or null without one.
+function hint(): string | null {
+  return screen.queryByText(/./, { selector: '.k-hero__hint' })?.textContent ?? null;
+}
+
 // The screen of the cossack without the header of the game around it.
 function cossackScreen(): HTMLElement {
   return screen.getByRole('heading', { level: 1 }).closest('.k-screen') as HTMLElement;
@@ -68,6 +73,9 @@ describe('the cossack', () => {
     expect(score()).toEqual(['0 перемог', '0 нічиїх', '0 поразок']);
     // §24.1: the header of the game shows the energy, the screen does not repeat it.
     expect(within(cossackScreen()).queryByText(/енергі/i)).toBeNull();
+    // §24.11: a cossack without a name asks the player for one.
+    await waitFor(() => expect(hint()).toBe('Як звати тебе, козаче? Напиши своє ім’я.'));
+    expect(screen.getByRole('link', { name: 'Напиши своє ім’я' }).getAttribute('href')).toBe('/settings');
     // §24.12: no days in a row yet, and §24.10: nothing done, so one card instead of zeros and an empty chart.
     expect(screen.queryByText(/поспіль/)).toBeNull();
     expect(within(screen.getByRole('region', { name: 'Статистика' })).getByText(/^Після першого бою/)).toBeTruthy();
@@ -82,12 +90,30 @@ describe('the cossack', () => {
     const first = renderKozak('/', { storage });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Олена, Звання: Джура' })).toBeTruthy();
+    // An account with a name lacks nothing.
+    expect(hint()).toBeNull();
     first.unmount();
 
     await storage.account.rename('Іван Сірко');
     renderKozak('/', { storage });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Іван Сірко, Звання: Джура' })).toBeTruthy();
+  });
+
+  // §24.11: the question leads to the name in the settings, and a cossack with a name is not asked again.
+  it('asks a cossack without a name for one', async () => {
+    const { user } = renderKozak('/');
+
+    await waitFor(() => expect(hint()).toBe('Як звати тебе, козаче? Напиши своє ім’я.'));
+    await user.click(screen.getByRole('link', { name: 'Напиши своє ім’я' }));
+    const field = await screen.findByRole('textbox', { name: 'Ім’я або псевдонім' });
+    await user.type(field, 'Іван Сірко');
+    await user.click(screen.getByRole('button', { name: 'Зберегти' }));
+    await screen.findByText('Ім’я козака збережено.');
+
+    await user.click(within(screen.getByRole('navigation', { name: 'Розділи гри' })).getByRole('link', { name: 'Козак' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Іван Сірко, Звання: Джура' })).toBeTruthy();
+    expect(hint()).toBeNull();
   });
 
   // §24.12: the days in a row with a battle; a run without a battle today yet asks to go on.
@@ -337,7 +363,7 @@ describe('the sections of the game', () => {
   // The settings belong to the player, so the menu of the player leads there instead (GameHeader.test.tsx).
   it('lead to the cossack, the fights, the journey, the ranks and the history', async () => {
     const { user } = renderKozak('/');
-    const sections = within(screen.getByRole('navigation', { name: 'Розділи гри' }));
+    const sections = within(await screen.findByRole('navigation', { name: 'Розділи гри' }));
 
     expect(sections.getAllByRole('link').map(({ textContent }) => textContent)).toEqual(['Козак', 'Бій', 'Похід', 'Звання', 'Історія']);
     expect(sections.getByRole('link', { name: 'Козак' }).getAttribute('aria-current')).toBe('page');

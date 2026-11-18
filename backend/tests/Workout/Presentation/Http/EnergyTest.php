@@ -133,22 +133,16 @@ final class EnergyTest extends ApiTestCase
         self::assertSame('2026-11-02T12:00:00.000Z', $this->energyFullAt('fight'));
     }
 
-    // §23.3: the battles of a guest join those of the account, which counts its energy anew.
-    public function testJoiningAGuestAddsItsBattlesToTheEnergy(): void
+    // §23.1: the game needs an account, so another browser of the person opens the same pools, not fresh ones.
+    public function testEveryBrowserOfTheAccountSharesItsEnergy(): void
     {
         $this->signInWithGoogle(['sub' => '1001']);
-        $this->fights(6, '2026-11-02T10:00:00.000Z');
+        $this->fights(10, '2026-11-02T10:00:00.000Z');
         $this->switchBrowser();
-        $this->signUp();
-        $this->fights(6, '2026-11-02T10:00:00.000Z');
         $this->signInWithGoogle(['sub' => '1001']);
 
-        $this->send('POST', '/api/v1/me/merge');
+        $this->save($this->fight('2026-11-02T10:30:00.000Z'));
 
-        self::assertResponseIsSuccessful();
-        // Twelve battles from 10:00 take two pools: the next unit is back only the next morning.
-        self::assertSame('2026-11-03T10:00:00.000Z', $this->energyFullAt('fight'));
-        $this->save($this->fight('2026-11-02T12:00:00.000Z'));
         $this->assertError(409, 'no-energy');
     }
 

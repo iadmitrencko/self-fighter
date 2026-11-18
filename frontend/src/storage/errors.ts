@@ -7,6 +7,8 @@ export type StorageErrorCode =
   | 'rate-limited'
   // The server refused the data, so repeating the request will not help.
   | 'rejected'
+  // The browser has no account any more: it signed out in another tab, or the data was deleted (§23.2).
+  | 'signed-out'
   | 'exercise-name-taken';
 
 export class StorageError extends Error {

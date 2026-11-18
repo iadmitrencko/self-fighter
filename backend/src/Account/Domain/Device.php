@@ -7,9 +7,8 @@ namespace App\Account\Domain;
 use App\Shared\Domain\UserId;
 
 /**
- * A browser that holds the device cookie (section 3.7 of the plan). It leads to the user of the
- * browser and remembers the guest of the browser while an account is signed in, so signing out
- * brings that guest back (§23.3).
+ * A browser that holds the device cookie (section 3.7 of the plan). It leads to the account signed
+ * in on the browser; signing out removes it (§23.2).
  */
 final class Device
 {
@@ -26,8 +25,6 @@ final class Device
         private string $tokenHash,
         private readonly \DateTimeImmutable $createdAt,
         private \DateTimeImmutable $lastSeenAt,
-        // The guest whose data the signed-in account has not taken in; only an account has one.
-        private ?UserId $guest = null,
     ) {
     }
 
@@ -44,11 +41,6 @@ final class Device
     public function owner(): UserId
     {
         return $this->owner;
-    }
-
-    public function guest(): ?UserId
-    {
-        return $this->guest;
     }
 
     public function lastSeenAt(): \DateTimeImmutable
@@ -70,43 +62,10 @@ final class Device
      * The browser opens the account. The token changes with it, so a token planted in the browser
      * beforehand opens nothing, and the old one stops working.
      */
-    public function signIn(UserId $account, ?UserId $guest, DeviceToken $token, \DateTimeImmutable $now): void
+    public function signIn(UserId $account, DeviceToken $token, \DateTimeImmutable $now): void
     {
         $this->owner = $account;
-        $this->guest = $guest;
         $this->tokenHash = $token->hash();
         $this->lastSeenAt = $now;
-    }
-
-    /**
-     * Signing out brings back the guest of the browser with a new token. Returns false when the
-     * browser has no guest: then the device has nobody to lead to.
-     */
-    public function signOut(DeviceToken $token, \DateTimeImmutable $now): bool
-    {
-        if (!$this->fallBackToGuest()) {
-            return false;
-        }
-        $this->tokenHash = $token->hash();
-        $this->lastSeenAt = $now;
-
-        return true;
-    }
-
-    // The account is gone: the browser keeps its cookie and finds its guest by it again.
-    public function fallBackToGuest(): bool
-    {
-        if (null === $this->guest) {
-            return false;
-        }
-        $this->owner = $this->guest;
-        $this->guest = null;
-
-        return true;
-    }
-
-    public function forgetGuest(): void
-    {
-        $this->guest = null;
     }
 }

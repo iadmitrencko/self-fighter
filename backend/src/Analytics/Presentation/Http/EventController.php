@@ -27,7 +27,7 @@ final readonly class EventController
     ) {
     }
 
-    // The user comes from the device cookie, never from the body. An event creates no guest.
+    // The user comes from the device cookie, never from the body.
     #[Route('/api/v1/events', name: 'api_events', methods: ['POST'])]
     public function record(Request $request, ?UserId $user): Response
     {

@@ -15,12 +15,7 @@ describe('plural forms', () => {
   });
 
   it('agrees the rest of the words with numbers as well', () => {
-    expect([counts.exercises(3), counts.exercises(5), counts.workouts(1), counts.customExercises(2)]).toEqual([
-      '3 вправи',
-      '5 вправ',
-      '1 тренування',
-      '2 власні вправи',
-    ]);
+    expect([counts.exercises(3), counts.exercises(5), counts.workouts(1)]).toEqual(['3 вправи', '5 вправ', '1 тренування']);
   });
 });
 

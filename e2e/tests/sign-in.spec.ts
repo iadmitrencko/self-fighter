@@ -1,18 +1,5 @@
 import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test';
-import { expectAccessible, playFight, savedAttempts } from './helpers';
-
-interface GoogleAccount {
-  readonly sub: string;
-  readonly name: string;
-  readonly email: string;
-}
-
-// Every test signs in with an account of its own: the tests of the three devices run at once.
-function googleAccount(): GoogleAccount {
-  const sub = `e2e-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-  return { sub, name: 'Олена Коваль', email: `${sub}@example.com` };
-}
+import { expectAccessible, googleAccount, playFight, savedAttempts, signIn } from './helpers';
 
 // Another device of the same person: a browser with nothing of this one.
 async function anotherDevice(browser: Browser, testInfo: TestInfo): Promise<Page> {
@@ -33,21 +20,6 @@ async function anotherDevice(browser: Browser, testInfo: TestInfo): Promise<Page
   return context.newPage();
 }
 
-// Signs in from the screen on display and waits for the way back from the fake Google.
-async function signIn(page: Page, account: GoogleAccount, choice: 'Continue' | 'Cancel' = 'Continue'): Promise<void> {
-  const screen = new URL(page.url()).pathname;
-
-  await page.getByRole('link', { name: 'Увійти через Google' }).first().click();
-  await expect(page.getByRole('heading', { name: 'Choose an account' })).toBeVisible();
-  await page.getByLabel('Subject').fill(account.sub);
-  await page.getByLabel('Name').fill(account.name);
-  await page.getByLabel('Email').fill(account.email);
-  await page.getByRole('button', { name: choice }).click();
-
-  // The screen comes back without the outcome in its address, so a reload does not tell it again.
-  await expect(page).toHaveURL(new RegExp(`${screen}$`));
-}
-
 // §24.1: the history is a section of the game.
 async function historyItems(page: Page): Promise<number> {
   await page.goto('/game/history');
@@ -57,23 +29,40 @@ async function historyItems(page: Page): Promise<number> {
   return page.locator('.k-entry').count();
 }
 
-// §18 «Вхід через Google»: the first sign-in keeps the data of the guest, and another device sees it.
-test('the history of an account opens on another device', async ({ page, browser }, testInfo) => {
-  const account = googleAccount();
-  await playFight(page);
-  await page.goto('/game/settings');
+// The account this browser has open, as the server tells it: null without one.
+async function me(page: Page): Promise<unknown> {
+  return (await page.request.get('/api/v1/me')).json();
+}
+
+// §18 «Вхід через Google», §23.1: every screen of the game asks to sign in first, and Google brings
+// the browser back to the screen it asked from.
+test('the game asks to sign in and opens on the screen it asked from', async ({ page }) => {
+  await page.goto('/game/history');
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Увійди, щоб грати' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Розділи гри' })).toHaveCount(0);
+  expect(await me(page)).toEqual({ user: null });
   await expectAccessible(page);
 
-  await signIn(page, account);
+  await signIn(page, googleAccount(), { keepToast: true });
 
   // A sign-in that went well says so in a toast over the screen, which its cross closes at once.
   const toast = page.getByRole('status').filter({ hasText: 'Вхід виконано' });
-  await expect(toast).toContainText('Тренування, вправи й налаштування синхронізуються між пристроями.');
+  await expect(toast).toContainText('Козак і його бої тепер відкриваються на будь-якому пристрої.');
   await expect(toast).toHaveCSS('opacity', '1');
+  await expect(page.getByRole('heading', { level: 1, name: 'Історія' })).toBeVisible();
   await expectAccessible(page);
   await toast.getByRole('button', { name: 'Закрити' }).click();
   await expect(toast).toHaveCount(0);
+});
+
+// §18 «Вхід через Google»: the history of an account opens on another device.
+test('the history of an account opens on another device', async ({ page, browser }, testInfo) => {
+  const account = googleAccount();
+  await page.goto('/game/settings');
+  await signIn(page, account);
   await expect(page.getByText(account.email)).toBeVisible();
+  await playFight(page);
   expect(await historyItems(page)).toBe(1);
 
   const laptop = await anotherDevice(browser, testInfo);
@@ -83,75 +72,34 @@ test('the history of an account opens on another device', async ({ page, browser
   expect(await historyItems(laptop)).toBe(1);
 });
 
-// §23.3: a guest of a browser joins the account it signs into, once and without duplicates.
-test('a guest joins the account it signs into once', async ({ page, browser }, testInfo) => {
+// §23.2: signing out leaves the way in, and signing in again brings the data back.
+test('signing out hides the account until the next sign-in', async ({ page }) => {
   const account = googleAccount();
-  const laptop = await anotherDevice(browser, testInfo);
-  await laptop.goto('/game/settings');
-  await signIn(laptop, account);
-  await playFight(laptop);
-
-  await playFight(page, 'loss');
-  await page.goto('/game/history');
-  await signIn(page, account);
-
-  const dialog = page.getByRole('dialog', { name: 'Перенести дані цього браузера?' });
-  await expect(dialog.getByText(/^У цьому браузері є 1 тренування, збережені без входу/)).toBeVisible();
-  await expectAccessible(page);
-  await dialog.getByRole('button', { name: 'Перенести' }).click();
-
-  await expect(page.getByText('Дані браузера перенесено в обліковий запис.')).toBeVisible();
-  await expect(page.locator('.k-entry')).toHaveCount(2);
-
-  // §23.2: signing out hides the account in this browser, and signing in again asks nothing.
-  await page.goto('/game/settings');
-  await page.getByRole('button', { name: 'Вийти' }).click();
-  await expect(page.getByText(/^Вихід виконано/)).toBeVisible();
-  expect(await historyItems(page)).toBe(0);
-  expect(await (await page.request.get('/api/v1/me')).json()).toEqual({ user: null, guest: null });
-
   await page.goto('/game/settings');
   await signIn(page, account);
-
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  expect(await historyItems(page)).toBe(2);
-  expect(await savedAttempts(page)).toBe(2);
-});
-
-// §23.3: a person who does not join the data finds it in this browser after signing out.
-test('a guest left apart comes back after signing out', async ({ page, browser }, testInfo) => {
-  const account = googleAccount();
-  const laptop = await anotherDevice(browser, testInfo);
-  await laptop.goto('/game/settings');
-  await signIn(laptop, account);
-  await playFight(laptop);
-
-  await playFight(page, 'loss');
-  await page.goto('/game/history');
-  await signIn(page, account);
-  await page.getByRole('dialog').getByRole('button', { name: 'Не переносити' }).click();
-
-  await expect(page.locator('.k-entry')).toHaveCount(1);
-  await expect(page.locator('.k-entry').getByText('Перемога')).toBeVisible();
-
-  await page.goto('/game/settings');
-  await expect(page.getByRole('region', { name: 'Дані без входу' })).toBeVisible();
-  await page.getByRole('button', { name: 'Вийти' }).click();
-  await expect(page.getByText(/^Вихід виконано/)).toBeVisible();
-
-  await page.goto('/game/history');
-  await expect(page.locator('.k-entry')).toHaveCount(1);
-  await expect(page.locator('.k-entry').getByText('Поразка')).toBeVisible();
-});
-
-// The person changed their mind on the page of Google: the game works on as a guest.
-test('a cancelled sign-in leaves the guest as it was', async ({ page }) => {
   await playFight(page);
+
+  await page.goto('/game/settings');
+  await page.getByRole('button', { name: 'Вийти' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Увійди, щоб грати' })).toBeVisible();
+  await expect(page.getByText(/^Вихід виконано/)).toBeVisible();
+  expect(await me(page)).toEqual({ user: null });
+  await expectAccessible(page);
+
+  await signIn(page, account);
+
+  expect(await historyItems(page)).toBe(1);
+  expect(await savedAttempts(page)).toBe(1);
+});
+
+// The person changed their mind on the page of Google: the way in stays.
+test('a cancelled sign-in keeps the way in', async ({ page }) => {
   await page.goto('/game/history');
 
-  await signIn(page, googleAccount(), 'Cancel');
+  await signIn(page, googleAccount(), { cancel: true });
 
-  await expect(page.getByText('Вхід скасовано. Без входу гра працює так само.')).toBeVisible();
-  expect(((await (await page.request.get('/api/v1/me')).json()) as { user: { kind: string } }).user.kind).toBe('guest');
-  await expect(page.locator('.k-entry')).toHaveCount(1);
+  await expect(page.getByText('Вхід скасовано. Щоб грати, увійди через Google.')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Увійди, щоб грати' })).toBeVisible();
+  expect(await me(page)).toEqual({ user: null });
 });

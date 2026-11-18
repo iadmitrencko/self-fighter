@@ -1,7 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { createMemoryStorage, type MemoryStorage } from '../../storage/memory';
-import { gameFight } from '../../storage/testing/attempts';
+import { createMemoryStorage } from '../../storage/memory';
 import { renderKozak } from '../testing/render';
 
 describe('the game', () => {
@@ -73,39 +72,53 @@ describe('the links of the site', () => {
   });
 });
 
-// An account with an attempt from another device, opened here beside a guest with one attempt.
-async function accountWithKeptGuest(): Promise<MemoryStorage> {
-  const storage = createMemoryStorage();
-  storage.signIn({ sub: '1001' });
-  await storage.attempts.save(gameFight('loss', '2026-10-28T10:00:00.000Z', '2026-10-28T12:00:00.000Z'));
-  await storage.account.signOut();
-  await storage.attempts.save(gameFight('win', '2026-10-29T10:00:00.000Z', '2026-10-29T12:00:00.000Z'));
-  storage.signIn({ sub: '1001' });
+// §23.1: the game needs an account, so every screen of it shows the way in until the person signs in.
+describe('without an account', () => {
+  it.each(['/', '/fight', '/journey', '/ranks', '/history', '/settings'])('asks to sign in on %s', async (path) => {
+    renderKozak(path, { storage: createMemoryStorage({ signedIn: false }) });
 
-  return storage;
-}
-
-// §23.2–§23.3: Google sends the browser back to the screen it left, with the outcome in the address.
-describe('coming back from Google', () => {
-  // §23.3: the data stays with the guest of the browser and comes back after signing out.
-  it('leaves the data of the browser apart when the person says so', async () => {
-    const storage = await accountWithKeptGuest();
-    const { user } = renderKozak('/?sign-in=done', { storage });
-
-    const dialog = await screen.findByRole('dialog', { name: 'Перенести дані цього браузера?' });
-    await user.click(within(dialog).getByRole('button', { name: 'Не переносити' }));
-
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(await storage.account.keptGuest()).toMatchObject({ attempts: 1 });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Увійди, щоб грати' })).toBeTruthy();
+    // Google brings the browser back to the screen it asked for.
+    expect(screen.getByRole('link', { name: 'Увійти через Google' }).getAttribute('href')).toBe(
+      `/connect/google?to=${encodeURIComponent(path === '/' ? '/game' : `/game${path}`)}`,
+    );
+    expect(screen.getByRole('link', { name: 'Які дані ми зберігаємо' }).getAttribute('href')).toBe('/privacy');
+    // The sections of the game and the state of the cossack wait for the account.
+    expect(screen.queryByRole('navigation', { name: 'Розділи гри' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Стан козака' })).toBeNull();
   });
 
+  it('says so when the server has no way to sign in', async () => {
+    renderKozak('/', { storage: createMemoryStorage({ signedIn: false }), signIn: [] });
+
+    expect(await screen.findByText('Вхід зараз недоступний, тож грати не вийде. Спробуй трохи згодом.')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Увійти через Google' })).toBeNull();
+  });
+
+  // The person comes back from Google, and the game opens on the screen they asked for.
+  it('opens the game once the person has signed in', async () => {
+    const storage = createMemoryStorage({ signedIn: false });
+    const first = renderKozak('/ranks', { storage });
+    await screen.findByRole('heading', { level: 1, name: 'Увійди, щоб грати' });
+    first.unmount();
+
+    storage.signIn({ sub: '1001', name: 'Олена' });
+    renderKozak('/ranks?sign-in=done', { storage });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Звання' })).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Розділи гри' })).toBeTruthy();
+  });
+});
+
+// §23.2: Google sends the browser back to the screen it left, with the outcome in the address.
+describe('coming back from Google', () => {
   // A sign-in that went well says so in a toast that goes away by itself, instead of a notice.
   it('tells a sign-in that went well in a toast', async () => {
     const { user } = renderKozak('/?sign-in=done');
 
     const toast = (await screen.findByText('Вхід виконано')).closest('.toast') as HTMLElement;
     expect(toast.getAttribute('role')).toBe('status');
-    expect(within(toast).getByText('Тренування, вправи й налаштування синхронізуються між пристроями.')).toBeTruthy();
+    expect(within(toast).getByText('Козак і його бої тепер відкриваються на будь-якому пристрої.')).toBeTruthy();
     expect(document.querySelector('.notice')).toBeNull();
 
     await user.click(within(toast).getByRole('button', { name: 'Закрити' }));
@@ -113,15 +126,16 @@ describe('coming back from Google', () => {
     expect(screen.queryByText('Вхід виконано')).toBeNull();
   });
 
-  // A sign-in cancelled or failed waits until it is read: a notice above the screen.
+  // A sign-in cancelled or failed waits until it is read: a notice above the way in.
   it.each([
-    ['cancelled', 'Вхід скасовано. Без входу гра працює так само.'],
+    ['cancelled', 'Вхід скасовано. Щоб грати, увійди через Google.'],
     ['failed', 'Не вдалося увійти через Google. Спробуй ще раз трохи згодом.'],
   ])('tells how the sign-in went: %s', async (outcome, text) => {
-    const { user } = renderKozak(`/?sign-in=${outcome}`);
+    const { user } = renderKozak(`/?sign-in=${outcome}`, { storage: createMemoryStorage({ signedIn: false }) });
 
     const notice = (await screen.findByText(text)).closest('.notice');
     expect(notice?.getAttribute('role')).toBe(outcome === 'failed' ? 'alert' : 'status');
+    expect(screen.getByRole('heading', { level: 1, name: 'Увійди, щоб грати' })).toBeTruthy();
 
     await user.click(within(notice as HTMLElement).getByRole('button', { name: 'Закрити' }));
 

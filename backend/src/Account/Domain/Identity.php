@@ -7,8 +7,8 @@ namespace App\Account\Domain;
 use App\Shared\Domain\UserId;
 
 /**
- * A way to sign in that leads to a user (section 3.7 of the plan). A user with one is an account,
- * a user without one is a guest. Google is found by its `sub`, which never changes, unlike the email.
+ * A way to sign in that leads to an account (section 3.7 of the plan). Every account has one, and
+ * Google is found by its `sub`, which never changes, unlike the email.
  */
 final class Identity
 {

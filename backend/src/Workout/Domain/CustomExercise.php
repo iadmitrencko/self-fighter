@@ -60,10 +60,4 @@ final class CustomExercise
     {
         return $this->owner->equals($user);
     }
-
-    // §23.3: the exercise of a guest joins the catalog of the account under the same id.
-    public function moveTo(UserId $owner): void
-    {
-        $this->owner = $owner;
-    }
 }

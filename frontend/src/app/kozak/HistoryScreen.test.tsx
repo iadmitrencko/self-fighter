@@ -171,51 +171,13 @@ describe('the history of the game', () => {
   });
 });
 
-// §23.2: the history is where a guest misses it on another device.
-describe('the offer to sign in in the history', () => {
-  it('brings a guest back to the history of the game until the offer is closed', async () => {
-    const { user } = renderKozak('/history');
-
-    const offer = await screen.findByRole('region', { name: 'Історія на будь-якому пристрої' });
-    expect(within(offer).getByRole('link', { name: 'Увійти через Google' }).getAttribute('href')).toBe(
-      '/connect/google?to=%2Fgame%2Fhistory',
-    );
-    // The data of the player waits in the settings of the game; the sections do not list them.
-    expect(screen.getAllByRole('link', { name: 'Налаштування' }).map((link) => link.getAttribute('href'))).toEqual(['/settings']);
-
-    await user.click(within(offer).getByRole('button', { name: 'Закрити пропозицію увійти' }));
-
-    expect(screen.queryByRole('region', { name: 'Історія на будь-якому пристрої' })).toBeNull();
-  });
-
-  it('tells an account that the history opens on any device', async () => {
-    const storage = createMemoryStorage();
-    storage.signIn({ sub: '1001' });
-    renderKozak('/history', { storage });
+// §23.1: every player has signed in, so the history opens on any device.
+describe('the note of the history', () => {
+  it('tells that the history opens on any device', async () => {
+    renderKozak('/history');
 
     expect(await screen.findByText(/^Історія відкривається на будь-якому пристрої/)).toBeTruthy();
-    expect(screen.queryByRole('region', { name: 'Історія на будь-якому пристрої' })).toBeNull();
-  });
-
-  // §23.3: Google brings the browser back to the game, which offers to join what the browser saved.
-  it('offers to join the data of the browser after coming back from Google', async () => {
-    const storage = createMemoryStorage();
-    storage.signIn({ sub: '1001' });
-    await storage.attempts.save(gameFight('loss', '2026-10-28T10:00:00.000Z', '2026-10-28T12:00:00.000Z'));
-    await storage.account.signOut();
-    await storage.attempts.save(gameFight('win', '2026-10-29T10:00:00.000Z', '2026-10-29T12:00:00.000Z'));
-    storage.signIn({ sub: '1001' });
-    const { user } = renderKozak('/history?sign-in=done', { storage });
-
-    const dialog = await screen.findByRole('dialog', { name: 'Перенести дані цього браузера?' });
-    expect(await screen.findAllByRole('listitem')).toHaveLength(1);
-
-    await user.click(within(dialog).getByRole('button', { name: 'Перенести' }));
-
-    // The sign-in that went well says what came of the data in its toast.
-    const toast = (await screen.findByText('Дані браузера перенесено в обліковий запис.')).closest('.toast') as HTMLElement;
-    expect(within(toast).getByText('Вхід виконано')).toBeTruthy();
-    // The history under the dialog shows the joined attempts at once.
-    await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(2));
+    // The data of the player waits in the settings of the game; the sections do not list them.
+    expect(screen.getAllByRole('link', { name: 'Налаштування' }).map((link) => link.getAttribute('href'))).toEqual(['/settings']);
   });
 });

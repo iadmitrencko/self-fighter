@@ -263,15 +263,6 @@ final readonly class DoctrineAttemptRepository implements AttemptRepository
             ->execute();
     }
 
-    public function transfer(UserId $from, UserId $to): void
-    {
-        $this->entityManager
-            ->createQuery('UPDATE App\Workout\Domain\Attempt a SET a.owner = :to WHERE a.owner = :from')
-            ->setParameter('to', $to, UserIdType::NAME)
-            ->setParameter('from', $from, UserIdType::NAME)
-            ->execute();
-    }
-
     public function removeAllOf(UserId $owner): void
     {
         $this->entityManager

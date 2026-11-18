@@ -7,7 +7,7 @@ namespace App\Analytics\Domain;
 use App\Shared\Domain\UserId;
 
 /**
- * A step of a player that §19 counts. It names the user, a guest or an account, and nothing else
+ * A step of a player that §19 counts. It names the account and nothing else
  * about the person: the server takes the time itself and the user from the device cookie (R5).
  */
 final class Event

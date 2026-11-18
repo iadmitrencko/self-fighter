@@ -12,8 +12,5 @@ interface IdentityRepository
 
     public function find(IdentityProvider $provider, string $subject): ?Identity;
 
-    // A user with a way to sign in is an account, a user without one is a guest.
-    public function existsFor(UserId $user): bool;
-
     public function removeAllOf(UserId $user): void;
 }

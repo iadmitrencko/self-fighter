@@ -4,11 +4,9 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import type { EnergyPool } from '../../domain/kozak/energy';
 import { formatCount } from '../../i18n/format';
 import { energyStatus, energyTexts, formatWait, gloryTexts, kozakTexts, rankNames, statusTexts } from '../../i18n/kozak';
-import { accountTexts, signInTexts, storageMessages } from '../../i18n/uk';
-import { GoogleLogo, useCanSignIn } from '../components/SignIn';
+import { accountTexts, storageMessages } from '../../i18n/uk';
 import { useSignOut } from '../components/SignOut';
 import { useGame } from '../game';
-import { signInPath } from '../signIn';
 import { useLoad } from '../useLoad';
 import { kozakPaths } from './paths';
 import { KozakIcon, type KozakIconName } from './parts';
@@ -113,16 +111,12 @@ function EnergyPill({ pool, cossack, now }: { pool: EnergyPool; cossack: Cossack
 }
 
 /**
- * The menu of the player: whose account is open, the settings, signing in or out. A wide screen shows
- * it in the header beside the energy; on a phone it is «Ще» in the bar of the sections, which keeps
- * the history there as well. The site is a tap on the logo away, as from every page.
- *
- * Signing in keeps the glory and the progress of a guest, so for a guest it comes first, says why,
- * and a gold dot on the avatar or on «Ще» tells that it has not been done yet.
+ * The menu of the player: whose account is open, the settings and signing out. A wide screen shows it
+ * in the header beside the energy; on a phone it is «Ще» in the bar of the sections, which keeps the
+ * history there as well. The site is a tap on the logo away, as from every page.
  */
 export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
   const { storage } = useGame();
-  const canSignIn = useCanSignIn();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const loadUser = useCallback(() => storage.account.current(), [storage]);
@@ -130,21 +124,17 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
   const [open, setOpen] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const panelId = useId();
-  const signInId = useId();
   const box = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
-  // The settings say that the account has left and offer to sign in again.
+  // The way in says that the account has left (§23.1).
   const signOut = useSignOut({
-    onDone: (notice) => void navigate(kozakPaths.settings, { state: { notice } }),
+    onDone: (notice) => void navigate(kozakPaths.cossack, { state: { notice } }),
     onFailure: (error) => {
       setFailure(storageMessages[error]);
       setOpen(true);
     },
   });
-  const account = user.status === 'ready' && user.value?.kind === 'account' ? user.value : null;
-  // Only once the browser knows who plays, so an account never sees the dot while it loads.
-  const unsigned = canSignIn && user.status === 'ready' && account === null;
-  const dot = unsigned ? <span className="player-menu__dot" aria-hidden="true" /> : null;
+  const account = user.status === 'ready' ? user.value : null;
   const initial = (account?.name ?? account?.email ?? '').trim().charAt(0).toUpperCase();
   const close = () => setOpen(false);
   const current = (path: string) => (pathname === path ? 'page' : undefined);
@@ -193,7 +183,6 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
           <>
             <span className="player-menu__avatar" aria-hidden="true">
               {initial === '' ? <KozakIcon name="cossack" className="player-menu__face" /> : initial}
-              {dot}
             </span>
             <KozakIcon name="chevron" className="player-menu__chevron" />
           </>
@@ -201,7 +190,6 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
           <>
             <span className="player-menu__mark">
               <KozakIcon name="more" className="kozak-nav__icon" />
-              {dot}
             </span>
             <span>{kozakTexts.nav.more}</span>
           </>
@@ -223,25 +211,6 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
               </p>
             )}
             <ul className="player-menu__list" role="list">
-              {unsigned && (
-                <li className="player-menu__start">
-                  {/* The reason describes the link instead of adding to its name. */}
-                  <a
-                    className="player-menu__item player-menu__item--lead"
-                    href={signInPath(pathname)}
-                    aria-labelledby={`${signInId}-name`}
-                    aria-describedby={`${signInId}-why`}
-                  >
-                    <GoogleLogo />
-                    <span className="player-menu__text">
-                      <span id={`${signInId}-name`}>{signInTexts.button}</span>
-                      <span id={`${signInId}-why`} className="player-menu__hint">
-                        {statusTexts.signInWhy}
-                      </span>
-                    </span>
-                  </a>
-                </li>
-              )}
               {/* The bar of a phone has no room for the history; a wide screen keeps it in the column of the sections. */}
               {place === 'tabs' && (
                 <li>

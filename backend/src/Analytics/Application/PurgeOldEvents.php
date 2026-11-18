@@ -9,7 +9,7 @@ use App\Analytics\Domain\EventRepository;
 use Psr\Clock\ClockInterface;
 
 /**
- * Runs daily together with the purge of guests (stage 10 of the plan).
+ * Runs daily together with the purge of expired devices (stage 10 of the plan).
  */
 final readonly class PurgeOldEvents
 {

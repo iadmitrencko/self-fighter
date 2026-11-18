@@ -6,11 +6,8 @@ namespace App\Account\Presentation\Http;
 
 use App\Account\Application\DeleteUser;
 use App\Account\Application\DescribeBrowser;
-use App\Account\Application\MergeGuest;
 use App\Account\Application\RenameCossack;
 use App\Account\Application\SignOut;
-use App\Account\Application\SignUpGuest;
-use App\Account\Application\UserView;
 use App\Account\Domain\Device;
 use App\Shared\Domain\UserId;
 use App\Shared\Presentation\Http\ApiProblem;
@@ -19,11 +16,10 @@ use App\Shared\Presentation\Http\JsonBody;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The user of this browser and the guest it keeps while an account is signed in.
+ * The account signed in on this browser (§23.2). Only signing in with Google creates one.
  */
 final readonly class MeController
 {
@@ -31,43 +27,18 @@ final readonly class MeController
 
     public function __construct(
         private DescribeBrowser $describeBrowser,
-        private SignUpGuest $signUpGuest,
         private SignOut $signOut,
-        private MergeGuest $mergeGuest,
         private RenameCossack $renameCossack,
         private DeleteUser $deleteUser,
         private DeviceCookie $cookie,
-        private RateLimiterFactoryInterface $guestCreationLimiter,
     ) {
     }
 
+    // A browser without an account gets no user, and the game asks to sign in (§23.1).
     #[Route('/api/v1/me', name: 'api_me', methods: ['GET'])]
     public function show(?Device $device): JsonResponse
     {
         return Json::response(($this->describeBrowser)($device));
-    }
-
-    // A guest appears with the first write of a browser, so visitors who only look leave nothing behind (§15.1).
-    #[Route('/api/v1/me', name: 'api_me_create', methods: ['POST'])]
-    public function create(Request $request, ?Device $device): JsonResponse
-    {
-        $current = ($this->describeBrowser)($device);
-
-        if (null !== $current['user']) {
-            return Json::response($current);
-        }
-
-        $limit = $this->guestCreationLimiter->create($request->getClientIp() ?? 'unknown')->consume();
-
-        if (!$limit->isAccepted()) {
-            throw ApiProblem::tooManyRequests($limit);
-        }
-
-        $guest = ($this->signUpGuest)();
-        $response = Json::response(['user' => UserView::of($guest->user, false), 'guest' => null], Response::HTTP_CREATED);
-        $this->cookie->issue($response, $guest->token);
-
-        return $response;
     }
 
     // §24.11: the name the player gives the cossack; null or an empty one leaves the name Google gave.
@@ -85,44 +56,27 @@ final readonly class MeController
         return Json::response(($this->describeBrowser)($device));
     }
 
-    // §15.5: the data of every module goes together with the user.
+    // §15.5: the data of every module goes together with the account, and the browser forgets it.
     #[Route('/api/v1/me', name: 'api_me_delete', methods: ['DELETE'])]
-    public function delete(UserId $user, Device $device): Response
+    public function delete(UserId $user): Response
     {
         ($this->deleteUser)($user);
 
         $response = new Response(null, Response::HTTP_NO_CONTENT);
-
-        // A browser that kept its guest goes back to it with the same cookie.
-        if ($device->owner()->equals($user)) {
-            $this->cookie->remove($response);
-        }
+        $this->cookie->remove($response);
 
         return $response;
     }
 
-    // §23.2: the browser goes back to its guest or to no user, and the data of the account is out of reach.
+    // §23.2: the browser forgets the account, and its data is out of reach here until the next sign-in.
     #[Route('/api/v1/me/logout', name: 'api_me_logout', methods: ['POST'])]
     public function logout(Device $device): JsonResponse
     {
-        $token = ($this->signOut)($device);
-        $response = Json::response(($this->describeBrowser)(null === $token ? null : $device));
+        ($this->signOut)($device);
 
-        if (null === $token) {
-            $this->cookie->remove($response);
-        } else {
-            $this->cookie->issue($response, $token);
-        }
+        $response = Json::response(($this->describeBrowser)(null));
+        $this->cookie->remove($response);
 
         return $response;
-    }
-
-    // §23.3: the guest this browser kept joins the account.
-    #[Route('/api/v1/me/merge', name: 'api_me_merge', methods: ['POST'])]
-    public function merge(Device $device): JsonResponse
-    {
-        ($this->mergeGuest)($device);
-
-        return Json::response(($this->describeBrowser)($device));
     }
 }

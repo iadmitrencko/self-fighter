@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectAccessible, finishSets, playFight, savedAttempts } from './helpers';
+import { expectAccessible, finishSets, playFight, savedAttempts, signIn } from './helpers';
 
 // The names of the events this page sends to the server, in the order the browser sends them.
 function sentEvents(page: Page): string[] {
@@ -41,7 +41,8 @@ test('no event leaves the browser before a choice and after a refusal', async ({
   await expect(banner(page).getByRole('button')).toHaveText(['Дозволити', 'Відхилити']);
   await expectAccessible(page);
 
-  // A whole fight without a choice.
+  // A whole fight without a choice, signing in included.
+  await signIn(page);
   await playFight(page);
   await expect.poll(() => savedAttempts(page)).toBe(1);
 
@@ -69,6 +70,8 @@ test('allowed events reach the server and stop once the decision changes', async
 
   await expect(banner(page)).toBeHidden();
 
+  await page.goto('/game');
+  await signIn(page);
   await playFight(page);
   await page.getByRole('button', { name: /^Повторити/ }).click();
   await finishSets(page);

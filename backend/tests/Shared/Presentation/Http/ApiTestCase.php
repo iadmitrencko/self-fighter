@@ -63,11 +63,11 @@ abstract class ApiTestCase extends WebTestCase
         self::assertSame(['error' => $error], $this->responseData());
     }
 
-    // Creates the guest of this browser and returns its id.
+    // Signs this browser in as a new person and returns the id of the account the game needs (§23.1).
     protected function signUp(): string
     {
-        $this->send('POST', '/api/v1/me');
-        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $this->signInWithGoogle(['sub' => 'sub-'.bin2hex(random_bytes(8))]);
+        $this->send('GET', '/api/v1/me');
         $user = $this->responseData()['user'];
         self::assertIsArray($user);
         self::assertIsString($user['id']);

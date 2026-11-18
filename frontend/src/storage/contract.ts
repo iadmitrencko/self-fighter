@@ -9,36 +9,18 @@ import type { Outcome } from '../domain/results/results';
 
 // Screens reach data only through these interfaces (section 3.7 of the plan).
 
-// A guest is a user of one browser. An account signs in with Google and opens on any browser (§23.1).
-export type CurrentUser = GuestUser | AccountUser;
-
 // §24.11: the longest name the player may give the cossack.
 export const NICKNAME_MAX = 40;
 
-export interface GuestUser {
+// The account of the player. The game needs one: signing in with Google opens it on any browser (§23.1).
+export interface CurrentUser {
   readonly id: string;
-  readonly kind: 'guest';
   readonly createdAt: string;
-  // §24.11: the name the player gave the cossack, a guest too.
-  readonly nickname: string | null;
-}
-
-export interface AccountUser {
-  readonly id: string;
-  readonly kind: 'account';
-  readonly createdAt: string;
+  // §24.11: the name the player gave the cossack.
   readonly nickname: string | null;
   // What Google told about the person, so the screen shows whose account is open.
   readonly name: string | null;
   readonly email: string | null;
-}
-
-// The guest of this browser that a signed-in account has not taken in: its data waits until the
-// person joins it to the account or signs out (§23.3).
-export interface KeptGuest {
-  readonly id: string;
-  readonly attempts: number;
-  readonly exercises: number;
 }
 
 export interface CustomExercise extends ExerciseRef {
@@ -80,20 +62,14 @@ export interface AttemptPage {
 }
 
 export interface AccountStore {
-  // Reading never creates a user: a guest appears with the first write (§15.1).
+  // null until the person signs in with Google: the game needs an account (§23.1).
   current(): Promise<CurrentUser | null>;
-  // The guest this browser keeps beside the signed-in account, with what it would bring (§23.3).
-  keptGuest(): Promise<KeptGuest | null>;
-  // §23.3: the kept guest joins the account. Asking again changes nothing.
-  joinGuest(): Promise<void>;
-  // §24.11: the name the player gives the cossack; null or an empty one takes it away. Like any
-  // write, it makes this browser a guest when it has no user yet.
+  // §24.11: the name the player gives the cossack; null or an empty one takes it away.
   rename(nickname: string | null): Promise<void>;
-  // §23.2: the browser goes back to its guest or to no user. Attempts of the account that still
-  // wait here stay until the account signs in on this browser again.
+  // §23.2: the browser forgets the account. Its attempts that still wait here stay until the
+  // account signs in on this browser again.
   signOut(): Promise<void>;
-  // Removes the data on the server and in this browser (§15.5). A browser that kept its guest
-  // beside the account goes back to that guest.
+  // Removes the data on the server and in this browser, and the browser forgets the account (§15.5).
   deleteData(): Promise<void>;
 }
 

@@ -12,13 +12,18 @@ import { findLevel, SICH } from '../domain/kozak/journey';
 import { duelAttempt, finishedFight, gameFight, levelAttempt } from './testing/attempts';
 import { createFakeServer } from './testing/fakeServer';
 
-// Screens rely on these rules whichever storage runs underneath (section 3.7 of the plan).
+// Screens rely on these rules whichever storage runs underneath (section 3.7 of the plan). The game
+// needs an account (§23.1), so the browser has signed in.
 describe.each([
-  ['in memory', createMemoryStorage],
+  ['in memory', (): GameStorage => createMemoryStorage()],
   [
     'over the API',
-    (): GameStorage =>
-      createApiStorage({ fetch: createFakeServer().fetch, buffer: createBrowserBuffer(null) }),
+    (): GameStorage => {
+      const server = createFakeServer();
+      server.signIn({ sub: 'tester' });
+
+      return createApiStorage({ fetch: server.fetch, buffer: createBrowserBuffer(null) });
+    },
   ],
 ])('storage %s', (_, create) => {
   let storage: GameStorage;
@@ -28,27 +33,11 @@ describe.each([
   });
 
   describe('account', () => {
-    // §15.1: visitors who only look leave nothing behind.
-    it('has no user until something is saved', async () => {
-      await storage.exercises.list();
-      await storage.settings.get('fight');
-      await storage.attempts.list();
-      await storage.attempts.stats();
-
-      expect(await storage.account.current()).toBeNull();
-    });
-
-    it('becomes a guest with the first write', async () => {
-      await storage.settings.save(fightConfig());
-
-      expect(await storage.account.current()).toMatchObject({ kind: 'guest', nickname: null });
-    });
-
-    // §24.11: a guest names the cossack too; naming is a write, so it makes the guest.
+    // §24.11: the name is cleaned, and an empty one takes it away.
     it('names the cossack', async () => {
       await storage.account.rename(' Іван \n  Сірко ');
 
-      expect(await storage.account.current()).toMatchObject({ kind: 'guest', nickname: 'Іван Сірко' });
+      expect(await storage.account.current()).toMatchObject({ nickname: 'Іван Сірко' });
 
       await storage.account.rename('   ');
 
@@ -297,12 +286,12 @@ interface Browser {
 
 const OLENA = { sub: '1001', name: 'Олена', email: 'olena@example.com' };
 
-// §23: guests and accounts follow the same contract (R14).
+// §23: signing in, out and deleting the account follow the same contract on every storage (R14).
 describe.each([
   [
     'in memory',
     (): Browser => {
-      const storage = createMemoryStorage();
+      const storage = createMemoryStorage({ signedIn: false });
 
       return { storage, signIn: (account) => storage.signIn(account) };
     },
@@ -343,25 +332,28 @@ describe.each([
     return attempt.id;
   }
 
-  // §23.3: the first sign-in moves nothing, the guest becomes the account.
-  it('turns the guest into the account on the first sign-in', async () => {
-    const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
-    await browser.storage.attempts.save(attempt);
-    await browser.storage.attempts.flush();
-    const guest = await browser.storage.account.current();
+  // §23.1: the game needs an account, so a browser nobody signed in on has no data and saves none.
+  it('saves nothing until the person signs in', async () => {
+    expect(await browser.storage.exercises.list()).toEqual([]);
+    expect(await browser.storage.settings.get('fight')).toBeNull();
+    expect(await browser.storage.attempts.list()).toEqual({ items: [], nextCursor: null });
 
+    await expect(browser.storage.settings.save(fightConfig())).rejects.toEqual(new StorageError('signed-out'));
+    await expect(browser.storage.account.rename('Іван')).rejects.toEqual(new StorageError('signed-out'));
+    expect(await browser.storage.account.current()).toBeNull();
+  });
+
+  // §23.2: a Google account used for the first time creates the account.
+  it('opens a new account on the first sign-in', async () => {
     browser.signIn(OLENA);
 
     expect(await browser.storage.account.current()).toEqual({
-      id: guest?.id,
-      kind: 'account',
-      createdAt: guest?.createdAt,
+      id: expect.any(String) as string,
+      createdAt: expect.any(String) as string,
       nickname: null,
       name: 'Олена',
       email: 'olena@example.com',
     });
-    expect((await browser.storage.attempts.list()).items.map(({ attempt }) => attempt.id)).toEqual([attempt.id]);
-    expect(await browser.storage.account.keptGuest()).toBeNull();
   });
 
   // §23.2: after signing out the data of the account is out of reach in this browser.
@@ -381,98 +373,16 @@ describe.each([
     expect((await browser.storage.attempts.list()).items.map((stored) => stored.attempt.id)).toEqual([attempt]);
   });
 
-  // A guest has no other way to its data.
-  it('refuses to sign out a guest', async () => {
-    await browser.storage.settings.save(fightConfig());
-
-    await expect(browser.storage.account.signOut()).rejects.toEqual(new StorageError('rejected'));
-    expect(await browser.storage.account.current()).toMatchObject({ kind: 'guest' });
-  });
-
-  // §23.3: a guest with attempts or custom exercises waits for the person to decide.
-  it('keeps the guest of the browser beside a known account', async () => {
-    const accountAttempt = await accountElsewhere();
-    await browser.storage.attempts.save(finishedFight('loss', '2026-11-02T10:00:00.000Z'));
-    await browser.storage.exercises.save({ id: newId(), name: 'Бурпі', description: '' });
-    await browser.storage.attempts.flush();
-    const guest = await browser.storage.account.current();
-
+  // §15.5: deleting the account leaves the browser without one, and the next sign-in starts anew.
+  it('forgets the account it deletes', async () => {
     browser.signIn(OLENA);
-
-    expect(await browser.storage.account.keptGuest()).toEqual({ id: guest?.id, attempts: 1, exercises: 1 });
-    expect((await browser.storage.attempts.list()).items.map(({ attempt }) => attempt.id)).toEqual([accountAttempt]);
-    expect(await browser.storage.exercises.list()).toEqual([]);
-  });
-
-  // §23.3: attempts are not duplicated, exercises with one name merge, the account keeps its settings.
-  it('joins the kept guest once', async () => {
-    browser.signIn(OLENA);
-    const burpees = await browser.storage.exercises.save({ id: newId(), name: 'Бурпі', description: 'Як у залі' });
-    await browser.storage.settings.save(fightConfig());
-    await browser.storage.account.signOut();
-    const guestAttempt = finishedFight('loss', '2026-11-02T10:00:00.000Z');
-    await browser.storage.attempts.save(guestAttempt);
-    await browser.storage.attempts.flush();
-    await browser.storage.exercises.save({ id: newId(), name: 'бурпі', description: 'Вдома' });
-    const plank = await browser.storage.exercises.save({ id: newId(), name: 'Планка', description: '' });
-    await browser.storage.settings.save(fightConfig({ exercises: [{ ...pullUps, sets: [5] }] }));
-    browser.signIn(OLENA);
-
-    await browser.storage.account.joinGuest();
-    await browser.storage.account.joinGuest();
-
-    expect(await browser.storage.account.keptGuest()).toBeNull();
-    expect((await browser.storage.attempts.list()).items.map(({ attempt }) => attempt.id)).toEqual([guestAttempt.id]);
-    expect(await browser.storage.exercises.list()).toEqual([burpees, plank]);
-    expect(await browser.storage.settings.get('fight')).toEqual(fightConfig());
-  });
-
-  // §23.3: a person who did not join the guest finds it after signing out.
-  it('brings the kept guest back after signing out', async () => {
-    await accountElsewhere();
-    const guestAttempt = finishedFight('loss', '2026-11-02T10:00:00.000Z');
-    await browser.storage.attempts.save(guestAttempt);
-    await browser.storage.attempts.flush();
-    browser.signIn(OLENA);
-
-    await browser.storage.account.signOut();
-
-    expect(await browser.storage.account.current()).toMatchObject({ kind: 'guest' });
-    expect((await browser.storage.attempts.list()).items.map(({ attempt }) => attempt.id)).toEqual([guestAttempt.id]);
-  });
-
-  // §23.3: nothing to miss, nothing to ask.
-  it('joins a guest with nothing to miss at once', async () => {
-    await accountElsewhere();
-    await browser.storage.settings.save(fightConfig());
-
-    browser.signIn(OLENA);
-
-    expect(await browser.storage.account.keptGuest()).toBeNull();
-    expect(await browser.storage.settings.get('fight')).toEqual(fightConfig());
-  });
-
-  // §24.11: an account without a name for its cossack takes the one the guest gave.
-  it('takes the name the guest gave the cossack', async () => {
-    await accountElsewhere();
-    await browser.storage.account.rename('Іван Сірко');
-
-    browser.signIn(OLENA);
-
-    expect(await browser.storage.account.current()).toMatchObject({ kind: 'account', nickname: 'Іван Сірко', name: 'Олена' });
-  });
-
-  // §15.5: deleting the account brings back the guest the browser kept beside it.
-  it('goes back to the kept guest when the account is deleted', async () => {
-    await accountElsewhere();
     await browser.storage.attempts.save(finishedFight('loss', '2026-11-02T10:00:00.000Z'));
     await browser.storage.attempts.flush();
-    const guest = await browser.storage.account.current();
-    browser.signIn(OLENA);
 
     await browser.storage.account.deleteData();
 
-    expect(await browser.storage.account.current()).toEqual(guest);
-    expect((await browser.storage.attempts.stats()).total).toBe(1);
+    expect(await browser.storage.account.current()).toBeNull();
+    browser.signIn(OLENA);
+    expect((await browser.storage.attempts.stats()).total).toBe(0);
   });
 });

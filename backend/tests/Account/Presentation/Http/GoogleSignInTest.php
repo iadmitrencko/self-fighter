@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Account\Presentation\Http;
 
-use App\Shared\Domain\UserId;
 use App\Tests\Account\FakeGoogle;
 use App\Tests\Shared\Presentation\Http\ApiTestCase;
 use App\Tests\Workout\Documents;
-use App\Workout\Domain\ExerciseId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -58,24 +56,19 @@ final class GoogleSignInTest extends ApiTestCase
         );
     }
 
-    // §23.3: a Google account used for the first time turns the guest into the account; nothing moves.
-    public function testFirstSignInKeepsTheDataOfTheGuest(): void
+    // §23.1: a Google account used for the first time creates the account the game needs.
+    public function testFirstSignInCreatesTheAccount(): void
     {
         self::mockTime('2026-11-04 10:00:00');
-        $guest = $this->signUp();
-        $attempt = Documents::fight();
-        $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
-        $guestCookie = $this->deviceCookie();
 
         self::assertSame('/game/history?sign-in=done', $this->signInWithGoogle(['sub' => '1001', 'name' => 'Олена', 'email' => 'olena@example.com']));
 
-        self::assertNotSame($guestCookie->getValue(), $this->deviceCookie()->getValue());
-        self::assertSame([
-            'user' => ['id' => $guest, 'kind' => 'account', 'createdAt' => '2026-11-04T10:00:00.000Z', 'nickname' => null, 'name' => 'Олена', 'email' => 'olena@example.com'],
-            'guest' => null,
-        ], $this->me());
-        $this->send('GET', '/api/v1/attempts');
-        self::assertSame([$attempt['id']], array_column($this->listed(), 'id'));
+        $user = $this->me()['user'];
+        self::assertIsArray($user);
+        self::assertSame(
+            ['createdAt' => '2026-11-04T10:00:00.000Z', 'nickname' => null, 'name' => 'Олена', 'email' => 'olena@example.com'],
+            array_diff_key($user, ['id' => true]),
+        );
         self::assertSame(1, $this->rowCount('user'));
         self::assertSame(
             [['provider' => 'google', 'subject' => '1001']],
@@ -103,10 +96,24 @@ final class GoogleSignInTest extends ApiTestCase
         $this->signInWithGoogle(['sub' => '1001']);
         $this->switchBrowser($planted);
 
-        self::assertSame(['user' => null, 'guest' => null], $this->me());
+        self::assertSame(['user' => null], $this->me());
     }
 
-    // §23.1: a browser without a guest gets a new account, and another browser opens the same one.
+    // Another person signs in on the same browser: it leads to their account now, with one device still.
+    public function testAnotherAccountTakesTheBrowser(): void
+    {
+        $first = $this->signUp();
+
+        $this->signInWithGoogle(['sub' => '1002']);
+
+        $second = $this->me()['user']['id'] ?? null;
+        self::assertIsString($second);
+        self::assertNotSame($first, $second);
+        self::assertSame(1, $this->rowCount('device'));
+        self::assertSame(2, $this->rowCount('user'));
+    }
+
+    // §23.1: a new browser gets a new account, and another browser opens the same one.
     public function testTheAccountOpensOnAnyBrowser(): void
     {
         // The server takes a battle of the last days only (§24.4).
@@ -127,74 +134,10 @@ final class GoogleSignInTest extends ApiTestCase
         self::assertSame(2, $this->rowCount('device'));
     }
 
-    // §23.3: the person decides whether to join a guest that has attempts or custom exercises.
-    public function testGuestWithDataStaysWithTheBrowserUntilThePersonDecides(): void
-    {
-        self::mockTime('2026-11-02 12:00:00');
-        $this->signInWithGoogle(['sub' => '1001']);
-        $account = $this->me()['user']['id'] ?? null;
-
-        $this->switchBrowser();
-        $guest = $this->signUp();
-        $attempt = Documents::fight();
-        $this->send('PUT', '/api/v1/attempts/'.$attempt['id'], $attempt);
-        $this->send('PUT', '/api/v1/exercises/'.ExerciseId::generate(), ['name' => 'Бурпі', 'description' => '']);
-
-        $this->signInWithGoogle(['sub' => '1001']);
-
-        self::assertSame($account, $this->me()['user']['id'] ?? null);
-        self::assertSame(['id' => $guest, 'attempts' => 1, 'exercises' => 1], $this->me()['guest']);
-        // The history of the account does not show the attempts of the guest.
-        $this->send('GET', '/api/v1/attempts');
-        self::assertSame([], $this->listed());
-    }
-
-    // §23.3: a guest with nothing to miss joins without a question: settings and events come along.
-    public function testGuestWithNothingToMissJoinsAtOnce(): void
-    {
-        $this->signInWithGoogle(['sub' => '1001']);
-        $account = $this->me()['user']['id'] ?? null;
-
-        $this->switchBrowser();
-        $this->signUp();
-        $this->send('PUT', '/api/v1/settings/fight', Documents::fightConfig());
-        $this->send('POST', '/api/v1/events', ['name' => 'setup_error', 'mode' => 'fight', 'error' => 'exercises-required']);
-
-        $this->signInWithGoogle(['sub' => '1001']);
-
-        $me = $this->me();
-        self::assertSame([$account, null], [$me['user']['id'] ?? null, $me['guest']]);
-        $this->send('GET', '/api/v1/settings');
-        self::assertEquals(['fight' => Documents::fightConfig()], $this->responseData());
-        self::assertSame(1, $this->rowCount('user'));
-        self::assertSame([$account], $this->eventUsers());
-    }
-
-    // §24.11: an account without a name for its cossack takes the one the guest gave; its own stays.
-    public function testJoiningGuestBringsTheNameOfTheCossack(): void
-    {
-        $this->signInWithGoogle(['sub' => '1001']);
-
-        $this->switchBrowser();
-        $this->signUp();
-        $this->send('PATCH', '/api/v1/me', ['nickname' => 'Іван Сірко']);
-        $this->signInWithGoogle(['sub' => '1001']);
-
-        self::assertSame('Іван Сірко', $this->me()['user']['nickname'] ?? null);
-
-        $this->switchBrowser();
-        $this->signUp();
-        $this->send('PATCH', '/api/v1/me', ['nickname' => 'Максим']);
-        $this->signInWithGoogle(['sub' => '1001']);
-
-        self::assertSame('Іван Сірко', $this->me()['user']['nickname'] ?? null);
-        self::assertSame(1, $this->rowCount('user'));
-    }
-
     // The person changed their mind on the page of Google.
     public function testCancelledSignInLeavesTheBrowserAsItWas(): void
     {
-        $guest = $this->signUp();
+        $account = $this->signUp();
         $this->browser->request('GET', '/connect/google?to=/game/settings');
         $state = $this->authorizationParameters()['state'] ?? '';
 
@@ -202,8 +145,8 @@ final class GoogleSignInTest extends ApiTestCase
 
         self::assertResponseRedirects('/game/settings?sign-in=cancelled');
         self::assertResponseNotHasCookie(self::DEVICE_COOKIE);
-        self::assertSame($guest, $this->me()['user']['id'] ?? null);
-        self::assertSame([], FakeGoogle::requests());
+        self::assertSame($account, $this->me()['user']['id'] ?? null);
+        self::assertCount(1, FakeGoogle::requests());
     }
 
     // An answer with a state this browser did not start, as a page of an attacker would send it.
@@ -233,7 +176,7 @@ final class GoogleSignInTest extends ApiTestCase
 
     public function testFailureOfGoogleLeavesTheBrowserAsItWas(): void
     {
-        $guest = $this->signUp();
+        $account = $this->signUp();
         $cookie = $this->deviceCookie();
         $this->browser->request('GET', '/connect/google');
         FakeGoogle::willRefuse(400);
@@ -242,8 +185,8 @@ final class GoogleSignInTest extends ApiTestCase
 
         self::assertResponseRedirects('/game/settings?sign-in=failed');
         self::assertSame($cookie->getValue(), $this->deviceCookie()->getValue());
-        self::assertSame(['id' => $guest, 'kind' => 'guest'], array_intersect_key($this->me()['user'] ?? [], ['id' => 1, 'kind' => 1]));
-        self::assertSame(0, $this->rowCount('user_identity'));
+        self::assertSame($account, $this->me()['user']['id'] ?? null);
+        self::assertSame(1, $this->rowCount('user_identity'));
     }
 
     /**
@@ -331,20 +274,18 @@ final class GoogleSignInTest extends ApiTestCase
     }
 
     /**
-     * @return array{user: array<mixed>|null, guest: array<mixed>|null}
+     * @return array{user: array<mixed>|null}
      */
     private function me(): array
     {
         $this->send('GET', '/api/v1/me');
-        $data = $this->responseData();
-        $user = $data['user'] ?? null;
-        $guest = $data['guest'] ?? null;
+        $user = $this->responseData()['user'] ?? null;
 
-        if ((null !== $user && !\is_array($user)) || (null !== $guest && !\is_array($guest))) {
+        if (null !== $user && !\is_array($user)) {
             self::fail('The answer does not describe the browser.');
         }
 
-        return ['user' => $user, 'guest' => $guest];
+        return ['user' => $user];
     }
 
     /**
@@ -370,16 +311,5 @@ final class GoogleSignInTest extends ApiTestCase
         }
 
         self::fail('The response does not set the cookie of the session.');
-    }
-
-    /**
-     * @return list<string|null>
-     */
-    private function eventUsers(): array
-    {
-        return array_map(
-            static fn (mixed $id): ?string => \is_string($id) ? UserId::fromBytes($id)->value : null,
-            $this->database()->fetchFirstColumn('SELECT user_id FROM analytics_event'),
-        );
     }
 }

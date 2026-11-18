@@ -134,7 +134,7 @@ describe('the hall of fights', () => {
     };
     expect(session?.game?.pool).toBe('fight');
     expect(session?.config).toEqual(config);
-    // §19: the start goes after the settings, which make a new player a guest.
+    // §19: the start goes after the settings are saved.
     await waitFor(() => expect(analytics.events).toEqual([{ name: 'workout_started', mode: 'fight' }]));
     expect(await storage.settings.get('fight')).toEqual(config);
   });
