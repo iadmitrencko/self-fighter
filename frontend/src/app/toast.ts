@@ -1,5 +1,4 @@
 import { toastTexts } from '../i18n/uk';
-import { ICON_PATHS } from './components/Icon';
 
 /*
  * Toasts: a short message that floats over the screen without moving it and goes away by itself, as
@@ -156,7 +155,13 @@ function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: strin
 
 const SVG = 'http://www.w3.org/2000/svg';
 
-// A line icon of the mockups, as components/Icon.tsx draws it. Decoration: the words say the same.
+// The line icons of the mockups the toasts draw.
+const ICON_PATHS = {
+  close: 'M6 6l12 12M18 6 6 18',
+  check: 'M5 12l5 5 9-10',
+} as const;
+
+// A line icon of the mockups. Decoration: the words say the same.
 function icon(path: string): SVGSVGElement {
   const svg = document.createElementNS(SVG, 'svg');
   const line = document.createElementNS(SVG, 'path');

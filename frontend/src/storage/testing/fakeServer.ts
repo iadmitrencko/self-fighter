@@ -103,7 +103,7 @@ export function createFakeServer(): FakeServer {
       case 'POST me/logout':
         device = null;
 
-        return reply(200, describe());
+        return reply(204);
       case 'GET exercises':
         return reply(200, user.exercises);
       case 'PUT exercises/:id':

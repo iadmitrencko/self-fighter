@@ -340,6 +340,10 @@ describe.each([
 
     await expect(browser.storage.settings.save(fightConfig())).rejects.toEqual(new StorageError('signed-out'));
     await expect(browser.storage.account.rename('Іван')).rejects.toEqual(new StorageError('signed-out'));
+    await expect(browser.storage.exercises.remove(newId())).rejects.toEqual(new StorageError('signed-out'));
+    await expect(browser.storage.attempts.save(finishedFight('win', '2026-11-02T10:00:00.000Z'))).rejects.toEqual(
+      new StorageError('signed-out'),
+    );
     expect(await browser.storage.account.current()).toBeNull();
   });
 
@@ -363,6 +367,10 @@ describe.each([
     expect(await browser.storage.account.current()).toBeNull();
     expect(await browser.storage.attempts.list()).toEqual({ items: [], nextCursor: null });
     expect(await browser.storage.attempts.stats()).toMatchObject({ total: 0 });
+    // The next person on this browser does not play for the account.
+    await expect(browser.storage.attempts.save(finishedFight('win', '2026-11-02T10:00:00.000Z'))).rejects.toEqual(
+      new StorageError('signed-out'),
+    );
   });
 
   it('opens the account again with its data', async () => {

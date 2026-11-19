@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { createSession } from '../../../domain/engine/session';
 import { fightConfig, pullUps, pushUps, squats, testDeps } from '../../../domain/testing/fixtures';
@@ -134,8 +134,7 @@ describe('the hall of fights', () => {
     };
     expect(session?.game?.pool).toBe('fight');
     expect(session?.config).toEqual(config);
-    // §19: the start goes after the settings are saved.
-    await waitFor(() => expect(analytics.events).toEqual([{ name: 'workout_started', mode: 'fight' }]));
+    expect(analytics.events).toEqual([{ name: 'workout_started', mode: 'fight' }]);
     expect(await storage.settings.get('fight')).toEqual(config);
   });
 

@@ -24,8 +24,7 @@ final class AccountTest extends ApiTestCase
 
         $this->send('POST', '/api/v1/me/logout');
 
-        self::assertResponseIsSuccessful();
-        self::assertSame(['user' => null], $this->responseData());
+        self::assertResponseStatusCodeSame(204);
         self::assertTrue($this->issuedCookie()->isCleared());
         self::assertSame(0, $this->rowCount('device'));
         $this->send('GET', '/api/v1/attempts');

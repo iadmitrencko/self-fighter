@@ -20,7 +20,7 @@ export function useCanSignIn(): boolean {
  * The button of Google by its rules for the dark theme: the standard «G», «Увійти через Google»
  * in Google Sans. It leads to the server, which takes the browser to Google and back to this screen.
  */
-export function GoogleButton() {
+function GoogleButton() {
   const { pathname } = useLocation();
 
   return (
@@ -95,7 +95,7 @@ const OUTCOME_NOTICES: Record<Exclude<Outcome, 'done'>, { tone: 'warning' | 'err
 };
 
 // The standard logo of Google: its colors belong to the mark, not to the palette of the site.
-export function GoogleLogo() {
+function GoogleLogo() {
   return (
     <svg className="google-button__logo" viewBox="0 0 48 48" aria-hidden="true">
       <path

@@ -14,7 +14,8 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The events of §19. The browser sends them only after the visitor allowed analytics (§22).
+ * The events of §19. The game sends them only after the player allowed analytics (§22), and it
+ * needs an account (§23.1), so every event names one.
  */
 final readonly class EventController
 {
@@ -29,9 +30,9 @@ final readonly class EventController
 
     // The user comes from the device cookie, never from the body.
     #[Route('/api/v1/events', name: 'api_events', methods: ['POST'])]
-    public function record(Request $request, ?UserId $user): Response
+    public function record(Request $request, UserId $user): Response
     {
-        $limit = $this->analyticsEventLimiter->create($user->value ?? 'address:'.$request->getClientIp())->consume();
+        $limit = $this->analyticsEventLimiter->create($user->value)->consume();
 
         if (!$limit->isAccepted()) {
             throw ApiProblem::tooManyRequests($limit);

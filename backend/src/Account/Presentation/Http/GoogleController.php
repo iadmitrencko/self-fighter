@@ -26,8 +26,8 @@ final readonly class GoogleController
     private const string SESSION_KEY = 'google_sign_in';
     // Only screens of the game (§24) start signing in, so only they are a way back: never another site.
     private const string RETURN_PATTERN = '#^/game(?:/[a-z0-9-]+)*$#D';
-    // §24.1: the settings of the game, where the player signs in and out.
-    private const string DEFAULT_RETURN = '/game/settings';
+    // §24.1: the cossack, the first screen of the game, where signing out leads as well.
+    private const string DEFAULT_RETURN = '/game';
 
     public function __construct(
         private GoogleAccounts $google,

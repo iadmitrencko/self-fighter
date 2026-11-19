@@ -1,18 +1,7 @@
-import type { Outcome } from '../../domain/results/results';
 import type { AttemptStatus } from '../../storage/contract';
 import type { StorageErrorCode } from '../../storage/errors';
-import { commonTexts, memoryOnlyWarning, outcomeTexts, storageMessages } from '../../i18n/uk';
+import { commonTexts, memoryOnlyWarning, storageMessages } from '../../i18n/uk';
 import { useGame } from '../game';
-
-export function OutcomeBadge({ outcome }: { outcome: Outcome }) {
-  const { symbol, name } = outcomeTexts[outcome];
-
-  return (
-    <span className={`badge badge--${outcome}`}>
-      <span aria-hidden="true">{symbol}</span> {name}
-    </span>
-  );
-}
 
 // §15.4: an attempt that has not reached the server yet says so.
 export function StatusBadge({ status }: { status: AttemptStatus }) {

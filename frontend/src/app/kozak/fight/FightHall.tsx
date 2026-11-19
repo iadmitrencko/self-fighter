@@ -96,10 +96,8 @@ function Hall({
       return;
     }
     // The next fight starts from this one (§6); a failure is not worth stopping a fight for.
-    void storage.settings
-      .save(config)
-      .catch(() => undefined)
-      .then(() => analytics.track({ name: 'workout_started', mode: 'fight' }));
+    void storage.settings.save(config).catch(() => undefined);
+    analytics.track({ name: 'workout_started', mode: 'fight' });
     void navigate(kozakPaths.fightBattle);
   };
 

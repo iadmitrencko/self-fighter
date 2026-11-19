@@ -4534,23 +4534,14 @@ button.k-marker::before {
   }
 }
 
-/* The shared screens in the colors of the game: names and headings in Cormorant, numbers in
-   Manrope. */
+/* The shared pieces in the colors of the game. A dialog is headed in Cormorant, as large as the
+   title of a card of the game (k-card__title). */
 
-.kozak .screen-head__title,
 .kozak .dialog__title {
   font-family: var(--k-font-display);
-  font-weight: 700;
-}
-
-/* As large as the title of a card of the game (k-card__title). */
-.kozak .dialog__title {
   font-size: 1.75rem;
+  font-weight: 700;
   line-height: 1.05;
-}
-
-.kozak .screen-head__title {
-  font-size: 2.25rem;
 }
 
 .kozak .k-card {

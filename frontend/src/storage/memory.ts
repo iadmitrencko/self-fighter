@@ -171,13 +171,9 @@ export function createMemoryStorage({ signedIn = true }: MemoryStorageOptions = 
         });
       },
       remove(id) {
-        const owner = person();
-
-        if (owner !== null) {
+        return write((owner) => {
           owner.exercises = owner.exercises.filter((exercise) => exercise.id !== id);
-        }
-
-        return Promise.resolve();
+        });
       },
     },
     settings: {

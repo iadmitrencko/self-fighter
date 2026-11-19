@@ -40,7 +40,7 @@ function storageWithRoomFor(writes: number): Storage {
 }
 
 function entry(finishedAt: string, status: OutboxEntry['status'] = 'pending'): OutboxEntry {
-  return { document: finishedFight('win', finishedAt), owner: null, status };
+  return { document: finishedFight('win', finishedAt), owner: { id: 'olena' }, status };
 }
 
 afterEach(() => {
@@ -165,7 +165,9 @@ describe('outbox', () => {
 
   it('skips damaged entries', () => {
     localStorage.setItem('self-fighter:outbox:a', '{');
-    localStorage.setItem('self-fighter:outbox:b', JSON.stringify({ document: {}, owner: null, status: 'pending' }));
+    localStorage.setItem('self-fighter:outbox:b', JSON.stringify({ ...entry('2026-11-02T10:00:00.000Z'), document: {} }));
+    // §23.1: every attempt belongs to the account that finished it.
+    localStorage.setItem('self-fighter:outbox:c', JSON.stringify({ ...entry('2026-11-02T10:00:00.000Z'), owner: null }));
 
     expect(createOutbox(createBrowserBuffer(localStorage)).entries()).toEqual([]);
   });

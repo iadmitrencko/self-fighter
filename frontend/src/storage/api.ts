@@ -17,7 +17,6 @@ import type {
   AttemptPage,
   AttemptQuery,
   AttemptStore,
-  CurrentUser,
   CustomExercise,
   ExerciseStore,
   GameStorage,
@@ -69,15 +68,13 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     fight: createActiveSessionStore(buffer, `${GAME_SESSION}fight`, isFightSession),
     campaign: createActiveSessionStore(buffer, `${GAME_SESSION}campaign`, isJourneySession),
   };
-  // Nothing in progress goes on with the next person on this browser.
-  const clearSessions = () => {
-    gameSessions.fight.clear();
-    gameSessions.campaign.clear();
-  };
-  // Who used the browser at the last answer, so an attempt finished without a connection still has an owner.
+  // Who used the browser at the last answer.
   let known: BrowserState = NOBODY;
   // Whether the server has answered that at all.
   let answered = false;
+  // The account the battles of this page belong to, until it signs out here. An account that has left
+  // in another tab still owns the battle in progress, so its attempt waits for it (§23.2).
+  let player: Owner | null = null;
   let flushing: Promise<void> | null = null;
   // What the server last said about the game of this user: a battle starts without the network (§15.4).
   let lastGame: GameRecord | null = null;
@@ -89,10 +86,8 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
 
   const me = cached(async () => settle(parseMe(expectStatus(await request('GET', '/api/v1/me'), 200))));
   // Every module of the server answers for its own data, and the screens ask for it once.
-  const exerciseList = cached(() =>
-    ofUser([] as readonly CustomExercise[], '/api/v1/exercises', parseExercises),
-  );
-  const settingsMap = cached(() => ofUser<Settings>({}, '/api/v1/settings', parseSettings));
+  const exerciseList = cached(() => read([] as readonly CustomExercise[], '/api/v1/exercises', parseExercises));
+  const settingsMap = cached(() => read<Settings>({}, '/api/v1/settings', parseSettings));
 
   // Takes in an answer about who uses the browser. The first answer comes while the first data
   // loads, and that data is already of this account, so only another account starts over.
@@ -104,7 +99,10 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     }
     known = browser;
     answered = true;
-    adoptWaiting(browser);
+
+    if (browser.user !== null) {
+      player = { id: browser.user.id };
+    }
 
     return browser;
   }
@@ -115,36 +113,26 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     return browser;
   }
 
-  /**
-   * An attempt finished before the browser knew its account belongs to the account it learns of,
-   * and the outbox says so: after signing out it must not go to the next account (§23.2).
-   */
-  function adoptWaiting({ user }: BrowserState): void {
-    if (user === null) {
-      return;
-    }
-    for (const entry of outbox.entries()) {
-      if (entry.owner === null) {
-        outbox.put({ ...entry, owner: ownerOf(user) });
-      }
-    }
-  }
-
-  // A browser without an account has no data, so it asks for none.
-  async function ofUser<T>(empty: T, path: string, parse: (body: unknown) => T): Promise<T> {
-    if ((await me.get()).user === null) {
-      return empty;
-    }
+  // Reads data of the account. Only the screens behind the sign-in ask for it (§23.1).
+  async function read<T>(empty: T, path: string, parse: (body: unknown) => T): Promise<T> {
     const reply = await request('GET', path);
 
     return reply.status === 401 ? forgotten(empty) : parse(expectStatus(reply, 200));
   }
 
-  // The cookie is gone, for example after the data was deleted in another tab.
+  // The cookie is gone, for example after signing out or deleting the data in another tab.
   function forgotten<T>(empty: T): T {
     remember(NOBODY);
 
     return empty;
+  }
+
+  // Signing out or deleting the data here: the next person on this browser neither continues a
+  // battle of the account nor finishes one for it.
+  function leave(): void {
+    gameSessions.fight.clear();
+    gameSessions.campaign.clear();
+    player = null;
   }
 
   // A write needs the account: the server no longer knows it after signing out in another tab (§23.2).
@@ -210,26 +198,26 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     },
     async signOut() {
       const reply = await request('POST', '/api/v1/me/logout');
-      const browser = reply.status === 401 ? NOBODY : parseMe(expectStatus(reply, 200));
-      // The next person on this browser does not continue the battle of the account.
-      clearSessions();
-      remember(browser);
+
+      // 401: the account has left already, for example in another tab.
+      if (reply.status !== 401) {
+        expectStatus(reply, 204);
+      }
+      leave();
+      remember(NOBODY);
     },
     async deleteData() {
       const browser = await me.get();
+      const reply = await request('DELETE', '/api/v1/me');
 
-      if (browser.user !== null) {
-        const reply = await request('DELETE', '/api/v1/me');
-
-        if (reply.status !== 401) {
-          expectStatus(reply, 204);
-        }
+      if (reply.status !== 401) {
+        expectStatus(reply, 204);
       }
       // The attempts that wait in this browser are data of the user as well.
       for (const { attempt } of waiting(browser, {})) {
         outbox.remove(attempt.id);
       }
-      clearSessions();
+      leave();
       // The browser forgets the account and asks who it is the next time.
       settle(NOBODY);
       me.clear();
@@ -250,10 +238,6 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
       return saved;
     },
     async remove(id) {
-      // A browser without an account has nothing to delete.
-      if ((await me.get()).user === null) {
-        return;
-      }
       expectStatus(await write('DELETE', `/api/v1/exercises/${id}`), 204);
       exerciseList.update((list) => list.filter((exercise) => exercise.id !== id));
     },
@@ -270,18 +254,22 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
   };
 
   const attempts: AttemptStore = {
-    save(attempt) {
-      outbox.put({ document: attempt, owner: ownerOf(known.user), status: 'pending' });
-      void attempts.flush();
+    async save(attempt) {
+      // The game knows who plays before a battle starts, so this waits for nothing then.
+      const owner = player ?? (await me.get()).user;
 
-      return Promise.resolve();
+      if (owner === null) {
+        throw new StorageError('signed-out');
+      }
+      outbox.put({ document: attempt, owner: { id: owner.id }, status: 'pending' });
+      void attempts.flush();
     },
     async get(id) {
       // An attempt that waits for the network is found without it.
       const queued = waiting(known, {}).find(({ attempt }) => attempt.id === id);
 
-      if (queued !== undefined || (await me.get()).user === null) {
-        return queued ?? null;
+      if (queued !== undefined) {
+        return queued;
       }
       const reply = await request('GET', `/api/v1/attempts/${encodeURIComponent(id)}`);
 
@@ -291,7 +279,7 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     },
     async list(query = {}) {
       const browser = await me.get();
-      const page = browser.user === null ? EMPTY_PAGE : await savedPage(query);
+      const page = await savedPage(query);
 
       // Waiting attempts are newer than anything saved, so they belong to the first page only.
       if (query.cursor !== undefined) {
@@ -304,13 +292,8 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
     },
     async stats(filter = {}) {
       const browser = await me.get();
-      let saved = NO_STATISTICS;
-
-      if (browser.user !== null) {
-        const reply = await request('GET', `/api/v1/stats${search(filter)}`);
-        saved =
-          reply.status === 401 ? forgotten(NO_STATISTICS) : parseStatistics(expectStatus(reply, 200));
-      }
+      const reply = await request('GET', `/api/v1/stats${search(filter)}`);
+      const saved = reply.status === 401 ? forgotten(NO_STATISTICS) : parseStatistics(expectStatus(reply, 200));
       const queued = computeStatistics(waiting(browser, filter).map(({ attempt }) => attempt));
 
       return addStatistics(saved, queued);
@@ -323,19 +306,17 @@ export function createApiStorage({ fetch, buffer }: ApiStorageOptions): GameStor
         }
         throw error;
       });
-      let saved = EMPTY_RECORD;
+      let saved: GameRecord;
 
-      if (browser.user !== null) {
-        try {
-          const reply = await request('GET', `/api/v1/game?tz=${encodeURIComponent(timeZone)}`);
-          saved = reply.status === 401 ? forgotten(EMPTY_RECORD) : parseGameRecord(expectStatus(reply, 200));
-          lastGame = saved;
-        } catch (error) {
-          if (lastGame === null || !(error instanceof StorageError) || error.code !== 'offline') {
-            throw error;
-          }
-          saved = lastGame;
+      try {
+        const reply = await request('GET', `/api/v1/game?tz=${encodeURIComponent(timeZone)}`);
+        saved = reply.status === 401 ? forgotten(EMPTY_RECORD) : parseGameRecord(expectStatus(reply, 200));
+        lastGame = saved;
+      } catch (error) {
+        if (lastGame === null || !(error instanceof StorageError) || error.code !== 'offline') {
+          throw error;
         }
+        saved = lastGame;
       }
       // A battle finished without the network has spent its energy and won its level already. One
       // the server refused counts for nothing: the server keeps the energy (§24.4).
@@ -418,11 +399,7 @@ function cached<T>(load: () => Promise<T>): Cached<T> {
 
 // The attempts of an account wait in the browser for that account, whoever signs in meanwhile (§23.2).
 function belongsTo(owner: Owner, { user }: BrowserState): boolean {
-  return owner === null || owner.id === user?.id;
-}
-
-function ownerOf(user: CurrentUser | null): Owner {
-  return user === null ? null : { id: user.id };
+  return owner.id === user?.id;
 }
 
 function search(query: AttemptQuery): string {

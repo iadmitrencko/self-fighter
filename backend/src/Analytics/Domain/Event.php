@@ -21,6 +21,7 @@ final class Event
         private readonly string $mode,
         private readonly ?string $outcome,
         private readonly ?string $error,
+        // None once the account is deleted: the event stays in the numbers of §19 without it (§15.5).
         private readonly ?UserId $user,
         private readonly \DateTimeImmutable $occurredAt,
     ) {
@@ -31,7 +32,7 @@ final class Event
      *
      * @param array<mixed> $fields
      */
-    public static function record(EventId $id, array $fields, ?UserId $user, \DateTimeImmutable $occurredAt): ?self
+    public static function record(EventId $id, array $fields, UserId $user, \DateTimeImmutable $occurredAt): ?self
     {
         $name = EventName::tryFrom(self::text($fields['name'] ?? null));
         $mode = self::text($fields['mode'] ?? null);

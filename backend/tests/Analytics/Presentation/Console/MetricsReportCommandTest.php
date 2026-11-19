@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Analytics\Presentation\Console;
 
+use App\Account\Application\DeleteUser;
 use App\Analytics\Application\RecordEvent;
 use App\Shared\Domain\UserId;
 use App\Tests\Account\NewAccount;
@@ -17,10 +18,11 @@ final class MetricsReportCommandTest extends KernelTestCase
 {
     use ClockSensitiveTrait;
 
-    // Three players: one comes back a week later, one the next day, one has just begun.
+    // Three players: one comes back a week later, one the next day, one has just begun. A fourth one
+    // stumbles on the setup and deletes the account, so the event stays without a player (§15.5).
     protected function setUp(): void
     {
-        [$first, $second, $third] = [$this->signUp(), $this->signUp(), $this->signUp()];
+        [$first, $second, $third, $gone] = [$this->signUp(), $this->signUp(), $this->signUp(), $this->signUp()];
 
         $this->record('2026-11-01 10:00:00', $first, 'workout_started');
         $this->record('2026-11-01 10:20:00', $first, 'workout_completed', ['outcome' => 'win']);
@@ -28,7 +30,8 @@ final class MetricsReportCommandTest extends KernelTestCase
         $this->record('2026-11-01 10:21:00', $first, 'workout_started');
         $this->record('2026-11-09 08:00:00', $first, 'workout_started');
 
-        $this->record('2026-11-01 21:00:00', null, 'setup_error', ['error' => 'exercises-required']);
+        $this->record('2026-11-01 21:00:00', $gone, 'setup_error', ['error' => 'exercises-required']);
+        $this->deleteAccount($gone);
         $this->record('2026-11-01 21:05:00', $second, 'setup_error', ['error' => 'reps-invalid']);
         $this->record('2026-11-01 21:06:00', $second, 'workout_started');
         $this->record('2026-11-02 07:00:00', $second, 'workout_started');
@@ -99,12 +102,20 @@ final class MetricsReportCommandTest extends KernelTestCase
     /**
      * @param array<string, string> $fields
      */
-    private function record(string $time, ?UserId $user, string $name, array $fields = []): void
+    private function record(string $time, UserId $user, string $name, array $fields = []): void
     {
         self::mockTime($time);
         $recordEvent = self::getContainer()->get(RecordEvent::class);
         self::assertInstanceOf(RecordEvent::class, $recordEvent);
 
         $recordEvent($user, json_encode(['name' => $name, 'mode' => 'fight', ...$fields], \JSON_THROW_ON_ERROR));
+    }
+
+    private function deleteAccount(UserId $user): void
+    {
+        $deleteUser = self::getContainer()->get(DeleteUser::class);
+        self::assertInstanceOf(DeleteUser::class, $deleteUser);
+
+        $deleteUser($user);
     }
 }

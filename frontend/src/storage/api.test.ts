@@ -39,23 +39,6 @@ describe('storage over the API', () => {
   });
 
   describe('the account', () => {
-    // §23.1: a browser nobody signed in on asks the server who it is and nothing else.
-    it('asks for no data without an account', async () => {
-      const visitor = createFakeServer();
-      const browser = createApiStorage({ fetch: visitor.fetch, buffer: createBrowserBuffer(null) });
-
-      await browser.exercises.list();
-      await browser.exercises.remove(newId());
-      await browser.attempts.list();
-      await browser.attempts.get(newId());
-      await browser.attempts.stats();
-      await browser.attempts.game('UTC');
-      await browser.account.deleteData();
-
-      expect(visitor.requests).toEqual(['GET /api/v1/me']);
-      expect(visitor.accounts).toBe(0);
-    });
-
     it('asks the server who the user is only once', async () => {
       await storage.account.current();
       await storage.exercises.list();
@@ -114,6 +97,8 @@ describe('storage over the API', () => {
   describe('attempts without the network', () => {
     // §15.4
     it('keeps an attempt finished offline and sends it once the network is back', async () => {
+      // The game knows who plays before a battle starts (§23.1).
+      await storage.account.current();
       const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
       server.online = false;
 
@@ -130,6 +115,8 @@ describe('storage over the API', () => {
     });
 
     it('tries again by itself, less often each time', async () => {
+      await storage.account.current();
+      const requests = server.requests.length;
       vi.useFakeTimers();
       const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
       server.online = false;
@@ -140,7 +127,7 @@ describe('storage over the API', () => {
       server.online = true;
       await vi.advanceTimersByTimeAsync(9_999);
 
-      expect(server.requests).toEqual([]);
+      expect(server.requests).toHaveLength(requests);
 
       await vi.advanceTimersByTimeAsync(1);
 
@@ -180,6 +167,7 @@ describe('storage over the API', () => {
 
     it('deletes the attempts waiting in the browser together with the data', async () => {
       const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
+      await storage.account.current();
       await storage.settings.save(fightConfig());
       storage.gameSessions.fight.save(createSession(fightConfig(), testDeps()));
       server.failNext(503, 2);
@@ -352,6 +340,29 @@ describe('storage over the API', () => {
       expect(server.savedAttempts()).toEqual([attempt]);
     });
 
+    // The account signs out in another tab while this one is in a battle. The battle is still its
+    // own, so the next person who signs in on this browser does not get it.
+    it('keeps a battle for the account that left in another tab during it', async () => {
+      await signIn();
+      server.clearCookie();
+      // The battle opens, and the record of the game is read again.
+      await storage.attempts.game('UTC');
+      const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
+      await storage.attempts.save(attempt);
+      await storage.attempts.flush();
+
+      await signIn(MAKSYM);
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([]);
+      expect((await storage.attempts.list()).items).toEqual([]);
+
+      await signIn();
+      await storage.attempts.flush();
+
+      expect(server.savedAttempts()).toEqual([attempt]);
+    });
+
     // The next person on this browser does not continue the fight of the account.
     it('forgets the attempt in progress on signing out', async () => {
       await signIn();
@@ -468,6 +479,7 @@ describe('storage of the running game', () => {
     server.signIn({ sub: 'tester' });
     vi.stubGlobal('fetch', server.fetch);
     const storage = createBrowserStorage();
+    await storage.account.current();
     server.online = false;
     const attempt = finishedFight('win', '2026-11-02T10:00:00.000Z');
     await storage.attempts.save(attempt);

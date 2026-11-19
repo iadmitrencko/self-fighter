@@ -226,24 +226,22 @@ export function PlayerMenu({ place }: { place: 'header' | 'tabs' }) {
                   {kozakTexts.nav.settings}
                 </Link>
               </li>
-              {account !== null && (
-                <li className="player-menu__end">
-                  {/* Quieter than the rest, so it is not tapped by chance. */}
-                  <button
-                    type="button"
-                    className="player-menu__item player-menu__item--quiet"
-                    disabled={signOut.busy}
-                    onClick={() => {
-                      close();
-                      setFailure(null);
-                      signOut.start();
-                    }}
-                  >
-                    <KozakIcon name="leave" className="player-menu__icon" />
-                    {accountTexts.signOut}
-                  </button>
-                </li>
-              )}
+              <li className="player-menu__end">
+                {/* Quieter than the rest, so it is not tapped by chance. */}
+                <button
+                  type="button"
+                  className="player-menu__item player-menu__item--quiet"
+                  disabled={signOut.busy}
+                  onClick={() => {
+                    close();
+                    setFailure(null);
+                    signOut.start();
+                  }}
+                >
+                  <KozakIcon name="leave" className="player-menu__icon" />
+                  {accountTexts.signOut}
+                </button>
+              </li>
             </ul>
           </>
         )}

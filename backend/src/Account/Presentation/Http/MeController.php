@@ -70,11 +70,11 @@ final readonly class MeController
 
     // §23.2: the browser forgets the account, and its data is out of reach here until the next sign-in.
     #[Route('/api/v1/me/logout', name: 'api_me_logout', methods: ['POST'])]
-    public function logout(Device $device): JsonResponse
+    public function logout(Device $device): Response
     {
         ($this->signOut)($device);
 
-        $response = Json::response(($this->describeBrowser)(null));
+        $response = new Response(null, Response::HTTP_NO_CONTENT);
         $this->cookie->remove($response);
 
         return $response;

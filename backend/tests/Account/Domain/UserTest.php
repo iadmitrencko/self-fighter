@@ -10,7 +10,8 @@ use PHPUnit\Framework\TestCase;
 
 final class UserTest extends TestCase
 {
-    public function testGuestHasNoProfile(): void
+    // The profile comes from the provider of the sign-in (§23.2), so a new account starts without one.
+    public function testStartsWithoutAProfile(): void
     {
         $user = User::signUp(UserId::generate(), new \DateTimeImmutable('2026-11-04 10:00:00.5'));
 

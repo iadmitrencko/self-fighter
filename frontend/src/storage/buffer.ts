@@ -104,8 +104,8 @@ export function createActiveSessionStore<TSession extends Session>(
   };
 }
 
-// The account that finished the attempt, or null when the browser knew none yet.
-export type Owner = Pick<CurrentUser, 'id'> | null;
+// The account that finished the attempt: the game needs one (§23.1).
+export type Owner = Pick<CurrentUser, 'id'>;
 
 // Exactly what goes to the server. A previous release may have written another format version:
 // the server accepts it as is, so the browser never converts it (section 3.7 of the plan).
@@ -178,7 +178,8 @@ function isOutboxEntry(value: unknown): value is OutboxEntry {
     typeof document.id === 'string' &&
     typeof document.schemaVersion === 'number' &&
     typeof document.finishedAt === 'string' &&
-    (owner === null || (isRecord(owner) && typeof owner.id === 'string')) &&
+    isRecord(owner) &&
+    typeof owner.id === 'string' &&
     (status === 'pending' || status === 'rejected')
   );
 }

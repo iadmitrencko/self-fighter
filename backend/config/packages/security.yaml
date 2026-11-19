@@ -16,6 +16,5 @@ security:
     access_control:
         # Anyone may ask who they are: a browser without an account gets no user (§23.1).
         - { path: ^/api/v1/me$, methods: [GET], roles: PUBLIC_ACCESS }
-        # An event of a visitor who has not signed in stays without a user.
-        - { path: ^/api/v1/events$, methods: [POST], roles: PUBLIC_ACCESS }
+        # The game needs an account, so everything else does too, the events of §19 among them.
         - { path: ^/api/, roles: ROLE_USER }

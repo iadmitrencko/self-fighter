@@ -13,7 +13,7 @@ final class CustomExercise
 {
     private function __construct(
         private readonly ExerciseId $id,
-        private UserId $owner,
+        private readonly UserId $owner,
         private string $name,
         // The name compared regardless of case, so the catalog has no two exercises with one name.
         private string $nameKey,
@@ -44,11 +44,6 @@ final class CustomExercise
     public function name(): string
     {
         return $this->name;
-    }
-
-    public function nameKey(): string
-    {
-        return $this->nameKey;
     }
 
     public function description(): string

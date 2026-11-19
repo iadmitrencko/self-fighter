@@ -36,66 +36,6 @@ h1:focus {
   outline: none;
 }
 
-.screen-head {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-m);
-}
-
-.screen-head__text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  min-width: 0;
-}
-
-.screen-head__title {
-  font-family: var(--font-text);
-  font-size: 1.75rem;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-/* «Back» says where it leads, so it reads as a link, not as a guess. It looks as the way back of
-   the journey does (k-back). */
-.back-link {
-  display: inline-flex;
-  align-self: flex-start;
-  align-items: center;
-  gap: var(--space-xs);
-  min-height: var(--tap-target);
-  padding: 0 var(--space-m) 0 var(--space-s);
-  border-radius: var(--radius-s);
-  background: var(--k-line-soft);
-  color: var(--k-parchment);
-  font-size: var(--text-m);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.back-link:hover {
-  color: var(--k-gold-light);
-}
-
-.back-link__icon {
-  width: 1.125rem;
-  height: 1.125rem;
-  flex: none;
-}
-
-@media (min-width: 48rem) {
-  .screen-head__title {
-    font-size: 2.25rem;
-  }
-}
-
-.icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  flex: none;
-}
-
 .hint {
   color: var(--color-text-muted);
   font-size: var(--text-s);
@@ -172,8 +112,8 @@ h1:focus {
   font-size: var(--text-m);
 }
 
-/* Badges of results: a symbol and a word, never the color alone (§16.2). Pills, as the badges of
-   the game are (k-badge). */
+/* §15.4: the badge of an attempt that has not reached the server. A word, never the color alone
+   (§16.2). Pills, as the badges of the game are (k-badge). */
 
 .badge {
   display: inline-flex;
@@ -186,21 +126,6 @@ h1:focus {
   font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;
-}
-
-.badge--win {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-}
-
-.badge--draw {
-  background: var(--k-surface-raised);
-  color: var(--color-text);
-}
-
-.badge--loss {
-  border-color: var(--color-rival);
-  color: var(--color-rival-text);
 }
 
 .badge--pending,

@@ -12,8 +12,8 @@ use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
- * Gives a controller argument of type UserId the user of the request. A nullable argument
- * receives null on the public addresses the firewall lets through without a user.
+ * Gives a controller argument of type UserId the user of the request. The game needs an
+ * account (§23.1), so a request without one is refused.
  */
 final readonly class UserIdResolver implements ValueResolverInterface
 {
@@ -22,7 +22,7 @@ final readonly class UserIdResolver implements ValueResolverInterface
     }
 
     /**
-     * @return iterable<UserId|null>
+     * @return iterable<UserId>
      */
     public function resolve(Request $request, ArgumentMetadata $argument): iterable
     {
@@ -34,9 +34,6 @@ final readonly class UserIdResolver implements ValueResolverInterface
 
         if ($user instanceof SecurityUser) {
             return [$user->id];
-        }
-        if ($argument->isNullable()) {
-            return [null];
         }
 
         throw new ApiProblem(Response::HTTP_UNAUTHORIZED, 'unauthorized');

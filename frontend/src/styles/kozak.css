@@ -234,7 +234,6 @@
   --color-accent-hover: var(--k-gold-light);
   --color-on-accent: var(--k-text-on-gold);
   --color-rival: var(--k-ember);
-  --color-rival-text: var(--k-ember-soft);
   /* An error is a danger, and red stands for the danger in the game. 8:1 on the surface. */
   --color-error: var(--k-ember-soft);
 }

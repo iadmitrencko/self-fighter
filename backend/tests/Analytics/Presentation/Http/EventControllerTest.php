@@ -13,20 +13,15 @@ final class EventControllerTest extends ApiTestCase
 {
     use ClockSensitiveTrait;
 
-    // §19: a visitor who has saved nothing yet is still counted, but no guest appears for it.
-    public function testEventOfAVisitorWithoutUserCreatesNoGuest(): void
+    // §23.1: the game needs an account, so a browser that has not signed in sends no event.
+    public function testEventWithoutAccountIsRefused(): void
     {
-        self::mockTime('2026-11-03 10:00:00');
+        $this->send('POST', '/api/v1/events', ['name' => 'workout_started', 'mode' => 'fight']);
 
-        $this->send('POST', '/api/v1/events', ['name' => 'setup_error', 'mode' => 'fight', 'error' => 'exercises-required']);
-
-        self::assertResponseStatusCodeSame(204);
+        $this->assertError(401, 'unauthorized');
         self::assertResponseNotHasCookie(self::DEVICE_COOKIE);
         self::assertSame(0, $this->rowCount('user'));
-        self::assertSame(
-            [['name' => 'setup_error', 'mode' => 'fight', 'outcome' => null, 'error' => 'exercises-required', 'user_id' => null, 'occurred_at' => '2026-11-03 10:00:00']],
-            $this->events(),
-        );
+        self::assertSame([], $this->events());
     }
 
     // R5: the user comes from the device cookie, and the time from the server.
@@ -75,16 +70,6 @@ final class EventControllerTest extends ApiTestCase
         yield 'an unknown outcome' => [['name' => 'workout_completed', 'mode' => 'fight', 'outcome' => 'knockout']];
         yield 'a sentence for an error code' => [['name' => 'setup_error', 'mode' => 'fight', 'error' => 'Add an exercise']];
         yield 'a list of events' => [[['name' => 'workout_started', 'mode' => 'fight']]];
-    }
-
-    public function testEventsAreLimitedPerAddressBeforeTheFirstSave(): void
-    {
-        $this->exhaustLimit('analytics_event', 'address:'.$this->address);
-
-        $this->send('POST', '/api/v1/events', ['name' => 'workout_started', 'mode' => 'fight']);
-
-        $this->assertError(429, 'rate-limited');
-        self::assertSame([], $this->events());
     }
 
     public function testEventsAreLimitedPerUser(): void

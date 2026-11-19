@@ -170,7 +170,8 @@ final class GoogleSignInTest extends ApiTestCase
 
         $this->browser->request('GET', $answer);
 
-        self::assertResponseRedirects('/game/settings?sign-in=failed');
+        // The sign-in it belonged to is over, so the browser goes to the first screen of the game.
+        self::assertResponseRedirects('/game?sign-in=failed');
         self::assertCount(1, FakeGoogle::requests());
     }
 
@@ -183,7 +184,7 @@ final class GoogleSignInTest extends ApiTestCase
 
         $this->browser->request('GET', '/connect/google/check?'.http_build_query(['state' => $this->authorizationParameters()['state'] ?? '', 'code' => 'expired']));
 
-        self::assertResponseRedirects('/game/settings?sign-in=failed');
+        self::assertResponseRedirects('/game?sign-in=failed');
         self::assertSame($cookie->getValue(), $this->deviceCookie()->getValue());
         self::assertSame($account, $this->me()['user']['id'] ?? null);
         self::assertSame(1, $this->rowCount('user_identity'));
@@ -216,7 +217,7 @@ final class GoogleSignInTest extends ApiTestCase
     #[DataProvider('foreignReturns')]
     public function testReturnsOnlyToTheGame(string $returnTo): void
     {
-        self::assertSame('/game/settings?sign-in=done', $this->signInWithGoogle([], $returnTo));
+        self::assertSame('/game?sign-in=done', $this->signInWithGoogle([], $returnTo));
     }
 
     /**
