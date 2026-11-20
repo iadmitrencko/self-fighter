@@ -34,11 +34,23 @@ function way(rank: string): (string | null)[] {
   return ['aria-valuemin', 'aria-valuenow', 'aria-valuemax'].map((name) => bar.getAttribute(name));
 }
 
-// The columns of the chart of the last seven days, as a screen reader hears them.
-function week(title = 'Останні 7 днів'): (string | null)[] {
-  return within(screen.getByRole('region', { name: title }))
-    .getAllByRole('listitem')
+// The chart of the last seven days.
+function chart() {
+  return within(screen.getByRole('region', { name: 'Останні 7 днів' }));
+}
+
+// The columns of the chart, as a screen reader hears them: a day and its repetitions.
+function week(): (string | null)[] {
+  return chart()
+    .getAllByRole('listitem', { name: /повтор/ })
     .map((day) => day.getAttribute('aria-label'));
+}
+
+// The pills over the chart, one for each exercise chosen in the table.
+function pills(): string[] {
+  const list = chart().queryByRole('list', { name: 'Вправи на графіку' });
+
+  return list === null ? [] : within(list).getAllByRole('button').map((pill) => pill.getAttribute('aria-label') ?? '');
 }
 
 // §24.11: the hint over the rank of what the cossack lacks, or null without one.
@@ -145,17 +157,19 @@ describe('the cossack', () => {
     await storage.attempts.save(levelAttempt('forest-ravens/2/3', 'win', '2026-10-30T09:00:00.000Z', '2026-10-30T11:00:00.000Z'));
     renderKozak('/', { storage });
 
-    const chart = within(await screen.findByRole('region', { name: 'Останні 7 днів' }));
-    expect(chart.getByText(/^88/).closest('p')?.textContent).toBe('88 повторень');
+    await screen.findByRole('region', { name: 'Останні 7 днів' });
+    expect(chart().getByText(/^88/).closest('p')?.textContent).toBe('88 повторень');
     const days = week();
     expect(days).toHaveLength(7);
     expect(days.slice(0, 5).every((day) => day?.endsWith(': 0 повторень'))).toBe(true);
     expect(days[5]).toMatch(/^четвер, 29 жовтня: 82 повторення$/);
     expect(days[6]).toMatch(/^п.ятниця, 30 жовтня: 6 повторень$/);
+    // Nothing is chosen in the table, so no pill stands over the chart.
+    expect(pills()).toEqual([]);
   });
 
-  // §24.10: an exercise of the table shows alone on the chart, until it gives the chart back to every exercise.
-  it('charts the exercise chosen in the table', async () => {
+  // §24.10: the exercises chosen in the table show together on the chart, each named on a pill over it.
+  it('charts the exercises chosen in the table', async () => {
     const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
     const { user } = renderKozak('/', {
       storage: storageWith({
@@ -166,15 +180,17 @@ describe('the cossack', () => {
         week: { '2026-10-29': { 'push-ups': 32 }, '2026-10-30': { 'push-ups': 10, 'pull-ups': 6 } },
       }),
     });
+    const total = () => chart().getByText(/^\d+$/, { selector: '.k-week__total b' }).closest('p')?.textContent;
 
     const pushUps = await screen.findByRole('button', { name: 'Відтискання' });
     expect(pushUps.getAttribute('aria-pressed')).toBe('false');
     await user.click(pushUps);
 
+    // The title stays, and a pill names the exercise.
     expect(pushUps.getAttribute('aria-pressed')).toBe('true');
-    const chart = within(screen.getByRole('region', { name: 'Відтискання за 7 днів' }));
-    expect(chart.getByText(/^42/).closest('p')?.textContent).toBe('42 повторення');
-    expect(week('Відтискання за 7 днів').slice(5)).toEqual([
+    expect(pills()).toEqual(['Прибрати вправу Відтискання з графіка']);
+    expect(total()).toBe('42 повторення');
+    expect(week().slice(5)).toEqual([
       expect.stringMatching(/^четвер, 29 жовтня: 32 повторення$/),
       expect.stringMatching(/^п.ятниця, 30 жовтня: 10 повторень$/),
     ]);
@@ -182,21 +198,55 @@ describe('the cossack', () => {
     expect(scroll).toHaveBeenCalledWith({ block: 'nearest', behavior: 'smooth' });
     scroll.mockRestore();
 
-    // Another exercise takes its place, and the same one again gives the chart back to every exercise.
+    // Another exercise joins it: the chart adds them up day by day, the pills keep the order of the table.
     await user.click(screen.getByRole('button', { name: 'Підтягування' }));
-    expect(pushUps.getAttribute('aria-pressed')).toBe('false');
-    expect(week('Підтягування за 7 днів').at(-1)).toMatch(/: 6 повторень$/);
-    await user.click(screen.getByRole('button', { name: 'Підтягування' }));
+    expect(pushUps.getAttribute('aria-pressed')).toBe('true');
+    expect(pills()).toEqual(['Прибрати вправу Відтискання з графіка', 'Прибрати вправу Підтягування з графіка']);
+    expect(total()).toBe('48 повторень');
     expect(week().at(-1)).toMatch(/: 16 повторень$/);
-    expect(screen.queryByRole('button', { pressed: true })).toBeNull();
 
-    // An exercise with nothing in these days says so, and «Усі вправи» goes back, the focus on the chart.
+    // The same exercise pressed again in the table leaves the chart.
+    await user.click(pushUps);
+    expect(pushUps.getAttribute('aria-pressed')).toBe('false');
+    expect(pills()).toEqual(['Прибрати вправу Підтягування з графіка']);
+    expect(total()).toBe('6 повторень');
+
+    // An exercise with nothing in these days adds nothing, and alone it says so.
     await user.click(screen.getByRole('button', { name: 'Присідання' }));
-    expect(within(screen.getByRole('region', { name: 'Присідання за 7 днів' })).getByText('За ці дні цієї вправи не було.')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Усі вправи' }));
+    expect(total()).toBe('6 повторень');
+    await user.click(screen.getByRole('button', { name: 'Прибрати вправу Підтягування з графіка' }));
+    expect(chart().getByText('За ці дні цієї вправи не було.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Підтягування' }).getAttribute('aria-pressed')).toBe('false');
+    // The pill that took the place of the one taken off has the focus.
+    expect(screen.getByRole('button', { name: 'Прибрати вправу Присідання з графіка' })).toBe(document.activeElement);
+
+    // The last pill gives the chart back to every exercise, the focus on its title.
+    await user.click(screen.getByRole('button', { name: 'Прибрати вправу Присідання з графіка' }));
     expect(screen.getByRole('heading', { level: 2, name: 'Останні 7 днів' })).toBe(document.activeElement);
-    expect(screen.queryByRole('button', { name: 'Усі вправи' })).toBeNull();
+    expect(pills()).toEqual([]);
+    expect(total()).toBe('48 повторень');
     expect(screen.queryByRole('button', { pressed: true })).toBeNull();
+  });
+
+  // §24.10: a pill at the end of the row gives the focus to the one before it, and exercises with nothing
+  // in these days say so together.
+  it('takes the exercises off the chart one by one', async () => {
+    const { user } = renderKozak('/', {
+      storage: storageWith({
+        ...EMPTY_RECORD,
+        exercises: { 'push-ups': { best: 12, total: 42 }, squats: { best: 15, total: 30 }, 'pull-ups': { best: 3, total: 6 } },
+        week: { '2026-10-30': { 'push-ups': 42 } },
+      }),
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Підтягування' }));
+    await user.click(screen.getByRole('button', { name: 'Присідання' }));
+    expect(pills()).toEqual(['Прибрати вправу Присідання з графіка', 'Прибрати вправу Підтягування з графіка']);
+    expect(chart().getByText('За ці дні цих вправ не було.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Прибрати вправу Підтягування з графіка' }));
+    expect(screen.getByRole('button', { name: 'Прибрати вправу Присідання з графіка' })).toBe(document.activeElement);
+    expect(chart().getByText('За ці дні цієї вправи не було.')).toBeTruthy();
   });
 
   // §24.10: the axis ends at the nearest round number over the best day, so its bar fills most of the height.
@@ -205,12 +255,12 @@ describe('the cossack', () => {
       storage: storageWith({ ...EMPTY_RECORD, exercises: { squats: { best: 40, total: 215 } }, week: { '2026-10-30': { squats: 215 } } }),
     });
 
-    const chart = within(await screen.findByRole('region', { name: 'Останні 7 днів' }));
+    await screen.findByRole('region', { name: 'Останні 7 днів' });
     // The other ready-made exercises have not a single repetition, so the table leaves them out.
     expect(physical()).toEqual([['Присідання', '40', '215', '215']]);
-    expect(chart.getByText('300')).toBeTruthy();
-    expect(chart.getByText('150')).toBeTruthy();
-    expect(chart.queryByText('400')).toBeNull();
+    expect(chart().getByText('300')).toBeTruthy();
+    expect(chart().getByText('150')).toBeTruthy();
+    expect(chart().queryByText('400')).toBeNull();
   });
 
   // §24.1: «Грати» of the site leads here, and the screen leads on to a fight and to the journey.

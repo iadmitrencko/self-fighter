@@ -164,12 +164,12 @@ interface StatsProps {
 
 /**
  * §24.10: what the cossack has done, the table of the exercises beside the chart of the last seven
- * days. An exercise of the table switches the chart to itself alone, until it is pressed again or
- * the chart goes back to every exercise. Before the first set done one card says what will stand
- * here, instead of a table of zeros and an empty chart.
+ * days. The exercises chosen in the table take the chart to themselves together, each until it is
+ * pressed again or taken off the chart; with none chosen the chart shows every exercise. Before the
+ * first set done one card says what will stand here, instead of a table of zeros and an empty chart.
  */
 function Stats({ record, today, exercises, customFailed }: StatsProps) {
-  const [chosen, setChosen] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<readonly string[]>([]);
   const chartId = useId();
   const chart = useRef<HTMLElement>(null);
 
@@ -177,10 +177,12 @@ function Stats({ record, today, exercises, customFailed }: StatsProps) {
     return <StatsEmpty />;
   }
 
-  // An exercise of the player deleted meanwhile gives the chart back to every exercise.
-  const exercise = exercises.find(({ id }) => id === chosen) ?? null;
-  const choose = (id: string) => {
-    setChosen(id === exercise?.id ? null : id);
+  // In the order of the table. An exercise of the player deleted meanwhile leaves the chart.
+  const picked = exercises.filter(({ id }) => chosen.includes(id));
+  const ids = picked.map(({ id }) => id);
+  const drop = (id: string) => setChosen((current) => current.filter((other) => other !== id));
+  const toggle = (id: string) => {
+    setChosen((current) => (current.includes(id) ? current.filter((other) => other !== id) : [...current, id]));
     // A narrow screen puts the chart under the table, so it comes into view to show the change.
     chart.current?.scrollIntoView({ block: 'nearest', behavior: scrollBehavior() });
   };
@@ -192,17 +194,17 @@ function Stats({ record, today, exercises, customFailed }: StatsProps) {
         today={today}
         exercises={exercises}
         customFailed={customFailed}
-        chosen={exercise?.id ?? null}
+        chosen={ids}
         chartId={chartId}
-        onChoose={choose}
+        onToggle={toggle}
       />
       <Week
         id={chartId}
         sectionRef={chart}
-        days={weekDays(record, today, exercise?.id ?? null)}
+        days={weekDays(record, today, ids.length === 0 ? null : ids)}
         today={today}
-        exercise={exercise}
-        onAll={() => setChosen(null)}
+        picked={picked}
+        onDrop={drop}
       />
     </div>
   );
@@ -233,7 +235,7 @@ function StatsEmpty() {
  * exercise the cossack has done, the ready-made ones and the player's own, whatever battle did them,
  * a row for each; an exercise without a single repetition stays out. A narrow card puts the exercise
  * over its numbers, so the roles keep the table a table for a screen reader whatever its layout.
- * Each exercise is a switch of the chart beside the table.
+ * Each exercise is a switch: the chart beside the table shows the exercises switched on.
  */
 function Physical({
   record,
@@ -242,8 +244,8 @@ function Physical({
   customFailed,
   chosen,
   chartId,
-  onChoose,
-}: StatsProps & { chosen: string | null; chartId: string; onChoose: (exercise: string) => void }) {
+  onToggle,
+}: StatsProps & { chosen: readonly string[]; chartId: string; onToggle: (exercise: string) => void }) {
   const titleId = useId();
   const pickId = useId();
   const week = weekTotals(record, today);
@@ -281,7 +283,7 @@ function Physical({
           </thead>
           <tbody role="rowgroup">
             {done.map(({ id, name, totals }) => {
-              const pressed = id === chosen;
+              const pressed = chosen.includes(id);
 
               return (
                 <tr key={id} role="row" className={pressed ? 'k-physical__row k-physical__row--chosen' : 'k-physical__row'}>
@@ -292,7 +294,7 @@ function Physical({
                       aria-pressed={pressed}
                       aria-controls={chartId}
                       aria-describedby={pickId}
-                      onClick={() => onChoose(id)}
+                      onClick={() => onToggle(id)}
                     >
                       <span className="k-physical__name">
                         <WithIcon text={name} className="k-physical__tail">
@@ -318,36 +320,40 @@ function Physical({
 }
 
 /**
- * §24.10: the repetitions of each of the last seven days, of every exercise or of the one chosen in
- * the table, a column for a day and today the last. One series needs no legend: the title names it.
- * The peak carries its number, the axis the scale, and every column tells its day and number on
- * hover, on focus and to a screen reader.
+ * §24.10: the repetitions of each of the last seven days, of every exercise or of those chosen in the
+ * table together, a column for a day and today the last. The sum stays one series, so it needs no
+ * legend: a pill over the chart names each exercise chosen and takes it off again. The peak carries
+ * its number, the axis the scale, and every column tells its day and number on hover, on focus and to
+ * a screen reader.
  */
 function Week({
   id,
   sectionRef,
   days,
   today,
-  exercise,
-  onAll,
+  picked,
+  onDrop,
 }: {
   id: string;
   sectionRef: RefObject<HTMLElement | null>;
   days: readonly DayReps[];
   today: string;
-  exercise: ExerciseRef | null;
-  onAll: () => void;
+  picked: readonly ExerciseRef[];
+  onDrop: (exercise: string) => void;
 }) {
   const titleId = useId();
   const title = useRef<HTMLHeadingElement>(null);
+  const pills = useRef(new Map<string, HTMLButtonElement>());
   const total = days.reduce((sum, { reps }) => sum + reps, 0);
   const most = Math.max(...days.map(({ reps }) => reps));
   const top = axisTop(most);
   const peak = days.findLast(({ reps }) => reps === most)?.date;
-  const all = () => {
-    onAll();
-    // The button leaves with the choice, so the focus stays on the chart, at its title.
-    title.current?.focus();
+  const drop = (exercise: string, index: number) => {
+    // The pill leaves with its exercise, so the focus goes to the pill that takes its place, to the one
+    // before it at the end of the row, or with none left to the title of the chart.
+    const next = picked[index + 1] ?? picked[index - 1];
+    onDrop(exercise);
+    (next === undefined ? title.current : pills.current.get(next.id))?.focus();
   };
 
   return (
@@ -355,29 +361,40 @@ function Week({
       <div className="k-week__head">
         <h2 ref={title} id={titleId} className="k-section-title k-week__title" tabIndex={-1}>
           <KozakIcon name="chart" className="k-section-title__icon" />
-          {exercise === null ? (
-            cossackTexts.week
-          ) : (
-            // «за 7 днів» keeps together where a long exercise breaks the title.
-            <span>
-              {exercise.name} <span className="k-week__for">{cossackTexts.weekFor}</span>
-            </span>
-          )}
+          {cossackTexts.week}
         </h2>
-        <div className="k-week__summary">
-          <p className="k-week__total">
-            <b>{formatCount(total)}</b> {cossackTexts.reps(total)}
-          </p>
-          {exercise !== null && (
-            <button type="button" className="k-week__all" onClick={all}>
-              <KozakIcon name="close" className="k-week__all-icon" />
-              {cossackTexts.weekAll}
-            </button>
-          )}
-        </div>
+        <p className="k-week__total">
+          <b>{formatCount(total)}</b> {cossackTexts.reps(total)}
+        </p>
       </div>
+      {picked.length > 0 && (
+        <ul className="k-week__picked" role="list" aria-label={cossackTexts.weekPicked}>
+          {picked.map((exercise, index) => (
+            <li key={exercise.id}>
+              <button
+                ref={(button) => {
+                  if (button !== null) {
+                    pills.current.set(exercise.id, button);
+                  }
+
+                  return () => {
+                    pills.current.delete(exercise.id);
+                  };
+                }}
+                type="button"
+                className="k-week__pill"
+                aria-label={cossackTexts.weekDrop(exercise.name)}
+                onClick={() => drop(exercise.id, index)}
+              >
+                <span className="k-week__pill-name">{exercise.name}</span>
+                <KozakIcon name="close" className="k-week__pill-icon" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       {total === 0 ? (
-        <p className="k-card__text">{exercise === null ? cossackTexts.weekEmpty : cossackTexts.weekNone}</p>
+        <p className="k-card__text">{picked.length === 0 ? cossackTexts.weekEmpty : cossackTexts.weekNone(picked.length)}</p>
       ) : (
         <div className="k-week__chart">
           <div className="k-week__axis" aria-hidden="true">

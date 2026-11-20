@@ -139,8 +139,8 @@ describe('the record of the game', () => {
     expect(weekTotals(record, '2026-11-05')).toEqual({ 'pull-ups': 3, 'push-ups': 11, squats: 25 });
   });
 
-  // §24.10: an exercise chosen in the table shows alone on the chart.
-  it('adds up the last seven days of one exercise', () => {
+  // §24.10: the exercises chosen in the table show on the chart without the rest.
+  it('adds up the last seven days of the exercises chosen', () => {
     const record: GameRecord = {
       ...EMPTY_RECORD,
       week: {
@@ -150,11 +150,15 @@ describe('the record of the game', () => {
         '2026-11-05': { 'pull-ups': 3, 'push-ups': 1 },
       },
     };
+    const reps = (exercises: readonly string[]) => weekDays(record, '2026-11-05', exercises).map(({ reps }) => reps);
 
-    expect(weekDays(record, '2026-11-05', 'squats').map(({ reps }) => reps)).toEqual([20, 0, 0, 5, 0, 0, 0]);
-    expect(weekDays(record, '2026-11-05', 'push-ups').map(({ reps }) => reps)).toEqual([10, 0, 0, 0, 0, 0, 1]);
-    // An exercise with nothing in these days has an empty week.
-    expect(weekDays(record, '2026-11-05', 'plank').map(({ reps }) => reps)).toEqual([0, 0, 0, 0, 0, 0, 0]);
+    expect(reps(['squats'])).toEqual([20, 0, 0, 5, 0, 0, 0]);
+    expect(reps(['push-ups'])).toEqual([10, 0, 0, 0, 0, 0, 1]);
+    // Several exercises add up day by day.
+    expect(reps(['squats', 'push-ups'])).toEqual([30, 0, 0, 5, 0, 0, 1]);
+    // An exercise with nothing in these days adds nothing, and alone it has an empty week.
+    expect(reps(['pull-ups', 'plank'])).toEqual([0, 0, 0, 0, 0, 0, 3]);
+    expect(reps(['plank'])).toEqual([0, 0, 0, 0, 0, 0, 0]);
   });
 
   // An attempt waits in the browser while the server knows the rest: together they count once.

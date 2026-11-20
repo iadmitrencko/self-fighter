@@ -93,11 +93,11 @@ test('the first level of the journey is won and brings glory', async ({ page }) 
   // §24.10: the level brought three pull-ups, one in each set, today; §24.12: and the first day of a run.
   await expect(page.getByRole('table', { name: 'Статистика' }).getByRole('row', { name: /^Підтягування/ }).getByRole('cell')).toHaveText(['1', '3', '3']);
   await expect(page.getByText('1 день поспіль')).toBeVisible();
-  // §24.10: the exercise of the table switches the chart to itself alone.
+  // §24.10: the exercise chosen in the table takes the chart to itself, named on a pill over it.
   const pullUps = page.getByRole('table', { name: 'Статистика' }).getByRole('button', { name: 'Підтягування' });
   await pullUps.click();
   await expect(pullUps).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('region', { name: 'Підтягування за 7 днів' }).getByRole('button', { name: 'Усі вправи' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Останні 7 днів' }).getByRole('button', { name: 'Прибрати вправу Підтягування з графіка' })).toBeVisible();
   await expectAccessible(page);
 });
 

@@ -120,14 +120,15 @@ export const cossackTexts = {
   physicalEmpty: 'Після першого бою чи рівня походу тут з’являться рекорди й повторення кожної вправи, а графік покаже останні 7 днів.',
   // §24.10: the repetitions of every day of the last seven, «840 повторень» over the chart.
   week: 'Останні 7 днів',
-  // An exercise of the table switches the chart to itself alone: «Відтискання за 7 днів».
-  weekFor: 'за 7 днів',
-  weekPick: 'Показати лише цю вправу на графіку за 7 днів',
-  weekAll: 'Усі вправи',
+  // The exercises chosen in the table take the chart to themselves, and over it a pill with its name
+  // takes each of them off again.
+  weekPick: 'Вибрати для графіка за 7 днів',
+  weekPicked: 'Вправи на графіку',
+  weekDrop: (exercise: string) => `Прибрати вправу ${exercise} з графіка`,
   reps: (count: number) => plural(count, { one: 'повторення', few: 'повторення', many: 'повторень' }),
   dayReps: (count: number) => plural(count, { one: '{n} повторення', few: '{n} повторення', many: '{n} повторень' }),
   weekEmpty: 'За ці дні повторень не було. Наступний бій чи рівень походу з’явиться тут.',
-  weekNone: 'За ці дні цієї вправи не було.',
+  weekNone: (exercises: number) => (exercises === 1 ? 'За ці дні цієї вправи не було.' : 'За ці дні цих вправ не було.'),
   customFailed: 'Не вдалося завантажити твої вправи, тут лише готові.',
 };
 

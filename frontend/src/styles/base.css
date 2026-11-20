@@ -16,6 +16,9 @@ body {
   color: var(--color-text);
   font-family: var(--font-text);
   font-size: var(--text-base);
+  /* Cormorant writes old-style figures, whose 7 and 3 hang below the line: «Останні 7 днів». Every
+     font of the site writes lining figures instead, which stand on it. */
+  font-variant-numeric: lining-nums;
   line-height: 1.5;
 }
 
