@@ -10,7 +10,7 @@
 @import '../styles/frame.css';
 
 .app-noscript {
-  padding-block: var(--space-xl);
+  padding-top: var(--space-xl);
 }
 
 /* Screens: the width of the site */

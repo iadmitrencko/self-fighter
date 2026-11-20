@@ -701,7 +701,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-l);
-  padding-block: var(--space-3xl) var(--space-4xl);
+  padding-top: var(--space-3xl);
 }
 
 .error-page__title {

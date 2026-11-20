@@ -417,7 +417,7 @@
   width: 100%;
   max-width: calc(var(--page-width) + 2 * var(--page-gutter));
   margin-inline: auto;
-  padding: var(--space-l) var(--page-gutter) var(--space-3xl);
+  padding: var(--space-l) var(--page-gutter) 0;
 }
 
 /* A phone: a bar at the bottom of the window, in reach of the thumb, over the question of consent.

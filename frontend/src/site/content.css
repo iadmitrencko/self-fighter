@@ -4,7 +4,7 @@
  */
 
 .page {
-  padding-block: var(--space-l) var(--space-xl);
+  padding-top: var(--space-l);
 }
 
 /* Breadcrumbs */

@@ -137,8 +137,10 @@ body {
 
 /* Footer */
 
+/* The one room between the content and the footer, the same on every page: a page ends at its content
+   and adds nothing under it. */
 .site-footer {
-  margin-top: var(--space-3xl);
+  margin-top: var(--space-xl);
 }
 
 .site-footer__inner {
@@ -184,6 +186,10 @@ body {
 }
 
 @media (min-width: 48rem) {
+  .site-footer {
+    margin-top: var(--space-2xl);
+  }
+
   .site-footer__inner {
     grid-template-columns: minmax(0, 1fr) auto;
     column-gap: var(--space-xl);
